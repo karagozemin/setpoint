@@ -201,7 +201,7 @@ function BeforeAfter({ scenario }: { scenario: OperatorScenarioViewModel }) {
   );
 }
 
-export default function App() {
+export default function EvidenceApp() {
   const [scenarioId, setScenarioId] = useState(initialScenarioId);
   const [scenario, setScenario] = useState<OperatorScenarioViewModel | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -238,7 +238,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <a className="wordmark" href="#top" aria-label="Setpoint operator console home">
+        <a className="wordmark" href="/evidence" aria-label="Setpoint evidence console home">
           <span className="wordmark-name">SETPOINT</span>
           <span className="wordmark-section">/ OPERATOR CONSOLE</span>
         </a>

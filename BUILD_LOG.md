@@ -1,5 +1,48 @@
 # Build log
 
+## 2026-09-26 — M6 live product
+
+### Implemented
+
+- Replaced the artifact-console root with an editorial product landing at `/`, a live operator workflow at `/app`, and the preserved historical console at `/evidence`.
+- Added a browser-safe `RWAIndexLiveAdapter` that detects only the registered external vault, verifies its base asset/oracle/swap adapter links, reads live balances, targets, oracle timestamps, guards, roles, and agent sessions, and exposes explicit live RPC/block provenance.
+- Added a precise allocation editor with 100% total validation, the five-asset allowlist, and an 80% Setpoint per-asset bound. Proposed targets remain analysis inputs and do not mutate the external vault strategy.
+- Reused the frozen static baseline to construct the simple batch outside React. The live path re-reads state, validates policy, refuses stale accounting, and runs exact `rebalance(Trade[])` simulation from the configured manager identity when inputs are current.
+- Added EIP-1193 wallet connect, chain detection, switch/add Robinhood Chain testnet, external manager/session authorization checks, calldata copy/export, authorized submission, receipt wait, explorer linking, and confirmed-state re-read.
+- Kept live and historical data boundaries separate. `/app` imports no artifact/scenario adapter; `/evidence` retains byte-identical checked-in evidence and no writable execution surface.
+- Added direct-route Vercel rewrites and a CSP exception only for the verified public RPC.
+- Added `pnpm live:smoke`, four live-adapter tests, and five product-boundary tests.
+- Recorded the live boundary in Decision 0002 and rewrote the README around the real product.
+
+### Live findings and limitations
+
+- The configured RWA Index oracle observations are genuinely stale relative to the deployed 86,400-second guard. Live NAV/drift calls revert with `StalePrice`; the app displays raw balances/targets and returns `NO_TRADE / STALE_PRICE` without substitution.
+- The public RPC serves `latest` state but rejected explicit block-number `eth_call` at a just-reported head. Reads therefore use batched latest windows with an observed block identity; a new exact simulation is mandatory immediately before submission.
+- The deployed Synthra adapter does not expose a verified public executable quote method. The fork sampler depends on disposable allowance/inventory mutation and is not used live. A recoverable full-batch failure therefore remains fail-closed rather than producing a fabricated adaptive result.
+- No funded deployment key is configured. More importantly, no Setpoint contract is required by the implemented external-vault path: the vault already enforces authorization and guards. No vanity contract or sandbox is deployed.
+- The configured manager can be used as an `eth_call` identity, but a random connected wallet cannot submit a manager-only rebalance. Unauthorized users receive export actions only.
+
+### Validation
+
+```bash
+pnpm install --frozen-lockfile
+pnpm security:demo
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm demo:check
+pnpm live:smoke
+```
+
+- 86/86 tests pass.
+- Live smoke: chain ID 46630; vault/oracle/adapter/base bytecode present; five live asset/oracle reads; five stale observations; exact vault `eth_call` capability confirmed.
+- Security invariants remain 11/11.
+- M2 planner SHA-256 remains `dcd079ed25ff6fd7683c947fbf46748abd70862fe2a85a368c919b26fe7cee92`.
+- No file under `src/core/` and no accepted historical artifact changed.
+- Vercel preview: `https://setpoint-fl1z2lkvh-karagozs-projects.vercel.app` (deployment-protected). Hosted visual checks passed for `/`, `/app`, the live `NO_TRADE` result, mobile, `/evidence`, wallet-disconnected state, and forced RPC failure.
+- Review screenshots: `docs/images/m6-landing-desktop.png`, `m6-live-vault.png`, `m6-analysis-result.png`, `m6-mobile.png`, and `m6-evidence.png`.
+- Production was not promoted before preview review.
+
 ## 2026-09-26 — Public demo and deployment readiness
 
 ### Implemented

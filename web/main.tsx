@@ -1,9 +1,9 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App";
+import Router from "./Router";
 import "./styles.css";
 
-class ConsoleErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+class ProductErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   state = { hasError: false };
 
   static getDerivedStateFromError() {
@@ -11,7 +11,7 @@ class ConsoleErrorBoundary extends Component<{ children: ReactNode }, { hasError
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("Operator console render failed", error, info);
+    console.error("Setpoint product render failed", error, info);
   }
 
   render() {
@@ -19,9 +19,9 @@ class ConsoleErrorBoundary extends Component<{ children: ReactNode }, { hasError
       return (
         <main className="fatal-state">
           <p className="eyebrow">Application error</p>
-          <h1>Evidence could not be rendered.</h1>
+          <h1>Setpoint could not be rendered.</h1>
           <p>This is an application error, not a Setpoint NO_TRADE decision.</p>
-          <button onClick={() => window.location.reload()} type="button">Reload console</button>
+          <button onClick={() => window.location.reload()} type="button">Reload application</button>
         </main>
       );
     }
@@ -37,7 +37,7 @@ if (root === null) {
 }
 
 createRoot(root).render(
-  <ConsoleErrorBoundary>
-    <App />
-  </ConsoleErrorBoundary>,
+  <ProductErrorBoundary>
+    <Router />
+  </ProductErrorBoundary>,
 );

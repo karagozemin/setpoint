@@ -1,220 +1,164 @@
 # Setpoint
 
-Setpoint is a non-custodial safety and execution orchestration layer for onchain vault rebalances. It preflights simple rebalances and adapts only when liquidity or vault constraints make them unsafe.
+Setpoint is a non-custodial safety and execution orchestration layer for onchain vault rebalances.
 
-The source of truth is [Setpoint PRD v1.2](./Setpoint_PRD_v1_2.md). Its hybrid execution decision is backed by the accepted [architecture decision](./docs/decisions/0001-hybrid-rebalance-orchestration.md); [PRD v1.1](./Setpoint_PRD_v1_1.pdf) is retained for history and the [v1.1 → v1.2 changelog](./Setpoint_PRD_v1_1_to_v1_2_CHANGELOG.md) summarizes the revision. This repository implements M0–M4.2 execution evidence, the M5 operator console, and a reproducible security/failure evidence suite for the RWA Index deployment on Robinhood Chain testnet. It does not contain a production execution service, CoW/0x adapters, custody, a DEX, cross-vault netting, or new vault accounting.
+It reads a vault's current state, validates an operator's proposed allocation, constructs the simplest coherent rebalance, and simulates the exact vault call. A safe full batch returns `FAST_PATH`. Recoverable execution failures may enter `ADAPTIVE_FALLBACK` only when trustworthy executable-liquidity evidence exists. Invalid, stale, unsupported, or unprovable paths return `NO_TRADE`.
 
-## M1 status
+The governing product document is [Setpoint PRD v1.2](./Setpoint_PRD_v1_2.md). The hybrid policy is recorded in [Decision 0001](./docs/decisions/0001-hybrid-rebalance-orchestration.md), and the live product boundary in [Decision 0002](./docs/decisions/0002-live-product-boundary.md).
 
-The harness:
+## Live app
 
-1. starts a disposable Anvil fork of Robinhood Chain testnet (`chainId 46630`);
-2. verifies the pinned external contracts and real role holders;
-3. observes the deployed stale-oracle failure before changing state;
-4. impersonates the existing authorized feeder on the fork and re-timestamps the existing prices;
-5. calls the deployed testnet-only pool syncer as its real owner and checks all five real Synthra pools;
-6. reads the vault's authoritative NAV, balances, targets, drift, and guard parameters;
-7. constructs a small USDC-hub corrective `Trade[]` from the live over/underweights;
-8. requires `rebalance(Trade[])` to pass `eth_call` from the real manager address;
-9. executes the same call only on the disposable fork and verifies strict drift reduction and the NAV floor; and
-10. writes the complete evidence record to `artifacts/rwa-index-m1-latest.json`.
+The M6 product has three routes:
 
-The external source is included as the pinned git submodule `third_party/rwa-index` at commit `b2456ca5400ba9ec36d81691554b889fb9250513`.
+- `/` — focused product landing page;
+- `/app` — live Robinhood Chain testnet vault analysis and wallet workflow; and
+- `/evidence` — the historical fork-backed M4.2/M5 evidence console.
 
-## M2 status
-
-The static baseline reproduces the upstream RWA Index-style policy without depth-aware optimization:
-
-- value every delta with the vault oracle;
-- split desired notional into legs no larger than the deployed 10%-NAV cap;
-- emit every overweight sale to mock USDC before any underweight purchase;
-- set `minAmountOut` to the vault's oracle output multiplied by its 98% floor;
-- simulate the complete batch through the real `rebalance(Trade[])` interface; and
-- after a successful fork transaction, discard the old plan and read authoritative state again.
-
-The one-command runner covers relatively deep toy liquidity, thin toy liquidity, asymmetric liquidity, a large target change, a defensive cash target, and stale-oracle no-trade. It writes one JSON record per scenario under `artifacts/baseline/` and an aggregate `artifacts/baseline-summary.json`.
-
-M2 is a control group only. It makes no claim that Setpoint outperforms this baseline.
-
-## M3 status
-
-Solver v1 is a reusable, chain-independent module under `src/core/`. It validates policy and confirmed portfolio inputs, classifies target ranges, generates one deterministic USDC-hub step, enforces balance and leg constraints, and returns either a simulation-approved `RebalancePlan` or a typed `NoTradeResult`.
-
-The RWA adapter maps real vault state and guards into the core types. The runner executes at most one approved step, discards the plan, re-reads confirmed fork state, and solves again. It uses the exact M2 scenario definitions through one shared matrix module; M2 remains independently runnable.
-
-M3 deliberately has no pool-depth input, quote-curve optimization, gas model, or liquidity-aware `INSUFFICIENT_OUTPUT` backoff. Those are M4 boundaries. Its artifacts record observed behavior but make no performance comparison with M2.
-
-## M4 status
-
-Solver v2 consumes reproducible executable-liquidity curves. The RWA sampler calls the deployed `SynthraSwapAdapter.swap()` path with `eth_call` from isolated Anvil snapshots; it does not mistake the adapter's advisory spot `quote()` for executable depth. Candidate sizes are bounded by target distance, vault caps, balances, cash policy, turnover policy, quote validity, and the oracle min-out floor.
-
-The M4 comparison runner restores the baseline and Setpoint paths to the identical post-strategy fork state. Its common primary terminal criterion is all target bands satisfied; deployed 5% drift-trigger status is reported separately. Both paths may continue below that informational trigger during the comparison, without changing any deployed guard. The standalone M2 baseline remains unchanged.
-
-Current toy-pool evidence is mixed and is not a marketing claim: the static baseline reaches the target bands in the moderate, asymmetric, and defensive scenarios; Solver v2 remains outside the bands at the common cycle cap or runs out of safe liquidity. For the large target change, static sizing executes nothing, while Solver v2 makes two safe steps before the NFLX quote curve has no size compatible with the vault's 98% oracle floor. See the versioned M4 artifacts for exact values.
-
-## M4.1 status
-
-The batch planner evaluates every materially relevant USDC-hub sell and buy in one confirmed state. It uses each sell's oracle-floor `minAmountOut`—not optimistic quote output—to fund later buys, preserves cash requirements, and ranks a bounded candidate set lexicographically by target-band drift, quote loss, turnover, safety margin, leg count, and stable ID. A failed `INSUFFICIENT_OUTPUT` backs off only the tightest sampled leg before rebuilding.
-
-The final fork evidence is deliberately mixed. Deep and asymmetric scenarios now reach all target bands in three and two batches respectively, and defensive cash reaches them in one. Thin liquidity executes a five-leg safe subset but stops with the NFLX buy curve below the oracle floor. The large target case improves from 31.025554% to 19.113279% drift in one three-leg batch, then stops for the same real NFLX constraint. M2 remains faster in every normal scenario where it succeeds, and still has lower final drift in thin. These are testnet toy-pool observations, not production performance claims.
-
-## M4.2 status
-
-Setpoint now uses the simple coherent planner as its default fast path. It checks state, policy, exact-size executable quotes, conservative balances, configured hard limits, and the real vault simulation. A passing batch executes unchanged; adaptive planning is not invoked merely to seek a marginally cheaper route.
-
-Only explicitly recoverable failures activate the existing M4.1 planner. On the final fork, deep, thin, asymmetric, and defensive scenarios all selected `FAST_PATH`, completed in one batch, and exactly matched M2's final states. The large-target fast path reproduced `INSUFFICIENT_OUTPUT`, automatically selected `ADAPTIVE_FALLBACK`, executed the same safe 22.5%-NAV subset as M4.1, then refused the unsafe residual NFLX route. Stale prices selected `NO_TRADE` without invoking fallback.
-
-## M5 operator console
-
-The M5 console is a thin React presentation layer over the accepted M4.2 artifacts. It presents the three core demo flows without reimplementing portfolio math, liquidity logic, simulation classification, or hybrid mode selection:
-
-- normal rebalance → `FAST_PATH` → one confirmed batch → target bands reached;
-- large target → `INSUFFICIENT_OUTPUT` → `ADAPTIVE_FALLBACK` → three-leg safe subset → residual `NO_SAFE_LIQUIDITY`; and
-- stale oracle → `NO_TRADE` before simulation, fallback, or execution.
-
-![Setpoint M5 operator console](./docs/images/operator-console.png)
-
-The console loads versioned JSON from `artifacts/hybrid/` and `artifacts/security/` through deterministic presentation adapters. Its “View raw evidence” and “Download JSON” actions serve those exact source artifacts. Evidence levels are explicit; fork-backed screens do not imply production or live-fund execution.
-
-The compact **Safety cases** selector adds rejected-policy, unsupported-route, unsafe-liquidity, and unknown-failure evidence without changing the three accepted core demo flows. Stale-oracle evidence remains one of the primary core flows. Fork-backed and deterministic integration-test evidence are labeled separately, and missing portfolio state is left unavailable rather than reconstructed.
-
-Run it locally:
+Run locally:
 
 ```bash
 pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open `http://localhost:5173`. Validate and preview the production bundle with:
+Open `http://localhost:5173`. Public vault reads do not require a wallet. MetaMask, Rabby, and other EIP-1193 wallets can connect for network/authorization detection and transaction submission when the account is actually authorized.
 
-```bash
-pnpm typecheck
-pnpm test
-pnpm build
-pnpm preview
+The current production alias is [setpoint-neon.vercel.app](https://setpoint-neon.vercel.app). The M6 build must be previewed and reviewed before that alias is promoted; this README does not claim promotion before it happens.
+
+Reviewed M6 preview: `https://setpoint-fl1z2lkvh-karagozs-projects.vercel.app` (Vercel deployment protection may require team access).
+
+## What it does
+
+The live workflow is:
+
+1. select or enter a supported vault;
+2. read the current chain, block, contract links, balances, oracle timestamps, targets, and hard guards;
+3. review or propose a bounded target allocation;
+4. re-read confirmed state and validate policy;
+5. build the frozen simple RWA Index-style batch;
+6. simulate the exact `rebalance(Trade[])` calldata with `eth_call` from the configured manager identity;
+7. return a typed Setpoint decision;
+8. export calldata when the connected wallet is unauthorized; or
+9. re-simulate, submit with the authorized wallet, wait for confirmation, and re-read state.
+
+RPC, unsupported-integration, wallet-rejection, and transaction-revert errors are application states. They are not `NO_TRADE` decisions. A genuinely stale authoritative oracle is `NO_TRADE`.
+
+## Live integration
+
+The registered external integration is RWA Index on Robinhood Chain testnet (`chainId 46630`):
+
+| Contract | Address |
+|---|---|
+| Vault | `0x357CD10343829DBd5889c7b0B2fBc4388fC4875B` |
+| Oracle | `0x2F2316d6D4a8952730a71BfCD9fa0Af5A0138AB9` |
+| Synthra swap adapter | `0x6E498DB59449aF170A9525a69456154F226a4E03` |
+| Mock USDC base asset | `0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA` |
+
+RWA Index is an external technical integration target. It is not a customer, partner, production Setpoint deployment, or live funds under Setpoint management. The pinned source is included under `third_party/rwa-index` at upstream commit `b2456ca5400ba9ec36d81691554b889fb9250513`.
+
+At the latest M6 verification, all five configured oracle observations were older than the vault's 24-hour freshness guard. The live UI therefore shows raw onchain balances and targets but deliberately leaves authoritative NAV, weights, and drift unavailable. `Analyze rebalance` returns real `NO_TRADE / STALE_PRICE`. It does not fall back to artifact data.
+
+The public RPC serves `latest` but rejects explicit block-number `eth_call` at its reported head. Setpoint batches a latest-state read window and displays the observed block as provenance. It always performs a fresh exact simulation immediately before an authorized submission.
+
+The deployed swap adapter has no verified public quote method suitable for executable depth. Fork-only allowance/inventory probes are not used in `/app`. If a full live batch fails, adaptive sizing remains fail-closed until a truthful live quote adapter exists.
+
+## Wallet and execution
+
+The app supports injected EIP-1193 wallets, account display, chain detection, and switch/add-network requests for Robinhood Chain testnet. It checks both the vault's `MANAGER_ROLE` and active agent-session authorization.
+
+- Unauthorized wallet: analyze, copy calldata, or export an execution request.
+- Authorized wallet: exact re-simulation, `rebalance(Trade[])` submission, receipt wait, explorer link, and confirmed-state re-read.
+- Wallet cancellation: `WALLET_REJECTION`, never `NO_TRADE`.
+- Transaction revert: `TRANSACTION_REVERT`, never a simulation result.
+
+There is no Setpoint-owned smart-contract deployment. The repository had no funded deployment credential, and the external vault already enforces the useful policy and authorization controls. An unused registry or forwarding contract would be a vanity deployment, so M6 does not introduce one. No sandbox deployment is claimed.
+
+## Architecture
+
+```text
+React product UI
+      ↓
+RWAIndexLiveAdapter        /app — live RPC only
+      ↓
+viem public/wallet clients
+      ↓
+external RWA Index vault
+
+artifact view adapters     /evidence — checked-in JSON only
+      ↓
+historical M4.2/security evidence
 ```
 
-## Security and failure demonstrations
+`src/core/` remains the frozen chain-independent solver. The live adapter is under `src/live/`; it reuses the accepted static planner and exact ABI rather than implementing portfolio math in React. Historical artifact adapters remain under `web/data/` and are loaded only by `/evidence`.
 
-The security suite proves the current fail-closed behavior; it does not add a new solver mode. It covers:
+## Security
 
-- stale accounting → `STALE_PRICE` with no fallback or execution;
-- a policy-breaking target → `INVALID_POLICY` before simulation;
-- an unsupported direct route → rejection without silently dropping the leg;
-- the accepted large-target fork result → a simulation-approved safe subset followed by refusal of unsafe USDC→NFLX liquidity; and
-- an unknown simulation failure → no adaptive fallback or execution.
+The [security model](./docs/SECURITY.md) documents trust assumptions, the recoverable-failure allowlist, threats addressed, and threats out of scope. It is not an audit or formal-verification claim.
 
-Run the deterministic generator and invariant validator:
+The deterministic security suite covers stale accounting, invalid target policy, unsupported routes, unsafe residual liquidity, and unknown simulation failure. Its 11 invariants require simulation gating, default-closed fallback, confirmed-state re-read, and external authorization enforcement.
 
 ```bash
 pnpm security:demo
 ```
 
-Outputs are written to `artifacts/security/`. See [the security model](./docs/SECURITY.md) for evidence levels, trust assumptions, demonstrated invariants, and threats that remain out of scope. This evidence is not an audit or formal verification.
+## Technical evidence
 
-## Public demo
+`/evidence` preserves the accepted historical flows:
 
-The read-only operator console is live at **[setpoint-neon.vercel.app](https://setpoint-neon.vercel.app)**. It is deployed as a static Vite site on Vercel.
+- normal rebalance → `FAST_PATH`;
+- large target → `INSUFFICIENT_OUTPUT` → `ADAPTIVE_FALLBACK` → safe three-leg subset;
+- stale oracle → `NO_TRADE`; and
+- policy, route, unsafe-liquidity, and unknown-revert security cases.
 
-The public demo represents checked-in historical fork evidence and deterministic integration-test evidence. It is read-only: it has no wallet connection, transaction submission, writable API, RPC credential, Anvil trigger, custody path, or production execution service. Fork-only transaction hashes are labeled as fork transactions and are not linked to a public explorer.
-
-The default scenario is **Large Target / Adaptive Fallback**. It preserves the accepted result: a 10-leg, 60.051107%-NAV simple batch fails exact-vault simulation with `INSUFFICIENT_OUTPUT`; a simulation-approved three-leg subset executes 22.5% NAV turnover; drift moves from 31.025554% to 19.113279%; and the unsafe residual USDC→NFLX route is refused with `NO_SAFE_LIQUIDITY`.
-
-Validate the complete public bundle locally:
-
-```bash
-pnpm install --frozen-lockfile
-pnpm security:demo
-pnpm typecheck
-pnpm test
-pnpm demo:check
-pnpm preview
-```
-
-`pnpm demo:check` builds the app, verifies that every emitted evidence JSON is byte-identical to its checked-in source, confirms the frozen hashes/results, and scans the deployable output for local paths, localhost references, common credential signatures, and writable execution surfaces.
-
-Vercel settings are committed in `vercel.json`:
-
-- framework: Vite;
-- build command: `pnpm build`;
-- output directory: `dist/operator-console`; and
-- repository root: the repository root.
-
-After authenticating the Vercel CLI, create a preview and then promote a reviewed build:
-
-```bash
-npx vercel
-npx vercel --prod
-```
-
-The production bundle fetches only the selected scenario's checked-in JSON plus the M4.2 summary when needed. Evidence is never reconstructed in the browser. Project source, [PRD v1.2](./Setpoint_PRD_v1_2.md), [security model](./docs/SECURITY.md), and reproduction instructions remain linked from the console without turning it into a documentation portal.
+The large-target proof is historical fork evidence: 31.025554% initial drift, 10 attempted legs, 60.051107% NAV attempted turnover, a real-vault `INSUFFICIENT_OUTPUT`, three safe legs, 22.5% NAV executed turnover, 19.113279% confirmed drift, and a refused USDC→NFLX residual. Fork transaction hashes are never linked as public-chain transactions.
 
 ## Reproduce
 
-Prerequisites:
-
-- Node.js 20 or newer
-- Corepack/pnpm
-- Foundry tools (`anvil` and `cast`)
-- network access to the public Robinhood Chain testnet RPC
-
-From a fresh clone:
+Prerequisites are Node.js 20+, pnpm, Foundry tools for the historical fork runners, and network access to the public Robinhood Chain testnet RPC.
 
 ```bash
 git submodule update --init --recursive
 corepack enable
 pnpm install --frozen-lockfile
+pnpm security:demo
 pnpm typecheck
 pnpm test
+pnpm build
+pnpm demo:check
+pnpm live:smoke
+```
+
+Historical milestones remain independently runnable:
+
+```bash
 pnpm m1:rwa-index
 pnpm m2:baseline
 pnpm m3:solver
 pnpm m4:adaptive
 pnpm m4:batch
 pnpm m4:hybrid
-pnpm security:demo
-pnpm build
 ```
 
-No private key is needed. The command starts and cleans up Anvil itself. It uses fork-only account impersonation for the deployed oracle feeder/syncer owner and vault manager.
-
-The source RPC can be overridden:
-
-```bash
-RWA_SOURCE_RPC_URL=https://your-rpc.example pnpm m1:rwa-index
-```
-
-An explicit fork block is also supported with `RWA_FORK_BLOCK_NUMBER`, but the public RPC is documented upstream as non-archival and may not serve older state.
+`pnpm live:smoke` is read-only. It checks chain ID, current block, deployed bytecode, live state/oracle/guard reads, and exact `eth_call` capability. It reports the absence of a Setpoint deployment instead of inventing one.
 
 ## Repository layout
 
 ```text
-config/rwa-index.json             chain, addresses, and pinned upstream revision
-integrations/rwa-index/src/       ABI, state reader, candidate builder, fork harness
-src/core/                         chain-independent policy, liquidity, Solver v1/v2
-web/data/                         deterministic artifact-to-view-model adapter and tests
-web/components/                   operator-console presentation components
-web/App.tsx                       single-screen M5 console
-scripts/m1-rwa-index.sh           disposable Anvil lifecycle and M1 entry point
-scripts/m2-baseline.sh            scenario runner and static-baseline entry point
-scripts/m3-solver.sh              scenario runner and Solver v1 entry point
-scripts/m4-adaptive.sh            liquidity sampling and equivalent-state comparison
-scripts/m4-batch.sh               multi-leg comparison on a fresh disposable fork
-scripts/m4-hybrid.sh              simple fast path plus adaptive fallback benchmark
-third_party/rwa-index/            pinned external project (git submodule)
-artifacts/                        versioned latest JSON evidence; local Anvil logs ignored
-docs/images/operator-console.png  captured M5 console screenshot
-BUILD_LOG.md                      implementation record, assumptions, and blockers
+src/core/                       frozen planning and hybrid semantics
+src/live/                       live integration boundary and types
+web/live/                       real operator UI and EIP-1193 wallet flow
+web/data/ + web/components/     historical evidence presentation
+web/Landing.tsx                 product landing
+web/Router.tsx                  /, /app, /evidence routing
+integrations/rwa-index/         fork harness and accepted planners/adapters
+artifacts/                      versioned historical evidence
+scripts/live-smoke.ts           non-mutating public-RPC validation
+config/rwa-index.json           verified external deployment configuration
+third_party/rwa-index/          pinned external source
 ```
 
-## Accuracy and limitations
+## Historical milestones and limitations
 
-- The deployed base asset is an 18-decimal mintable mock USDC, not production USDC.
-- The stock tokens and Synthra contracts are external Robinhood Chain testnet deployments; their pool liquidity is toy-sized and is not evidence of production liquidity.
-- The oracle refresh deliberately preserves the deployed price values and updates only their timestamps on the fork. This proves stale-data recovery without claiming those old values are current market prices.
-- Pool synchronization uses the external project's testnet-only syncer. Mainnet markets would require real price discovery/arbitrage rather than this helper.
-- Every state-changing operation is confined to local Anvil. Setpoint does not custody or transfer live funds.
-- The M5 console is a static view of versioned historical evidence. It neither starts Anvil nor submits transactions.
-- M1 proves compatibility, M2 establishes the static control group, M3 proves deterministic simulation-gated planning, and M4 records the first equivalent-state liquidity-aware comparison. M4 does not support a blanket claim that Setpoint outperforms the baseline.
+M1 established real external-vault compatibility on a disposable fork. M2 created the frozen static control group. M3 added deterministic simulation-gated planning. M4/M4.1 added executable-liquidity sampling and multi-leg adaptive planning. M4.2 accepted the simple-first hybrid strategy. M5 exposed that evidence as a static console. M6 separates the real live product from historical evidence.
 
-See [the integration notes](./integrations/rwa-index/README.md) and [BUILD_LOG.md](./BUILD_LOG.md) for exact behavior and the latest verified run.
+The deployment uses mock testnet assets and toy Synthra liquidity. The public oracle is currently stale. Random visitors do not hold the external manager role. Setpoint has no custody, token, governance, production funds, private RPC credential, or new onchain deployment. See [BUILD_LOG.md](./BUILD_LOG.md) for exact implementation results and blockers.

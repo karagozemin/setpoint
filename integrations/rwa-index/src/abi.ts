@@ -14,6 +14,7 @@ export const vaultAbi = [
   { type: "function", name: "maxStaleness", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
   { type: "function", name: "maxRebalanceLoss", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
   { type: "function", name: "paused", stateMutability: "view", inputs: [], outputs: [{ type: "bool" }] },
+  { type: "function", name: "isAgentAuthorized", stateMutability: "view", inputs: [{ type: "address" }], outputs: [{ type: "bool" }] },
   { type: "function", name: "hasRole", stateMutability: "view", inputs: [{ type: "bytes32" }, { type: "address" }], outputs: [{ type: "bool" }] },
   { type: "function", name: "setStrategy", stateMutability: "nonpayable", inputs: [{ name: "tokens", type: "address[]" }, { name: "weights", type: "uint256[]" }, { name: "cashTarget", type: "uint256" }], outputs: [] },
   {

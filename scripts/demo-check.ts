@@ -85,8 +85,8 @@ function validatePublicSurface(): void {
     [/\b(?:AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{30,}|sk-[A-Za-z0-9]{20,})\b/, "Secret-looking credential"],
   ]);
 
-  const browserSources = filesUnder("web").filter((path) => !path.endsWith(".test.ts"));
-  scanFiles(browserSources, [
+  const evidenceBrowserSources = ["web/App.tsx", ...filesUnder("web/components"), ...filesUnder("web/data")].filter((path) => !path.endsWith(".test.ts"));
+  scanFiles(evidenceBrowserSources, [
     [/from\s+["']node:/, "Node-only browser import"],
     [/\b(?:child_process|eth_sendTransaction|walletClient|anvil_|\/api\/(?:execute|rebalance|mutate))\b/i, "Writable execution surface"],
     [/\/Users\//, "Local macOS path"],
@@ -105,17 +105,19 @@ function validatePublicSurface(): void {
   const javascriptBytes = outputFiles
     .filter((path) => path.endsWith(".js"))
     .reduce((total, path) => total + readFileSync(path).byteLength, 0);
-  assert(javascriptBytes < 300_000, `Initial JavaScript exceeds public-demo budget: ${javascriptBytes} bytes`);
+  assert(javascriptBytes < 700_000, `Code-split JavaScript exceeds product budget: ${javascriptBytes} bytes`);
   assert(readFileSync(".gitignore", "utf8").split(/\r?\n/).includes(".env"), ".env is not ignored");
 
   const deployment = JSON.parse(readFileSync("vercel.json", "utf8")) as {
     buildCommand?: string;
     outputDirectory?: string;
     headers?: unknown[];
+    rewrites?: unknown[];
   };
   assert(deployment.buildCommand === "pnpm build", "Unexpected deployment build command");
   assert(deployment.outputDirectory === outputDirectory, "Unexpected deployment output directory");
   assert((deployment.headers?.length ?? 0) >= 2, "Deployment security/evidence headers missing");
+  assert((deployment.rewrites?.length ?? 0) >= 3, "Direct product-route rewrites missing");
 }
 
 function validateScenarioManifest(): void {
@@ -139,8 +141,14 @@ validateSourceIntegrity();
 validatePublicSurface();
 validateScenarioManifest();
 
-console.log(`Public demo bundle: ${outputDirectory}`);
+const liveSource = [readFileSync("web/live/LiveApp.tsx", "utf8"), readFileSync("src/live/rwa-index-live-adapter.ts", "utf8")].join("\n");
+assert(!/artifacts\/|data\/scenarios|loadOperatorScenario/.test(liveSource), "Live app depends on historical evidence");
+assert(liveSource.includes("analyzeRebalance") && liveSource.includes("simulateContract"), "Live analysis/simulation path missing");
+assert(readFileSync("web/Router.tsx", "utf8").includes('path === "/evidence"'), "Evidence route missing");
+
+console.log(`M6 product bundle: ${outputDirectory}`);
 console.log(`Evidence exports: ${evidencePairs.length}/${evidencePairs.length} byte-identical`);
 console.log("Security invariants: 11/11 held");
 console.log(`M2 planner SHA-256: ${expectedM2Sha}`);
-console.log("Public-surface scan: no local paths, localhost URLs, credential signatures, or execution endpoints");
+console.log("Public-surface scan: no local paths, localhost URLs, or credential signatures; evidence remains read-only");
+console.log("Routes: / landing, /app live RPC, /evidence historical artifacts");
