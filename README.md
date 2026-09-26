@@ -1,8 +1,8 @@
 # Setpoint
 
-Setpoint is a non-custodial, policy-driven rebalance solver and orchestration layer for multi-asset onchain vaults. It reads authoritative vault accounting and constraints, proposes the safest useful next rebalance step, simulates that step against the target vault, and re-solves from confirmed state.
+Setpoint is a non-custodial safety and execution orchestration layer for onchain vault rebalances. It preflights simple rebalances and adapts only when liquidity or vault constraints make them unsafe.
 
-The source of truth is [Setpoint PRD v1.1](./Setpoint_PRD_v1_1.pdf), refined by the accepted [hybrid orchestration decision](./docs/decisions/0001-hybrid-rebalance-orchestration.md). This repository currently implements M0/M1 external-vault compatibility, the M2 truthful static baseline, M3 deterministic Solver v1, M4/M4.1 liquidity-aware planning, and the M4.2 hybrid fast-path/fallback orchestrator for the RWA Index deployment on Robinhood Chain testnet. It does not contain UI, CoW/0x adapters, custody, a DEX, cross-vault netting, or new vault accounting.
+The source of truth is [Setpoint PRD v1.2](./Setpoint_PRD_v1_2.md). Its hybrid execution decision is backed by the accepted [architecture decision](./docs/decisions/0001-hybrid-rebalance-orchestration.md); [PRD v1.1](./Setpoint_PRD_v1_1.pdf) is retained for history and the [v1.1 → v1.2 changelog](./Setpoint_PRD_v1_1_to_v1_2_CHANGELOG.md) summarizes the revision. This repository currently implements M0/M1 external-vault compatibility, the M2 truthful static baseline, M3 deterministic Solver v1, M4/M4.1 liquidity-aware planning, and the M4.2 hybrid fast-path/fallback orchestrator for the RWA Index deployment on Robinhood Chain testnet. It does not contain UI, CoW/0x adapters, custody, a DEX, cross-vault netting, or new vault accounting.
 
 ## M1 status
 

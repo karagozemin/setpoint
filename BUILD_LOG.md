@@ -1,5 +1,31 @@
 # Build log
 
+## 2026-09-26 — PRD v1.2 hybrid source of truth
+
+### Implemented
+
+- Added `Setpoint_PRD_v1_2.md` as the product and engineering source of truth.
+- Added `Setpoint_PRD_v1_1_to_v1_2_CHANGELOG.md` with the concise revision summary.
+- Updated the README positioning and PRD reference.
+- Incorporated the accepted M0–M4.2 evidence and froze simple `FAST_PATH`, allowlisted `ADAPTIVE_FALLBACK`, and fail-closed `NO_TRADE` behavior.
+- Defined M5 as the next operator-console milestone without implementing UI or changing execution code.
+
+### Validation
+
+```bash
+git diff --check
+pnpm typecheck
+pnpm test
+```
+
+The PRD values were cross-checked against `artifacts/m4-2-summary.json`, the M4.2 cycle artifacts, and `docs/decisions/0001-hybrid-rebalance-orchestration.md`.
+
+### Assumptions and limitations
+
+- PRD v1.1 remains in the repository as the historical source document.
+- PRD v1.2 is Markdown-first so it is directly reviewable and diffable; no new PDF toolchain was added.
+- No M5 code, production adapter, benchmark rerun, or onchain mutation was part of this documentation revision.
+
 ## 2026-09-26 — M4.2 hybrid fast path and adaptive fallback
 
 ### Product decision
