@@ -187,3 +187,26 @@ Artifacts are isolated from M4:
 - `artifacts/m4-1-summary.json`
 
 The command validates scenario count, equivalent initial state/NAV, simulation approval for every executed batch, confirmed post-state presence, and the unchanged M2 planner hash.
+
+## M4.2 hybrid orchestration
+
+Run:
+
+```bash
+pnpm m4:hybrid
+```
+
+The runner builds the unchanged truthful M2 batch for each confirmed state and adds its exact leg sizes to the real adapter quote probes. `src/core/hybrid-solver.ts` then performs policy and executable-liquidity preflight plus the real `rebalance(Trade[])` simulation.
+
+If both pass, the result is `FAST_PATH` and the simple batch is executed unchanged. If the failure is explicitly recoverable, the same confirmed input and freshly sampled curves are passed to the M4.1 batch solver and the result is `ADAPTIVE_FALLBACK`. All other inputs return `NO_TRADE`. Every cycle records the simple trades and simulation even when fallback is selected.
+
+Recoverable vault failures are `INSUFFICIENT_OUTPUT`, `TRADE_TOO_LARGE`, `INSUFFICIENT_BALANCE`, `DRIFT_NOT_IMPROVED`, and `EXCESSIVE_VALUE_LOSS`. Stale/missing inputs, invalid policy, paused or unauthorized execution, unsupported assets/routes, loose min-out construction, stale liquidity, and unknown failures remain fail-closed.
+
+Artifacts are isolated under:
+
+- `artifacts/liquidity-m4-2/`
+- `artifacts/hybrid/`
+- `artifacts/comparison-m4-2/`
+- `artifacts/m4-2-summary.json`
+
+The aggregate excludes stale input from fallback eligibility. In the verified matrix, one of five eligible scenarios and two of six eligible solve cycles required adaptive fallback. The four ordinary scenarios avoided adaptive work and exactly matched their M2 control state.

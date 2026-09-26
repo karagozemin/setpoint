@@ -13,6 +13,7 @@ const SAMPLE_FRACTIONS: ReadonlyArray<readonly [bigint, bigint]> = [
 export interface SamplerOptions {
   quoteMaxAge: bigint;
   convergenceTarget?: "band-edge" | "midpoint";
+  additionalAmounts?: ReadonlyArray<{ tokenIn: TokenAddress; tokenOut: TokenAddress; amountIn: bigint }>;
 }
 
 export async function sampleRwaLiquidity(
@@ -69,7 +70,7 @@ export async function sampleRwaLiquidity(
           assetPolicy.token,
           input.policy.baseAsset,
           maximumAmount,
-          [grossCashDeficit],
+          [grossCashDeficit, ...additionalAmounts(options, assetPolicy.token, input.policy.baseAsset)],
           options
         ));
       }
@@ -91,7 +92,7 @@ export async function sampleRwaLiquidity(
           input.policy.baseAsset,
           assetPolicy.token,
           maximumAmount,
-          [excessCash],
+          [excessCash, ...additionalAmounts(options, input.policy.baseAsset, assetPolicy.token)],
           options
         ));
       }
@@ -103,6 +104,12 @@ export async function sampleRwaLiquidity(
     observedAt: input.state.blockTimestamp,
     curves
   };
+}
+
+function additionalAmounts(options: SamplerOptions, tokenIn: TokenAddress, tokenOut: TokenAddress): bigint[] {
+  return (options.additionalAmounts ?? [])
+    .filter((item) => item.tokenIn.toLowerCase() === tokenIn.toLowerCase() && item.tokenOut.toLowerCase() === tokenOut.toLowerCase())
+    .map(({ amountIn }) => amountIn);
 }
 
 async function sampleCurve(

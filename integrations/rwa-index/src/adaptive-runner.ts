@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { formatUnits, type Hash } from "viem";
 import { solveAdaptive, type AdaptiveSolveInput } from "../../../src/core/adaptive-solver.js";
 import { solveBatchAdaptive } from "../../../src/core/batch-solver.js";
+import { solveHybrid, type HybridSolveResult } from "../../../src/core/hybrid-solver.js";
 import { WAD, targetRegionReached } from "../../../src/core/policy.js";
 import type { PortfolioState, SolveInput, SolveResult, Trade } from "../../../src/core/types.js";
 import { buildStaticBaseline, grossTurnover } from "./baseline.js";
@@ -17,8 +18,12 @@ const config = loadConfig();
 const RANGE_TOLERANCE = 25n * 10n ** 14n;
 const QUOTE_MAX_AGE = 60n;
 const MAX_SIMULATION_ATTEMPTS = 6;
-const solverVariant = process.env.SETPOINT_SOLVER_VARIANT === "batch" ? "batch" : "adaptive";
+const solverVariant = process.env.SETPOINT_SOLVER_VARIANT === "hybrid"
+  ? "hybrid"
+  : process.env.SETPOINT_SOLVER_VARIANT === "batch" ? "batch" : "adaptive";
 const isBatch = solverVariant === "batch";
+const isHybrid = solverVariant === "hybrid";
+const usesBatchLiquidity = isBatch || isHybrid;
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 
@@ -36,7 +41,7 @@ interface AdaptiveCycle {
   cycle: number;
   stateBefore: ReturnType<typeof summarizeState>;
   liquidityArtifact: string;
-  result: SolveResult;
+  result: SolveResult | HybridSolveResult;
   executionHash?: Hash;
   stateAfter?: ReturnType<typeof summarizeState>;
 }
@@ -221,9 +226,13 @@ async function runAdaptive(
       ...confirmed,
       policy: { ...confirmed.policy, driftTrigger: 0n }
     };
+    const fastPathTrades = isHybrid
+      ? buildStaticBaseline(asBaselineState(benchmarkInput), benchmarkInput.policy.baseAsset, guards)
+      : [];
     const liquidity = await sampleRwaLiquidity(adapter, deployment, benchmarkInput, {
       quoteMaxAge: QUOTE_MAX_AGE,
-      ...(isBatch ? { convergenceTarget: "midpoint" as const } : {})
+      ...(usesBatchLiquidity ? { convergenceTarget: "midpoint" as const } : {}),
+      ...(isHybrid ? { additionalAmounts: fastPathTrades } : {})
     });
     const liquidityName = `${definition.id}-cycle-${String(cycle).padStart(2, "0")}.json`;
     writeFileSync(resolve(liquidityDirectory, liquidityName), `${JSON.stringify(jsonValue({
@@ -242,16 +251,25 @@ async function runAdaptive(
         maxPriceImpact: guards.slippageTolerance
       }
     };
-    const result = isBatch
-      ? await solveBatchAdaptive(adaptiveInput, adapter)
-      : await solveAdaptive(adaptiveInput, adapter);
+    const result = isHybrid
+      ? await solveHybrid({ ...adaptiveInput, fastPathTrades }, adapter)
+      : isBatch
+        ? await solveBatchAdaptive(adaptiveInput, adapter)
+        : await solveAdaptive(adaptiveInput, adapter);
     const record: AdaptiveCycle = {
       cycle,
       stateBefore: summarizeState(confirmed.state),
-      liquidityArtifact: `artifacts/${isBatch ? "liquidity-m4-1" : "liquidity"}/${liquidityName}`,
+      liquidityArtifact: `artifacts/${isHybrid ? "liquidity-m4-2" : isBatch ? "liquidity-m4-1" : "liquidity"}/${liquidityName}`,
       result
     };
     cycles.push(record);
+    if (isHybrid) {
+      const hybrid = result as HybridSolveResult;
+      if (hybrid.mode !== "FAST_PATH" && hybrid.fastPath.simulation !== undefined) {
+        attemptedTurnover += hybrid.fastPath.expectedTurnover;
+        attemptedLegs += hybrid.fastPath.trades.length;
+      }
+    }
     for (const rejected of result.rejectedAlternatives) {
       attemptedTurnover += rejected.expectedTurnover ?? 0n;
       attemptedLegs += rejected.trades?.length ?? 0;
@@ -283,20 +301,34 @@ async function runAdaptive(
   if (status.targetBandsSatisfied) terminalReason = "TARGET_BANDS_SATISFIED";
   const rejectedAlternatives = cycles.flatMap(({ result }) => result.rejectedAlternatives);
   const excludedLiquidityLegs = cycles.flatMap(({ result }) => result.excludedLiquidityLegs ?? []);
+  const hybridCycles = cycles.map(({ result }) => result as HybridSolveResult);
+  const modeCounts = isHybrid ? {
+    FAST_PATH: hybridCycles.filter(({ mode }) => mode === "FAST_PATH").length,
+    ADAPTIVE_FALLBACK: hybridCycles.filter(({ mode }) => mode === "ADAPTIVE_FALLBACK").length,
+    NO_TRADE: hybridCycles.filter(({ mode }) => mode === "NO_TRADE").length
+  } : undefined;
+  const fallbackCycles = isHybrid ? hybridCycles.filter(({ fallbackInvoked }) => fallbackInvoked).length : 0;
   return {
-    algorithm: isBatch
-      ? "Setpoint Solver v2 multi-leg adaptive batch planner with conservative USDC funding and selective binding-leg backoff"
-      : "Setpoint Solver v2 with fork-executed Synthra liquidity curves and lexicographic candidate scoring",
+    algorithm: isHybrid
+      ? "Setpoint hybrid orchestrator: truthful simple fast path with M4.1 adaptive batch fallback"
+      : isBatch
+        ? "Setpoint Solver v2 multi-leg adaptive batch planner with conservative USDC funding and selective binding-leg backoff"
+        : "Setpoint Solver v2 with fork-executed Synthra liquidity curves and lexicographic candidate scoring",
     initialState: summarizeState(initial.state),
     finalState: summarizeState(final.state),
     ...status,
     attemptedPlans: cycles.length,
     solveCycles: cycles.length,
-    attemptedBatches: cycles.filter(({ result }) => result.kind === "plan").length
-      + rejectedAlternatives.filter(({ simulation }) => simulation !== undefined).length,
+    attemptedBatches: isHybrid
+      ? hybridCycles.filter(({ fastPath }) => fastPath.simulation !== undefined).length
+        + hybridCycles.filter(({ mode, kind }) => mode === "ADAPTIVE_FALLBACK" && kind === "plan").length
+        + rejectedAlternatives.filter(({ simulation }) => simulation !== undefined).length
+      : cycles.filter(({ result }) => result.kind === "plan").length
+        + rejectedAlternatives.filter(({ simulation }) => simulation !== undefined).length,
     successfulExecutionSteps: cycles.filter(({ executionHash }) => executionHash !== undefined).length,
     successfulBatches: cycles.filter(({ executionHash }) => executionHash !== undefined).length,
-    failedSimulations: rejectedAlternatives.filter(({ simulation }) => simulation?.passed === false).length,
+    failedSimulations: rejectedAlternatives.filter(({ simulation }) => simulation?.passed === false).length
+      + (isHybrid ? hybridCycles.filter(({ fastPath, mode }) => mode !== "FAST_PATH" && fastPath.simulation?.passed === false).length : 0),
     rejectedAlternatives,
     excludedLiquidityLegs,
     removedLegs: excludedLiquidityLegs.length,
@@ -315,6 +347,12 @@ async function runAdaptive(
     realizedNavDelta: final.state.nav - initial.state.nav,
     cyclesOffTarget: cycles.length,
     minimumSafetyMarginWad,
+    ...(isHybrid ? {
+      modeCounts,
+      adaptiveFallbackCycles: fallbackCycles,
+      adaptiveFallbackRate: cycles.length === 0 ? 0n : BigInt(fallbackCycles) * WAD / BigInt(cycles.length),
+      adaptiveWorkAvoidedCycles: modeCounts?.FAST_PATH ?? 0
+    } : {}),
     terminalReason,
     cycles
   };
@@ -347,7 +385,29 @@ function staleComparison(originalPrices: RawOraclePoint[], guards: RwaGuardState
     fork: { sourceBlockNumber: sourceBlock.number, sourceBlockHash: sourceBlock.hash, sourceTimestamp: sourceBlock.timestamp },
     stalePrices: stale,
     baseline: { ...common, algorithm: "unchanged M2 baseline" },
-    setpoint: { ...common, algorithm: isBatch ? "Setpoint Solver v2 multi-leg adaptive batch planner" : "Setpoint Solver v2", expectedExecutionCost: null },
+    setpoint: {
+      ...common,
+      algorithm: isHybrid ? "Setpoint hybrid fast path with adaptive fallback" : isBatch ? "Setpoint Solver v2 multi-leg adaptive batch planner" : "Setpoint Solver v2",
+      expectedExecutionCost: null,
+      ...(isHybrid ? {
+        mode: "NO_TRADE",
+        modeSelectionReason: "NON_RECOVERABLE_INPUT_VALIDATION:STALE_PRICE",
+        fallbackInvoked: false,
+        fastPath: {
+          trades: [],
+          preflightPassed: false,
+          preflightIssues: [{ code: "STALE_PRICE", detail: "authoritative vault accounting rejects stale prices before planning", recoverable: false }],
+          expectedTurnover: 0n,
+          expectedCost: null,
+          minimumSafetyMarginWad: null,
+          liquidityDecisions: []
+        },
+        modeCounts: { FAST_PATH: 0, ADAPTIVE_FALLBACK: 0, NO_TRADE: 1 },
+        adaptiveFallbackCycles: 0,
+        adaptiveFallbackRate: 0n,
+        adaptiveWorkAvoidedCycles: 0
+      } : {})
+    },
     fairness: "Both paths fail closed before liquidity sampling or trade construction because authoritative vault accounting rejects stale prices."
   };
 }
@@ -358,9 +418,9 @@ async function main(): Promise<void> {
   const sourceBlock = await adapter.sourceBlock();
   const { deployment, guards } = await adapter.validate();
   const originalPrices = await adapter.rawOraclePrices();
-  const liquidityDirectory = resolve(process.cwd(), `artifacts/${isBatch ? "liquidity-m4-1" : "liquidity"}`);
-  const solverDirectory = resolve(process.cwd(), `artifacts/${isBatch ? "solver-v2-batch" : "solver-v2"}`);
-  const comparisonDirectory = resolve(process.cwd(), `artifacts/${isBatch ? "comparison-m4-1" : "comparison"}`);
+  const liquidityDirectory = resolve(process.cwd(), `artifacts/${isHybrid ? "liquidity-m4-2" : isBatch ? "liquidity-m4-1" : "liquidity"}`);
+  const solverDirectory = resolve(process.cwd(), `artifacts/${isHybrid ? "hybrid" : isBatch ? "solver-v2-batch" : "solver-v2"}`);
+  const comparisonDirectory = resolve(process.cwd(), `artifacts/${isHybrid ? "comparison-m4-2" : isBatch ? "comparison-m4-1" : "comparison"}`);
   for (const directory of [liquidityDirectory, solverDirectory, comparisonDirectory]) {
     mkdirSync(directory, { recursive: true });
     for (const name of readdirSync(directory)) {
@@ -372,7 +432,7 @@ async function main(): Promise<void> {
   writeFileSync(resolve(comparisonDirectory, "stale-oracle.json"), `${JSON.stringify(jsonValue(stale), null, 2)}\n`);
   writeFileSync(resolve(solverDirectory, "stale-oracle.json"), `${JSON.stringify(jsonValue({
     schemaVersion: 1,
-    benchmark: isBatch ? "setpoint-solver-v2-batch" : "setpoint-solver-v2",
+    benchmark: isHybrid ? "setpoint-hybrid-orchestrator" : isBatch ? "setpoint-solver-v2-batch" : "setpoint-solver-v2",
     scenario: stale.scenario,
     fork: stale.fork,
     setpoint: stale.setpoint
@@ -406,7 +466,7 @@ async function main(): Promise<void> {
     assert(baseline.initialState.drift === setpoint.initialState.drift, "comparison paths did not start from identical drift");
     const comparison = {
       schemaVersion: 1,
-      benchmark: isBatch ? "m4-1-equivalent-state-comparison" : "m4-equivalent-state-comparison",
+      benchmark: isHybrid ? "m4-2-equivalent-state-comparison" : isBatch ? "m4-1-equivalent-state-comparison" : "m4-equivalent-state-comparison",
       scenario: definition,
       fork: { sourceBlockNumber: sourceBlock.number, sourceBlockHash: sourceBlock.hash, sourceTimestamp: sourceBlock.timestamp },
       setupTransaction,
@@ -424,7 +484,7 @@ async function main(): Promise<void> {
     writeFileSync(resolve(comparisonDirectory, `${definition.id}.json`), `${JSON.stringify(jsonValue(comparison), null, 2)}\n`);
     writeFileSync(resolve(solverDirectory, `${definition.id}.json`), `${JSON.stringify(jsonValue({
       schemaVersion: 1,
-      benchmark: isBatch ? "setpoint-solver-v2-batch" : "setpoint-solver-v2",
+      benchmark: isHybrid ? "setpoint-hybrid-orchestrator" : isBatch ? "setpoint-solver-v2-batch" : "setpoint-solver-v2",
       scenario: definition,
       fork: comparison.fork,
       commonTerminalCriterion: comparison.commonTerminalCriterion,
@@ -438,9 +498,15 @@ async function main(): Promise<void> {
 
   const allComparisons = [stale, ...comparisons];
   const plannerPath = resolve(process.cwd(), "integrations/rwa-index/src/baseline.ts");
+  const hybridEligibleCycles = isHybrid ? comparisons.reduce((sum, comparison) => sum + comparison.setpoint.cycles.length, 0) : 0;
+  const hybridFallbackCycles = isHybrid ? comparisons.reduce(
+    (sum, comparison) => sum + comparison.setpoint.cycles.filter(({ result }) => (result as HybridSolveResult).fallbackInvoked).length,
+    0
+  ) : 0;
+  const hybridFallbackScenarios = isHybrid ? comparisons.filter(({ setpoint }) => setpoint.cycles.some(({ result }) => (result as HybridSolveResult).fallbackInvoked)).length : 0;
   const summary = {
     schemaVersion: 1,
-    milestone: isBatch ? "M4.1" : "M4",
+    milestone: isHybrid ? "M4.2" : isBatch ? "M4.1" : "M4",
     startedAt,
     completedAt: new Date().toISOString(),
     upstream: config.upstream,
@@ -461,7 +527,18 @@ async function main(): Promise<void> {
       m2PlannerChanged: false,
       note: "The comparison harness explicitly allows both algorithms to continue below the informational drift trigger; the standalone M2 command and artifacts are unchanged."
     },
-    ...(isBatch ? { previousM4Results: readPreviousM4Results() ?? null } : {}),
+    ...(isHybrid ? {
+      hybridMetrics: {
+        eligibleScenarios: comparisons.length,
+        scenariosRequiringAdaptiveFallback: hybridFallbackScenarios,
+        scenarioAdaptiveFallbackRate: comparisons.length === 0 ? 0n : BigInt(hybridFallbackScenarios) * WAD / BigInt(comparisons.length),
+        eligibleCycles: hybridEligibleCycles,
+        cyclesRequiringAdaptiveFallback: hybridFallbackCycles,
+        cycleAdaptiveFallbackRate: hybridEligibleCycles === 0 ? 0n : BigInt(hybridFallbackCycles) * WAD / BigInt(hybridEligibleCycles)
+      }
+    } : {}),
+    ...(isHybrid ? { previousM4Results: readMilestoneResults("m4-summary.json"), previousM4_1Results: readMilestoneResults("m4-1-summary.json") } : {}),
+    ...(isBatch ? { previousM4Results: readMilestoneResults("m4-summary.json") } : {}),
     results: allComparisons.map((comparison) => ({
       id: comparison.scenario.id,
       baseline: summarizeComparisonSide(comparison.baseline),
@@ -473,18 +550,18 @@ async function main(): Promise<void> {
     }
   };
   validateRunArtifacts(comparisons, summary.m2PlannerSourceSha256);
-  const summaryPath = resolve(process.cwd(), `artifacts/${isBatch ? "m4-1-summary.json" : "m4-summary.json"}`);
+  const summaryPath = resolve(process.cwd(), `artifacts/${isHybrid ? "m4-2-summary.json" : isBatch ? "m4-1-summary.json" : "m4-summary.json"}`);
   writeFileSync(summaryPath, `${JSON.stringify(jsonValue(summary), null, 2)}\n`);
   console.log(`[summary] ${summaryPath}`);
 }
 
-function readPreviousM4Results(): Json | undefined {
-  const path = resolve(process.cwd(), "artifacts/m4-summary.json");
+function readMilestoneResults(name: string): Json | null {
+  const path = resolve(process.cwd(), `artifacts/${name}`);
   try {
     const parsed = JSON.parse(readFileSync(path, "utf8")) as { results?: unknown };
     return jsonValue(parsed.results);
   } catch {
-    return undefined;
+    return null;
   }
 }
 
@@ -500,10 +577,22 @@ function validateRunArtifacts(comparisons: Array<{ baseline: ReturnType<typeof r
       }
     }
   }
-  if (isBatch) {
-    const previousPath = resolve(process.cwd(), "artifacts/m4-summary.json");
-    const previous = JSON.parse(readFileSync(previousPath, "utf8")) as { m2PlannerSourceSha256?: string };
-    assert(previous.m2PlannerSourceSha256 === plannerHash, "artifact validation: M2 baseline source hash changed since M4");
+  if (isBatch || isHybrid) {
+    for (const name of isHybrid ? ["m4-summary.json", "m4-1-summary.json"] : ["m4-summary.json"]) {
+      const previousPath = resolve(process.cwd(), `artifacts/${name}`);
+      const previous = JSON.parse(readFileSync(previousPath, "utf8")) as { m2PlannerSourceSha256?: string };
+      assert(previous.m2PlannerSourceSha256 === plannerHash, `artifact validation: M2 baseline source hash changed since ${name}`);
+    }
+  }
+  if (isHybrid) {
+    for (const comparison of comparisons) {
+      for (const cycle of comparison.setpoint.cycles) {
+        const hybrid = cycle.result as HybridSolveResult;
+        assert(hybrid.mode === "FAST_PATH" || hybrid.mode === "ADAPTIVE_FALLBACK" || hybrid.mode === "NO_TRADE", "artifact validation: hybrid mode missing");
+        if (hybrid.mode === "FAST_PATH") assert(!hybrid.fallbackInvoked, "artifact validation: fast path unexpectedly invoked fallback");
+        if (hybrid.mode === "ADAPTIVE_FALLBACK") assert(hybrid.fallbackInvoked, "artifact validation: fallback plan lacks invocation evidence");
+      }
+    }
   }
 }
 
@@ -527,6 +616,10 @@ function summarizeComparisonSide(side: Record<string, unknown>) {
     realizedNavDelta: side.realizedNavDelta,
     minimumSafetyMarginWad: side.minimumSafetyMarginWad ?? null,
     removedLegs: side.removedLegs ?? 0,
+    modeCounts: side.modeCounts ?? null,
+    adaptiveFallbackCycles: side.adaptiveFallbackCycles ?? null,
+    adaptiveFallbackRate: side.adaptiveFallbackRate ?? null,
+    adaptiveWorkAvoidedCycles: side.adaptiveWorkAvoidedCycles ?? null,
     initialDrift: initialState?.drift ?? null,
     finalDrift: finalState?.drift ?? null
   };

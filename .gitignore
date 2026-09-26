@@ -26,4 +26,11 @@ artifacts/**/*.log
 !artifacts/solver-v2-batch/*.json
 !artifacts/comparison-m4-1/.gitkeep
 !artifacts/comparison-m4-1/*.json
+!artifacts/m4-2-summary.json
+!artifacts/liquidity-m4-2/.gitkeep
+!artifacts/liquidity-m4-2/*.json
+!artifacts/hybrid/.gitkeep
+!artifacts/hybrid/*.json
+!artifacts/comparison-m4-2/.gitkeep
+!artifacts/comparison-m4-2/*.json
 .Setpoint_PRD_v0.1.pdf

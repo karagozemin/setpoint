@@ -13,7 +13,8 @@
     "m3:solver": "bash scripts/m3-solver.sh",
     "m4:adaptive": "bash scripts/m4-adaptive.sh",
     "m4:batch": "bash scripts/m4-batch.sh",
-    "test": "tsx --test integrations/rwa-index/test/baseline.test.ts src/core/solver.test.ts src/core/adaptive-solver.test.ts src/core/batch-solver.test.ts",
+    "m4:hybrid": "bash scripts/m4-hybrid.sh",
+    "test": "tsx --test integrations/rwa-index/test/baseline.test.ts src/core/solver.test.ts src/core/adaptive-solver.test.ts src/core/batch-solver.test.ts src/core/hybrid-solver.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "scenario": {
+    "id": "stale-oracle",
+    "title": "Stale oracle expected no-trade"
+  },
+  "fork": {
+    "sourceBlockNumber": "124725774",
+    "sourceBlockHash": "0xb5fcc713b8f099c630eb808e65dff914fc3d5ee723abda8e29c680482766bc87",
+    "sourceTimestamp": "1790442898"
+  },
+  "stalePrices": [
+    {
+      "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+      "priceWad": "435790000000000000000",
+      "updatedAt": "1780265370"
+    },
+    {
+      "token": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+      "priceWad": "270640000000000000000",
+      "updatedAt": "1780265370"
+    },
+    {
+      "token": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+      "priceWad": "156540000000000000000",
+      "updatedAt": "1780265370"
+    },
+    {
+      "token": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+      "priceWad": "86020000000000000000",
+      "updatedAt": "1780265370"
+    },
+    {
+      "token": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+      "priceWad": "516100000000000000000",
+      "updatedAt": "1780265370"
+    }
+  ],
+  "baseline": {
+    "initialAuthoritativeDrift": null,
+    "finalAuthoritativeDrift": null,
+    "vaultTriggerSatisfied": false,
+    "targetBandsSatisfied": false,
+    "attemptedPlans": 0,
+    "attemptedBatches": 0,
+    "successfulExecutionSteps": 0,
+    "successfulBatches": 0,
+    "failedSimulations": 0,
+    "attemptedLegs": 0,
+    "executedLegs": 0,
+    "attemptedTurnover": "0",
+    "executedTurnover": "0",
+    "realizedNavDelta": null,
+    "cyclesOffTarget": 0,
+    "terminalReason": "STALE_PRICE",
+    "algorithm": "unchanged M2 baseline"
+  },
+  "setpoint": {
+    "initialAuthoritativeDrift": null,
+    "finalAuthoritativeDrift": null,
+    "vaultTriggerSatisfied": false,
+    "targetBandsSatisfied": false,
+    "attemptedPlans": 0,
+    "attemptedBatches": 0,
+    "successfulExecutionSteps": 0,
+    "successfulBatches": 0,
+    "failedSimulations": 0,
+    "attemptedLegs": 0,
+    "executedLegs": 0,
+    "attemptedTurnover": "0",
+    "executedTurnover": "0",
+    "realizedNavDelta": null,
+    "cyclesOffTarget": 0,
+    "terminalReason": "STALE_PRICE",
+    "algorithm": "Setpoint hybrid fast path with adaptive fallback",
+    "expectedExecutionCost": null,
+    "mode": "NO_TRADE",
+    "modeSelectionReason": "NON_RECOVERABLE_INPUT_VALIDATION:STALE_PRICE",
+    "fallbackInvoked": false,
+    "fastPath": {
+      "trades": [],
+      "preflightPassed": false,
+      "preflightIssues": [
+        {
+          "code": "STALE_PRICE",
+          "detail": "authoritative vault accounting rejects stale prices before planning",
+          "recoverable": false
+        }
+      ],
+      "expectedTurnover": "0",
+      "expectedCost": null,
+      "minimumSafetyMarginWad": null,
+      "liquidityDecisions": []
+    },
+    "modeCounts": {
+      "FAST_PATH": 0,
+      "ADAPTIVE_FALLBACK": 0,
+      "NO_TRADE": 1
+    },
+    "adaptiveFallbackCycles": 0,
+    "adaptiveFallbackRate": "0",
+    "adaptiveWorkAvoidedCycles": 0
+  },
+  "fairness": "Both paths fail closed before liquidity sampling or trade construction because authoritative vault accounting rejects stale prices."
+}

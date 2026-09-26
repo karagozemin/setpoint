@@ -1,5 +1,91 @@
 # Build log
 
+## 2026-09-26 — M4.2 hybrid fast path and adaptive fallback
+
+### Product decision
+
+The previous assumption was that adaptive sizing should be Setpoint's default rebalance strategy. M2 versus M4/M4.1 evidence showed that straightforward coherent batches are faster or equivalent in ordinary scenarios, while adaptive planning adds clear value when the straightforward batch cannot execute.
+
+The accepted decision is documented in `docs/decisions/0001-hybrid-rebalance-orchestration.md`: simple safe execution is the default; M4.1 is an explicit fallback for stressed or unexecutable rebalances. Setpoint does not try to beat a simple batch that already works. It preflights execution, rescues safe portfolio progress when possible, refuses unsafe residual trades, and re-solves from confirmed state.
+
+### Implemented
+
+- Added `src/core/hybrid-solver.ts` with explicit `FAST_PATH`, `ADAPTIVE_FALLBACK`, and `NO_TRADE` outcomes and deterministic mode-selection reasons.
+- Fast path uses the unchanged M2 planner output, then checks input validity, allowlisted USDC-hub routes, ordering, balances, per-leg caps, optional turnover/minimum-cash policies, exact-size current executable quotes, min-out compatibility, impact, expected NAV loss, and the real vault simulation.
+- Added exact fast-path amounts to the real `SynthraSwapAdapter.swap()` sampling set without changing the M2 planner.
+- Added an explicit recoverability mapping. Adaptive fallback is limited to output, size, balance, drift-improvement, value-loss, and related executable-liquidity constraints.
+- Reused the M4.1 multi-leg solver without introducing a second adaptive implementation.
+- Persisted fast-path trades, preflight issues, fast simulation, selected mode/reason, fallback trigger, adaptive result, costs, rejected legs, and confirmed post-state per cycle.
+- Added scenario- and cycle-level adaptive fallback rates and separate M4.2 artifact directories.
+- Added `pnpm m4:hybrid` with fresh Anvil lifecycle and artifact validation against both historical M4 and M4.1 baseline hashes.
+- Added 16 hybrid tests. The full suite contains 53 passing tests.
+
+### Failure mapping
+
+Recoverable simulation failures:
+
+- `INSUFFICIENT_OUTPUT`
+- `TRADE_TOO_LARGE`
+- `INSUFFICIENT_BALANCE`
+- `DRIFT_NOT_IMPROVED`
+- `EXCESSIVE_VALUE_LOSS`
+
+Recoverable preflight failures include missing/exceeded executable depth, missing exact-size quote, min-out incompatibility, excessive impact/expected loss, per-leg or turnover caps, conservative balance/minimum-cash violations, and an empty simple plan.
+
+Non-recoverable conditions include stale/missing prices, stale liquidity, invalid NAV/policy/targets, paused vault, unsupported asset/route, malformed order or trade, loose min-out construction, unauthorized execution, slippage-policy construction errors, and unknown reverts. These select `NO_TRADE`; adaptive fallback is not invoked.
+
+### Commands and artifacts
+
+```bash
+pnpm typecheck
+pnpm test
+pnpm m4:hybrid
+```
+
+Output:
+
+- `artifacts/liquidity-m4-2/*.json`
+- `artifacts/hybrid/*.json`
+- `artifacts/comparison-m4-2/*.json`
+- `artifacts/m4-2-summary.json`
+
+Final validation fork:
+
+- block: `124725774`
+- block hash: `0xb5fcc713b8f099c630eb808e65dff914fc3d5ee723abda8e29c680482766bc87`
+- chain ID: `46630`
+- M2 planner SHA-256: `dcd079ed25ff6fd7683c947fbf46748abd70862fe2a85a368c919b26fe7cee92`
+
+### Equivalent-state results
+
+| Scenario | Selected mode | M2 final drift | M4.2 final drift | Executed batches / legs | Terminal result |
+|---|---|---:|---:|---:|---|
+| Stale oracle | `NO_TRADE` | unavailable | unavailable | 0 / 0 | `STALE_PRICE`; no fallback |
+| Moderate, deeper toy | `FAST_PATH` | 0.075394% | 0.075394% | 1 / 6 | target bands satisfied |
+| Moderate, thin toy | `FAST_PATH` | 0.143624% | 0.143624% | 1 / 6 | target bands satisfied |
+| Asymmetric liquidity | `FAST_PATH` | 0.072184% | 0.072184% | 1 / 6 | target bands satisfied |
+| Large target change | `ADAPTIVE_FALLBACK`, then `NO_TRADE` | 31.025554% | 19.113279% | 1 / 3 | safe subset, then `NO_SAFE_LIQUIDITY` |
+| Defensive 20% cash | `FAST_PATH` | 0.063295% | 0.063295% | 1 / 5 | target bands satisfied |
+
+All four normal non-stale scenarios used the simple path, avoided adaptive work, and matched M2's final state, turnover, leg count, and NAV delta. No normal scenario became worse.
+
+The large-target proof is explicit in the cycle artifact: the 10-leg, 60.051107%-NAV simple batch passed Setpoint preflight but failed the real vault simulation with `INSUFFICIENT_OUTPUT`; hybrid orchestration then selected M4.1, executed a three-leg 22.5%-NAV safe subset, and reduced drift from 31.025554% to 19.113279%. The next confirmed cycle again preflighted the new simple batch, observed incompatible USDC→NFLX liquidity, invoked fallback, and returned `NO_SAFE_LIQUIDITY` without execution.
+
+Across the five eligible scenarios, one required fallback (20%). Across six eligible solve cycles, two required fallback (33.333333%). Stale input is excluded because fallback is prohibited before eligibility.
+
+### Errors and corrections
+
+- The first hybrid fork run treated the cash target band's lower edge as a hard reserve, causing the safe defensive batch to invoke fallback unnecessarily. The hard preflight reserve is now only the explicit `minimumCashBuffer`; the cash target remains a convergence objective verified from confirmed post-state. Defensive then selected `FAST_PATH` and exactly matched M2.
+- Failed fast-path turnover is counted as attempted but never executed. Large-target aggregate attempted turnover therefore includes both failed simple preflights and the selected adaptive batch; executed turnover remains the actual 22.5% subset.
+
+### Remaining limitations
+
+- Exact-size quotes are state-bound preflight evidence, not a proof of multi-leg sequential pool output; the real vault simulation remains the final gate.
+- Recoverability is an explicit conservative mapping. Unknown failures never fall through to adaptive retries.
+- The final normal scenarios did not exercise a mode switch after an execution; confirmed-state re-read and cross-cycle mode changes are covered in unit tests, while large-target demonstrates fallback followed by terminal no-trade on the next confirmed state.
+- Liquidity remains a single toy Synthra route. There is no gas model, CoW/0x, cross-vault netting, custody, new accounting, UI, or production liquidity claim.
+- M4.2 is complete for review. M5/UI was not started.
+
 ## 2026-09-26 — M4.1 multi-leg adaptive batch planner
 
 ### Implemented

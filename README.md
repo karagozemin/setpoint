@@ -2,7 +2,7 @@
 
 Setpoint is a non-custodial, policy-driven rebalance solver and orchestration layer for multi-asset onchain vaults. It reads authoritative vault accounting and constraints, proposes the safest useful next rebalance step, simulates that step against the target vault, and re-solves from confirmed state.
 
-The source of truth is [Setpoint PRD v1.1](./Setpoint_PRD_v1_1.pdf). This repository currently implements M0/M1 external-vault compatibility, the M2 truthful static baseline, M3 deterministic Solver v1, M4 liquidity-aware Solver v2, and the M4.1 multi-leg batch planner for the RWA Index deployment on Robinhood Chain testnet. It does not contain UI, CoW/0x adapters, custody, a DEX, cross-vault netting, or new vault accounting.
+The source of truth is [Setpoint PRD v1.1](./Setpoint_PRD_v1_1.pdf), refined by the accepted [hybrid orchestration decision](./docs/decisions/0001-hybrid-rebalance-orchestration.md). This repository currently implements M0/M1 external-vault compatibility, the M2 truthful static baseline, M3 deterministic Solver v1, M4/M4.1 liquidity-aware planning, and the M4.2 hybrid fast-path/fallback orchestrator for the RWA Index deployment on Robinhood Chain testnet. It does not contain UI, CoW/0x adapters, custody, a DEX, cross-vault netting, or new vault accounting.
 
 ## M1 status
 
@@ -58,6 +58,12 @@ The batch planner evaluates every materially relevant USDC-hub sell and buy in o
 
 The final fork evidence is deliberately mixed. Deep and asymmetric scenarios now reach all target bands in three and two batches respectively, and defensive cash reaches them in one. Thin liquidity executes a five-leg safe subset but stops with the NFLX buy curve below the oracle floor. The large target case improves from 31.025554% to 19.113279% drift in one three-leg batch, then stops for the same real NFLX constraint. M2 remains faster in every normal scenario where it succeeds, and still has lower final drift in thin. These are testnet toy-pool observations, not production performance claims.
 
+## M4.2 status
+
+Setpoint now uses the simple coherent planner as its default fast path. It checks state, policy, exact-size executable quotes, conservative balances, configured hard limits, and the real vault simulation. A passing batch executes unchanged; adaptive planning is not invoked merely to seek a marginally cheaper route.
+
+Only explicitly recoverable failures activate the existing M4.1 planner. On the final fork, deep, thin, asymmetric, and defensive scenarios all selected `FAST_PATH`, completed in one batch, and exactly matched M2's final states. The large-target fast path reproduced `INSUFFICIENT_OUTPUT`, automatically selected `ADAPTIVE_FALLBACK`, executed the same safe 22.5%-NAV subset as M4.1, then refused the unsafe residual NFLX route. Stale prices selected `NO_TRADE` without invoking fallback.
+
 ## Reproduce
 
 Prerequisites:
@@ -80,6 +86,7 @@ pnpm m2:baseline
 pnpm m3:solver
 pnpm m4:adaptive
 pnpm m4:batch
+pnpm m4:hybrid
 ```
 
 No private key is needed. The command starts and cleans up Anvil itself. It uses fork-only account impersonation for the deployed oracle feeder/syncer owner and vault manager.
@@ -103,6 +110,7 @@ scripts/m2-baseline.sh            scenario runner and static-baseline entry poin
 scripts/m3-solver.sh              scenario runner and Solver v1 entry point
 scripts/m4-adaptive.sh            liquidity sampling and equivalent-state comparison
 scripts/m4-batch.sh               multi-leg comparison on a fresh disposable fork
+scripts/m4-hybrid.sh              simple fast path plus adaptive fallback benchmark
 third_party/rwa-index/            pinned external project (git submodule)
 artifacts/                        versioned latest JSON evidence; local Anvil logs ignored
 BUILD_LOG.md                      implementation record, assumptions, and blockers

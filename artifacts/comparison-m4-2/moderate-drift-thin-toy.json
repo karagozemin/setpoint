@@ -1,0 +1,864 @@
+{
+  "schemaVersion": 1,
+  "benchmark": "m4-2-equivalent-state-comparison",
+  "scenario": {
+    "id": "moderate-drift-thin-toy",
+    "title": "Moderate drift against thin toy liquidity",
+    "rationale": "Moves approximately 10% target weight from AMD to NFLX with the same 2% operational cash target. NFLX has the smallest oracle-valued pool inventory proxy in this deployment.",
+    "weights": [
+      "196000000000000000",
+      "196000000000000000",
+      "196000000000000000",
+      "294000000000000000",
+      "98000000000000000"
+    ],
+    "cashTarget": "20000000000000000",
+    "liquidityClass": "thin-toy",
+    "focusAssets": [
+      "NFLX",
+      "AMD"
+    ],
+    "maxCycles": 8
+  },
+  "fork": {
+    "sourceBlockNumber": "124725774",
+    "sourceBlockHash": "0xb5fcc713b8f099c630eb808e65dff914fc3d5ee723abda8e29c680482766bc87",
+    "sourceTimestamp": "1790442898"
+  },
+  "setupTransaction": "0xeafd8188e0fa3383e90b2121ac22b98a2f865b3f3c6c8f5bf358e5156b7c3a04",
+  "commonTerminalCriterion": {
+    "primary": "all Setpoint target bands satisfied (onchain exact target +/- 0.25 percentage points)",
+    "secondary": "deployed vault drift trigger satisfied",
+    "maxCycles": 8,
+    "deployedGuardsChanged": false,
+    "benchmarkOnlyBehavior": "both paths may continue below the informational 5% trigger until target bands, failure, or max cycles"
+  },
+  "baseline": {
+    "algorithm": "unchanged M2 truthful static planner under the explicit common benchmark terminal loop",
+    "initialState": {
+      "stateId": "46630:124725781:0xaa0728d1c774965cc3814ccd5d405f9c480f77b85be62afba71814c693fca50b",
+      "blockNumber": "124725781",
+      "blockTimestamp": "1790442934",
+      "nav": "69349575584908354972",
+      "navFormatted": "69.349575584908354972",
+      "drift": "114255536466396732",
+      "driftFormatted": "11.425554%",
+      "baseAssetBalance": "3",
+      "baseAssetWeight": "0",
+      "positions": [
+        {
+          "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+          "balance": "31798873727877429",
+          "value": "13857631181871704783",
+          "weight": "199822869354190548",
+          "symbol": "TSLA"
+        },
+        {
+          "token": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+          "balance": "51255465276334823",
+          "value": "13871779122387256496",
+          "weight": "200026878396729383",
+          "symbol": "AMZN"
+        },
+        {
+          "token": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+          "balance": "88538451246826119",
+          "value": "13859809158178160668",
+          "weight": "199854275116779380",
+          "symbol": "PLTR"
+        },
+        {
+          "token": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+          "balance": "161034570698565338",
+          "value": "13852193771490590374",
+          "weight": "199744463533603267",
+          "symbol": "NFLX"
+        },
+        {
+          "token": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+          "balance": "26948580412673208",
+          "value": "13908162350980642648",
+          "weight": "200551513598697421",
+          "symbol": "AMD"
+        }
+      ]
+    },
+    "finalState": {
+      "stateId": "46630:124725782:0xf5b8012d92d8bf9458112c6e655d6450f12840a4aba1ebe6cd5ec04ac28007be",
+      "blockNumber": "124725782",
+      "blockTimestamp": "1790442941",
+      "nav": "69204685503338805816",
+      "navFormatted": "69.204685503338805816",
+      "drift": "1436240844587272",
+      "driftFormatted": "0.143624%",
+      "baseAssetBalance": "1339200255537087313",
+      "baseAssetWeight": "19351294580660685",
+      "positions": [
+        {
+          "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+          "balance": "31190520238284582",
+          "value": "13592516814642037989",
+          "weight": "196410354527024936",
+          "symbol": "TSLA"
+        },
+        {
+          "token": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+          "balance": "50223606320728783",
+          "value": "13592516814642037831",
+          "weight": "196410354527024933",
+          "symbol": "AMZN"
+        },
+        {
+          "token": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+          "balance": "86830949371675212",
+          "value": "13592516814642037686",
+          "weight": "196410354527024931",
+          "symbol": "PLTR"
+        },
+        {
+          "token": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+          "balance": "235894866270106786",
+          "value": "20291676396554585731",
+          "weight": "293212464574752041",
+          "symbol": "NFLX"
+        },
+        {
+          "token": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+          "balance": "13168491391825265",
+          "value": "6796258407321019266",
+          "weight": "98205177263512471",
+          "symbol": "AMD"
+        }
+      ]
+    },
+    "vaultTriggerSatisfied": true,
+    "targetBandsSatisfied": true,
+    "attemptedPlans": 1,
+    "attemptedBatches": 1,
+    "successfulExecutionSteps": 1,
+    "successfulBatches": 1,
+    "failedSimulations": 0,
+    "rejectedAlternatives": [],
+    "attemptedLegs": 6,
+    "executedLegs": 6,
+    "attemptedTurnover": "14460154412643097809",
+    "attemptedTurnoverOverInitialNav": "208511072932793447",
+    "executedTurnover": "14460154412643097809",
+    "executedTurnoverOverInitialNav": "208511072932793447",
+    "expectedExecutionCost": null,
+    "realizedNavDelta": "-144890081569549156",
+    "cyclesOffTarget": 1,
+    "minimumSafetyMarginWad": null,
+    "terminalReason": "TARGET_BANDS_SATISFIED",
+    "cycles": [
+      {
+        "cycle": 1,
+        "stateBefore": {
+          "stateId": "46630:124725781:0xaa0728d1c774965cc3814ccd5d405f9c480f77b85be62afba71814c693fca50b",
+          "blockNumber": "124725781",
+          "blockTimestamp": "1790442934",
+          "nav": "69349575584908354972",
+          "navFormatted": "69.349575584908354972",
+          "drift": "114255536466396732",
+          "driftFormatted": "11.425554%",
+          "baseAssetBalance": "3",
+          "baseAssetWeight": "0",
+          "positions": [
+            {
+              "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+              "balance": "31798873727877429",
+              "value": "13857631181871704783",
+              "weight": "199822869354190548",
+              "symbol": "TSLA"
+            },
+            {
+              "token": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+              "balance": "51255465276334823",
+              "value": "13871779122387256496",
+              "weight": "200026878396729383",
+              "symbol": "AMZN"
+            },
+            {
+              "token": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+              "balance": "88538451246826119",
+              "value": "13859809158178160668",
+              "weight": "199854275116779380",
+              "symbol": "PLTR"
+            },
+            {
+              "token": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+              "balance": "161034570698565338",
+              "value": "13852193771490590374",
+              "weight": "199744463533603267",
+              "symbol": "NFLX"
+            },
+            {
+              "token": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+              "balance": "26948580412673208",
+              "value": "13908162350980642648",
+              "weight": "200551513598697421",
+              "symbol": "AMD"
+            }
+          ]
+        },
+        "trades": [
+          {
+            "tokenIn": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+            "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+            "amountIn": "608353489592847",
+            "minAmountOut": "259812079885073458"
+          },
+          {
+            "tokenIn": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+            "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+            "amountIn": "1031858955606040",
+            "minAmountOut": "273677061590314291"
+          },
+          {
+            "tokenIn": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+            "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+            "amountIn": "1707501875150907",
+            "minAmountOut": "261946496665400521"
+          },
+          {
+            "tokenIn": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+            "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+            "amountIn": "13437236114107412",
+            "minAmountOut": "6796258407321018626"
+          },
+          {
+            "tokenIn": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+            "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+            "amountIn": "342852906740531",
+            "minAmountOut": "173407457465412288"
+          },
+          {
+            "tokenIn": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+            "tokenOut": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+            "amountIn": "6536581450472465987",
+            "minAmountOut": "74469307387386847"
+          }
+        ],
+        "turnover": "14460154412643097809",
+        "simulation": {
+          "passed": true
+        },
+        "executionHash": "0x34d68526b30a0672ab61ccce7b4446f6af5ec2e69f67e9e2c969d70076a9b572",
+        "stateAfter": {
+          "stateId": "46630:124725782:0xf5b8012d92d8bf9458112c6e655d6450f12840a4aba1ebe6cd5ec04ac28007be",
+          "blockNumber": "124725782",
+          "blockTimestamp": "1790442941",
+          "nav": "69204685503338805816",
+          "navFormatted": "69.204685503338805816",
+          "drift": "1436240844587272",
+          "driftFormatted": "0.143624%",
+          "baseAssetBalance": "1339200255537087313",
+          "baseAssetWeight": "19351294580660685",
+          "positions": [
+            {
+              "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+              "balance": "31190520238284582",
+              "value": "13592516814642037989",
+              "weight": "196410354527024936",
+              "symbol": "TSLA"
+            },
+            {
+              "token": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+              "balance": "50223606320728783",
+              "value": "13592516814642037831",
+              "weight": "196410354527024933",
+              "symbol": "AMZN"
+            },
+            {
+              "token": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+              "balance": "86830949371675212",
+              "value": "13592516814642037686",
+              "weight": "196410354527024931",
+              "symbol": "PLTR"
+            },
+            {
+              "token": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+              "balance": "235894866270106786",
+              "value": "20291676396554585731",
+              "weight": "293212464574752041",
+              "symbol": "NFLX"
+            },
+            {
+              "token": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+              "balance": "13168491391825265",
+              "value": "6796258407321019266",
+              "weight": "98205177263512471",
+              "symbol": "AMD"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "setpoint": {
+    "algorithm": "Setpoint hybrid orchestrator: truthful simple fast path with M4.1 adaptive batch fallback",
+    "initialState": {
+      "stateId": "46630:124725781:0xaa0728d1c774965cc3814ccd5d405f9c480f77b85be62afba71814c693fca50b",
+      "blockNumber": "124725781",
+      "blockTimestamp": "1790442934",
+      "nav": "69349575584908354972",
+      "navFormatted": "69.349575584908354972",
+      "drift": "114255536466396732",
+      "driftFormatted": "11.425554%",
+      "baseAssetBalance": "3",
+      "baseAssetWeight": "0",
+      "positions": [
+        {
+          "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+          "balance": "31798873727877429",
+          "value": "13857631181871704783",
+          "weight": "199822869354190548",
+          "symbol": "TSLA"
+        },
+        {
+          "token": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+          "balance": "51255465276334823",
+          "value": "13871779122387256496",
+          "weight": "200026878396729383",
+          "symbol": "AMZN"
+        },
+        {
+          "token": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+          "balance": "88538451246826119",
+          "value": "13859809158178160668",
+          "weight": "199854275116779380",
+          "symbol": "PLTR"
+        },
+        {
+          "token": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+          "balance": "161034570698565338",
+          "value": "13852193771490590374",
+          "weight": "199744463533603267",
+          "symbol": "NFLX"
+        },
+        {
+          "token": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+          "balance": "26948580412673208",
+          "value": "13908162350980642648",
+          "weight": "200551513598697421",
+          "symbol": "AMD"
+        }
+      ]
+    },
+    "finalState": {
+      "stateId": "46630:124725782:0xb4cf24a4084fdaebe7311bf53ff799156d42d82665b82b46c5f8088ccee82436",
+      "blockNumber": "124725782",
+      "blockTimestamp": "1790442939",
+      "nav": "69204685503338805816",
+      "navFormatted": "69.204685503338805816",
+      "drift": "1436240844587272",
+      "driftFormatted": "0.143624%",
+      "baseAssetBalance": "1339200255537087313",
+      "baseAssetWeight": "19351294580660685",
+      "positions": [
+        {
+          "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+          "balance": "31190520238284582",
+          "value": "13592516814642037989",
+          "weight": "196410354527024936",
+          "symbol": "TSLA"
+        },
+        {
+          "token": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+          "balance": "50223606320728783",
+          "value": "13592516814642037831",
+          "weight": "196410354527024933",
+          "symbol": "AMZN"
+        },
+        {
+          "token": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+          "balance": "86830949371675212",
+          "value": "13592516814642037686",
+          "weight": "196410354527024931",
+          "symbol": "PLTR"
+        },
+        {
+          "token": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+          "balance": "235894866270106786",
+          "value": "20291676396554585731",
+          "weight": "293212464574752041",
+          "symbol": "NFLX"
+        },
+        {
+          "token": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+          "balance": "13168491391825265",
+          "value": "6796258407321019266",
+          "weight": "98205177263512471",
+          "symbol": "AMD"
+        }
+      ]
+    },
+    "vaultTriggerSatisfied": true,
+    "targetBandsSatisfied": true,
+    "attemptedPlans": 1,
+    "solveCycles": 1,
+    "attemptedBatches": 1,
+    "successfulExecutionSteps": 1,
+    "successfulBatches": 1,
+    "failedSimulations": 0,
+    "rejectedAlternatives": [],
+    "excludedLiquidityLegs": [],
+    "removedLegs": 0,
+    "attemptedLegs": 6,
+    "executedLegs": 6,
+    "attemptedTurnover": "14460154412643097809",
+    "attemptedTurnoverOverInitialNav": "208511072932793447",
+    "executedTurnover": "14460154412643097809",
+    "executedTurnoverOverInitialNav": "208511072932793447",
+    "expectedExecutionCost": {
+      "quoteLossValue": "142630410253033924",
+      "estimatedFeeValue": "1446015441264306",
+      "gasCostValue": null,
+      "note": "Quote loss includes fee and price impact; known fee is also broken out and must not be added again."
+    },
+    "realizedNavDelta": "-144890081569549156",
+    "cyclesOffTarget": 1,
+    "minimumSafetyMarginWad": "5250326582476368",
+    "modeCounts": {
+      "FAST_PATH": 1,
+      "ADAPTIVE_FALLBACK": 0,
+      "NO_TRADE": 0
+    },
+    "adaptiveFallbackCycles": 0,
+    "adaptiveFallbackRate": "0",
+    "adaptiveWorkAvoidedCycles": 1,
+    "terminalReason": "TARGET_BANDS_SATISFIED",
+    "cycles": [
+      {
+        "cycle": 1,
+        "stateBefore": {
+          "stateId": "46630:124725781:0xaa0728d1c774965cc3814ccd5d405f9c480f77b85be62afba71814c693fca50b",
+          "blockNumber": "124725781",
+          "blockTimestamp": "1790442934",
+          "nav": "69349575584908354972",
+          "navFormatted": "69.349575584908354972",
+          "drift": "114255536466396732",
+          "driftFormatted": "11.425554%",
+          "baseAssetBalance": "3",
+          "baseAssetWeight": "0",
+          "positions": [
+            {
+              "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+              "balance": "31798873727877429",
+              "value": "13857631181871704783",
+              "weight": "199822869354190548",
+              "symbol": "TSLA"
+            },
+            {
+              "token": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+              "balance": "51255465276334823",
+              "value": "13871779122387256496",
+              "weight": "200026878396729383",
+              "symbol": "AMZN"
+            },
+            {
+              "token": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+              "balance": "88538451246826119",
+              "value": "13859809158178160668",
+              "weight": "199854275116779380",
+              "symbol": "PLTR"
+            },
+            {
+              "token": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+              "balance": "161034570698565338",
+              "value": "13852193771490590374",
+              "weight": "199744463533603267",
+              "symbol": "NFLX"
+            },
+            {
+              "token": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+              "balance": "26948580412673208",
+              "value": "13908162350980642648",
+              "weight": "200551513598697421",
+              "symbol": "AMD"
+            }
+          ]
+        },
+        "liquidityArtifact": "artifacts/liquidity-m4-2/moderate-drift-thin-toy-cycle-01.json",
+        "result": {
+          "kind": "plan",
+          "mode": "FAST_PATH",
+          "modeSelectionReason": "FAST_PATH_PREFLIGHT_AND_SIMULATION_PASSED",
+          "fastPath": {
+            "trades": [
+              {
+                "tokenIn": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+                "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+                "amountIn": "608353489592847",
+                "minAmountOut": "259812079885073458"
+              },
+              {
+                "tokenIn": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+                "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+                "amountIn": "1031858955606040",
+                "minAmountOut": "273677061590314291"
+              },
+              {
+                "tokenIn": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+                "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+                "amountIn": "1707501875150907",
+                "minAmountOut": "261946496665400521"
+              },
+              {
+                "tokenIn": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+                "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+                "amountIn": "13437236114107412",
+                "minAmountOut": "6796258407321018626"
+              },
+              {
+                "tokenIn": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+                "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+                "amountIn": "342852906740531",
+                "minAmountOut": "173407457465412288"
+              },
+              {
+                "tokenIn": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+                "tokenOut": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+                "amountIn": "6536581450472465987",
+                "minAmountOut": "74469307387386847"
+              }
+            ],
+            "preflightPassed": true,
+            "preflightIssues": [],
+            "expectedTurnover": "14460154412643097809",
+            "expectedCost": {
+              "quoteLossValue": "142630410253033924",
+              "estimatedFeeValue": "1446015441264306",
+              "gasCostValue": null,
+              "model": "exact-size fork-executed adapter quotes for the simple batch"
+            },
+            "minimumSafetyMarginWad": "5250326582476368",
+            "liquidityDecisions": [
+              {
+                "curveId": "0x911b4000D3422F482F4062a913885f7b035382Df:0xfedC57791E6d17c484742C84174424243592E6a8:0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E:0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA:46630:124725781:0xaa0728d1c774965cc3814ccd5d405f9c480f77b85be62afba71814c693fca50b",
+                "sampleIndex": 12,
+                "tokenIn": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+                "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+                "amountIn": "608353489592847",
+                "expectedOut": "265042224074990660",
+                "minAmountOut": "259812079885073458",
+                "oracleOut": "265114367229666794",
+                "safetyMarginOut": "5230144189917202",
+                "safetyMarginWad": "20130488898863861",
+                "priceImpactWad": "272120879113416",
+                "desiredAmountIn": "608353489592847",
+                "maximumSafeAmountIn": "608353489592847",
+                "bindingConstraint": "SIMPLE_PLANNER",
+                "expectedQuoteLossValue": "72143154676134"
+              },
+              {
+                "curveId": "0x911b4000D3422F482F4062a913885f7b035382Df:0x8A970d79CEEF300AF8a3bc040101455C8155295e:0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02:0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA:46630:124725781:0xaa0728d1c774965cc3814ccd5d405f9c480f77b85be62afba71814c693fca50b",
+                "sampleIndex": 12,
+                "tokenIn": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+                "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+                "amountIn": "1031858955606040",
+                "expectedOut": "279154518402557551",
+                "minAmountOut": "273677061590314291",
+                "oracleOut": "279262307745218665",
+                "safetyMarginOut": "5477456812243260",
+                "safetyMarginWad": "20014307302242362",
+                "priceImpactWad": "385978843802487",
+                "desiredAmountIn": "1031858955606040",
+                "maximumSafeAmountIn": "1031858955606040",
+                "bindingConstraint": "SIMPLE_PLANNER",
+                "expectedQuoteLossValue": "107789342661114"
+              },
+              {
+                "curveId": "0x911b4000D3422F482F4062a913885f7b035382Df:0x315F7A44299FfA359f36D09468D1E22F1bfE65db:0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0:0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA:46630:124725781:0xaa0728d1c774965cc3814ccd5d405f9c480f77b85be62afba71814c693fca50b",
+                "sampleIndex": 12,
+                "tokenIn": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+                "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+                "amountIn": "1707501875150907",
+                "expectedOut": "267115248921187316",
+                "minAmountOut": "261946496665400521",
+                "oracleOut": "267292343536122981",
+                "safetyMarginOut": "5168752255786795",
+                "safetyMarginWad": "19732091559098583",
+                "priceImpactWad": "662550272083389",
+                "desiredAmountIn": "1707501875150907",
+                "maximumSafeAmountIn": "1707501875150907",
+                "bindingConstraint": "SIMPLE_PLANNER",
+                "expectedQuoteLossValue": "177094614935665"
+              },
+              {
+                "curveId": "0x911b4000D3422F482F4062a913885f7b035382Df:0xB8033384ce15A1112bFd58Dc6d5619708a1be98e:0x71178BAc73cBeb415514eB542a8995b82669778d:0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA:46630:124725781:0xaa0728d1c774965cc3814ccd5d405f9c480f77b85be62afba71814c693fca50b",
+                "sampleIndex": 14,
+                "tokenIn": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+                "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+                "amountIn": "13437236114107412",
+                "expectedOut": "6889829804855717139",
+                "minAmountOut": "6796258407321018626",
+                "oracleOut": "6934957558490835333",
+                "safetyMarginOut": "93571397534698513",
+                "safetyMarginWad": "13768075303596781",
+                "priceImpactWad": "6507286202475154",
+                "desiredAmountIn": "13437236114107412",
+                "maximumSafeAmountIn": "13437236114107412",
+                "bindingConstraint": "SIMPLE_PLANNER",
+                "expectedQuoteLossValue": "45127753635118194"
+              },
+              {
+                "curveId": "0x911b4000D3422F482F4062a913885f7b035382Df:0xB8033384ce15A1112bFd58Dc6d5619708a1be98e:0x71178BAc73cBeb415514eB542a8995b82669778d:0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA:46630:124725781:0xaa0728d1c774965cc3814ccd5d405f9c480f77b85be62afba71814c693fca50b",
+                "sampleIndex": 3,
+                "tokenIn": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+                "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+                "amountIn": "342852906740531",
+                "expectedOut": "176899581071615863",
+                "minAmountOut": "173407457465412288",
+                "oracleOut": "176946385168788049",
+                "safetyMarginOut": "3492123606203575",
+                "safetyMarginWad": "20138255051113422",
+                "priceImpactWad": "264510049908845",
+                "desiredAmountIn": "342852906740531",
+                "maximumSafeAmountIn": "13437236114107412",
+                "bindingConstraint": "SIMPLE_PLANNER",
+                "expectedQuoteLossValue": "46804097172186"
+              },
+              {
+                "curveId": "0x911b4000D3422F482F4062a913885f7b035382Df:0x8B903359fA8DEE42D4140Dfda10c96d8B4F5631E:0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA:0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93:46630:124725781:0xaa0728d1c774965cc3814ccd5d405f9c480f77b85be62afba71814c693fca50b",
+                "sampleIndex": 12,
+                "tokenIn": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+                "tokenOut": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+                "amountIn": "6536581450472465987",
+                "expectedOut": "74860295571541448",
+                "minAmountOut": "74469307387386847",
+                "oracleOut": "75989089170802906",
+                "safetyMarginOut": "390988184154601",
+                "safetyMarginWad": "5250326582476368",
+                "priceImpactWad": "14854679949173170",
+                "desiredAmountIn": "6536581450472465987",
+                "maximumSafeAmountIn": "6536581450472465987",
+                "bindingConstraint": "SIMPLE_PLANNER",
+                "expectedQuoteLossValue": "97098825408470631"
+              }
+            ],
+            "simulation": {
+              "passed": true
+            }
+          },
+          "fallbackInvoked": false,
+          "vault": "0x357CD10343829DBd5889c7b0B2fBc4388fC4875B",
+          "stateId": "46630:124725781:0xaa0728d1c774965cc3814ccd5d405f9c480f77b85be62afba71814c693fca50b",
+          "blockNumber": "124725781",
+          "trades": [
+            {
+              "tokenIn": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+              "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+              "amountIn": "608353489592847",
+              "minAmountOut": "259812079885073458"
+            },
+            {
+              "tokenIn": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+              "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+              "amountIn": "1031858955606040",
+              "minAmountOut": "273677061590314291"
+            },
+            {
+              "tokenIn": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+              "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+              "amountIn": "1707501875150907",
+              "minAmountOut": "261946496665400521"
+            },
+            {
+              "tokenIn": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+              "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+              "amountIn": "13437236114107412",
+              "minAmountOut": "6796258407321018626"
+            },
+            {
+              "tokenIn": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+              "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+              "amountIn": "342852906740531",
+              "minAmountOut": "173407457465412288"
+            },
+            {
+              "tokenIn": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+              "tokenOut": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+              "amountIn": "6536581450472465987",
+              "minAmountOut": "74469307387386847"
+            }
+          ],
+          "expectedDriftBefore": "106755536466396732",
+          "expectedDriftAfter": "0",
+          "expectedTurnover": "14460154412643097809",
+          "expectedCost": {
+            "quoteLossValue": "142630410253033924",
+            "estimatedFeeValue": "1446015441264306",
+            "gasCostValue": null,
+            "model": "exact-size fork-executed adapter quotes for the simple batch"
+          },
+          "activeConstraints": [
+            "hybrid-fast-path",
+            "policy-preflight",
+            "exact-size-liquidity",
+            "simulation-required"
+          ],
+          "rejectedAlternatives": [],
+          "simulation": {
+            "passed": true
+          },
+          "reason": "use the simplest coherent rebalance because policy preflight and real vault simulation passed",
+          "liquidityDecisions": [
+            {
+              "curveId": "0x911b4000D3422F482F4062a913885f7b035382Df:0xfedC57791E6d17c484742C84174424243592E6a8:0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E:0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA:46630:124725781:0xaa0728d1c774965cc3814ccd5d405f9c480f77b85be62afba71814c693fca50b",
+              "sampleIndex": 12,
+              "tokenIn": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+              "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+              "amountIn": "608353489592847",
+              "expectedOut": "265042224074990660",
+              "minAmountOut": "259812079885073458",
+              "oracleOut": "265114367229666794",
+              "safetyMarginOut": "5230144189917202",
+              "safetyMarginWad": "20130488898863861",
+              "priceImpactWad": "272120879113416",
+              "desiredAmountIn": "608353489592847",
+              "maximumSafeAmountIn": "608353489592847",
+              "bindingConstraint": "SIMPLE_PLANNER",
+              "expectedQuoteLossValue": "72143154676134"
+            },
+            {
+              "curveId": "0x911b4000D3422F482F4062a913885f7b035382Df:0x8A970d79CEEF300AF8a3bc040101455C8155295e:0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02:0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA:46630:124725781:0xaa0728d1c774965cc3814ccd5d405f9c480f77b85be62afba71814c693fca50b",
+              "sampleIndex": 12,
+              "tokenIn": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+              "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+              "amountIn": "1031858955606040",
+              "expectedOut": "279154518402557551",
+              "minAmountOut": "273677061590314291",
+              "oracleOut": "279262307745218665",
+              "safetyMarginOut": "5477456812243260",
+              "safetyMarginWad": "20014307302242362",
+              "priceImpactWad": "385978843802487",
+              "desiredAmountIn": "1031858955606040",
+              "maximumSafeAmountIn": "1031858955606040",
+              "bindingConstraint": "SIMPLE_PLANNER",
+              "expectedQuoteLossValue": "107789342661114"
+            },
+            {
+              "curveId": "0x911b4000D3422F482F4062a913885f7b035382Df:0x315F7A44299FfA359f36D09468D1E22F1bfE65db:0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0:0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA:46630:124725781:0xaa0728d1c774965cc3814ccd5d405f9c480f77b85be62afba71814c693fca50b",
+              "sampleIndex": 12,
+              "tokenIn": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+              "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+              "amountIn": "1707501875150907",
+              "expectedOut": "267115248921187316",
+              "minAmountOut": "261946496665400521",
+              "oracleOut": "267292343536122981",
+              "safetyMarginOut": "5168752255786795",
+              "safetyMarginWad": "19732091559098583",
+              "priceImpactWad": "662550272083389",
+              "desiredAmountIn": "1707501875150907",
+              "maximumSafeAmountIn": "1707501875150907",
+              "bindingConstraint": "SIMPLE_PLANNER",
+              "expectedQuoteLossValue": "177094614935665"
+            },
+            {
+              "curveId": "0x911b4000D3422F482F4062a913885f7b035382Df:0xB8033384ce15A1112bFd58Dc6d5619708a1be98e:0x71178BAc73cBeb415514eB542a8995b82669778d:0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA:46630:124725781:0xaa0728d1c774965cc3814ccd5d405f9c480f77b85be62afba71814c693fca50b",
+              "sampleIndex": 14,
+              "tokenIn": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+              "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+              "amountIn": "13437236114107412",
+              "expectedOut": "6889829804855717139",
+              "minAmountOut": "6796258407321018626",
+              "oracleOut": "6934957558490835333",
+              "safetyMarginOut": "93571397534698513",
+              "safetyMarginWad": "13768075303596781",
+              "priceImpactWad": "6507286202475154",
+              "desiredAmountIn": "13437236114107412",
+              "maximumSafeAmountIn": "13437236114107412",
+              "bindingConstraint": "SIMPLE_PLANNER",
+              "expectedQuoteLossValue": "45127753635118194"
+            },
+            {
+              "curveId": "0x911b4000D3422F482F4062a913885f7b035382Df:0xB8033384ce15A1112bFd58Dc6d5619708a1be98e:0x71178BAc73cBeb415514eB542a8995b82669778d:0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA:46630:124725781:0xaa0728d1c774965cc3814ccd5d405f9c480f77b85be62afba71814c693fca50b",
+              "sampleIndex": 3,
+              "tokenIn": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+              "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+              "amountIn": "342852906740531",
+              "expectedOut": "176899581071615863",
+              "minAmountOut": "173407457465412288",
+              "oracleOut": "176946385168788049",
+              "safetyMarginOut": "3492123606203575",
+              "safetyMarginWad": "20138255051113422",
+              "priceImpactWad": "264510049908845",
+              "desiredAmountIn": "342852906740531",
+              "maximumSafeAmountIn": "13437236114107412",
+              "bindingConstraint": "SIMPLE_PLANNER",
+              "expectedQuoteLossValue": "46804097172186"
+            },
+            {
+              "curveId": "0x911b4000D3422F482F4062a913885f7b035382Df:0x8B903359fA8DEE42D4140Dfda10c96d8B4F5631E:0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA:0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93:46630:124725781:0xaa0728d1c774965cc3814ccd5d405f9c480f77b85be62afba71814c693fca50b",
+              "sampleIndex": 12,
+              "tokenIn": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+              "tokenOut": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+              "amountIn": "6536581450472465987",
+              "expectedOut": "74860295571541448",
+              "minAmountOut": "74469307387386847",
+              "oracleOut": "75989089170802906",
+              "safetyMarginOut": "390988184154601",
+              "safetyMarginWad": "5250326582476368",
+              "priceImpactWad": "14854679949173170",
+              "desiredAmountIn": "6536581450472465987",
+              "maximumSafeAmountIn": "6536581450472465987",
+              "bindingConstraint": "SIMPLE_PLANNER",
+              "expectedQuoteLossValue": "97098825408470631"
+            }
+          ],
+          "excludedLiquidityLegs": []
+        },
+        "executionHash": "0x244532c7075b59d00222e0053da128bdd691a671522f3b879fee54a9a25dd5e7",
+        "stateAfter": {
+          "stateId": "46630:124725782:0xb4cf24a4084fdaebe7311bf53ff799156d42d82665b82b46c5f8088ccee82436",
+          "blockNumber": "124725782",
+          "blockTimestamp": "1790442939",
+          "nav": "69204685503338805816",
+          "navFormatted": "69.204685503338805816",
+          "drift": "1436240844587272",
+          "driftFormatted": "0.143624%",
+          "baseAssetBalance": "1339200255537087313",
+          "baseAssetWeight": "19351294580660685",
+          "positions": [
+            {
+              "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+              "balance": "31190520238284582",
+              "value": "13592516814642037989",
+              "weight": "196410354527024936",
+              "symbol": "TSLA"
+            },
+            {
+              "token": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+              "balance": "50223606320728783",
+              "value": "13592516814642037831",
+              "weight": "196410354527024933",
+              "symbol": "AMZN"
+            },
+            {
+              "token": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+              "balance": "86830949371675212",
+              "value": "13592516814642037686",
+              "weight": "196410354527024931",
+              "symbol": "PLTR"
+            },
+            {
+              "token": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+              "balance": "235894866270106786",
+              "value": "20291676396554585731",
+              "weight": "293212464574752041",
+              "symbol": "NFLX"
+            },
+            {
+              "token": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+              "balance": "13168491391825265",
+              "value": "6796258407321019266",
+              "weight": "98205177263512471",
+              "symbol": "AMD"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
