@@ -11,5 +11,5 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["integrations/**/*.ts", "src/**/*.ts", "security/**/*.ts", "scripts/security-demo.ts"]
+  "include": ["integrations/**/*.ts", "src/**/*.ts", "security/**/*.ts", "scripts/security-demo.ts", "scripts/demo-check.ts"]
 }

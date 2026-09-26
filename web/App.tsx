@@ -1,13 +1,15 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { DecisionPanel } from "./components/DecisionPanel";
 import { EvidencePanel } from "./components/EvidencePanel";
 import { PortfolioTable } from "./components/PortfolioTable";
 import { StatusBadge } from "./components/StatusBadge";
 import { TradePlan } from "./components/TradePlan";
 import {
-  coreOperatorScenarios,
-  getOperatorScenario,
-  securityOperatorScenarios,
+  coreScenarioDefinitions,
+  DEFAULT_SCENARIO_ID,
+  loadOperatorScenario,
+  securityScenarioDefinitions,
+  type ScenarioDefinition,
 } from "./data/scenarios";
 import type { GuardViewModel, OperatorScenarioViewModel } from "./data/types";
 
@@ -26,7 +28,7 @@ function ScenarioSwitcher({
     <nav className="scenario-switcher" aria-label="Evidence scenario">
       <span className="scenario-label">Evidence scenario</span>
       <div className="scenario-options">
-        {coreOperatorScenarios.map((scenario) => (
+        {coreScenarioDefinitions.map((scenario) => (
           <button
             aria-current={scenario.id === activeId ? "page" : undefined}
             className={scenario.id === activeId ? "scenario-active" : ""}
@@ -35,7 +37,7 @@ function ScenarioSwitcher({
             type="button"
           >
             <span>{scenario.shortLabel}</span>
-            <StatusBadge compact mode={scenario.mode} />
+            <StatusBadge compact mode={scenario.expectedMode} />
           </button>
         ))}
       </div>
@@ -44,15 +46,32 @@ function ScenarioSwitcher({
         <select
           aria-label="Safety failure demonstration"
           onChange={(event) => event.target.value !== "" && onChange(event.target.value)}
-          value={securityOperatorScenarios.some((scenario) => scenario.id === activeId) ? activeId : ""}
+          value={securityScenarioDefinitions.some((scenario) => scenario.id === activeId) ? activeId : ""}
         >
           <option value="">Select evidence</option>
-          {securityOperatorScenarios.map((scenario) => (
+          {securityScenarioDefinitions.map((scenario) => (
             <option key={scenario.id} value={scenario.id}>{scenario.shortLabel}</option>
           ))}
         </select>
       </label>
     </nav>
+  );
+}
+
+function ProductContext() {
+  return (
+    <section className="product-context" aria-labelledby="product-purpose">
+      <div>
+        <p className="eyebrow">Setpoint / operator console</p>
+        <h1 id="product-purpose">Safety and execution orchestration for onchain vault rebalances.</h1>
+        <p>Preflight simple rebalances. Adapt only when liquidity or vault constraints make them unsafe.</p>
+      </div>
+      <dl>
+        <div><dt>Network</dt><dd>Robinhood Chain testnet</dd></div>
+        <div><dt>Evidence</dt><dd>Historical fork + deterministic integration tests</dd></div>
+        <div><dt>Compatibility target</dt><dd>External integration: RWA Index</dd></div>
+      </dl>
+    </section>
   );
 }
 
@@ -66,28 +85,44 @@ function SummaryStrip({ scenario }: { scenario: OperatorScenarioViewModel }) {
       </div>
       <dl className="summary-metrics">
         <div>
-          <dt>Vault NAV</dt>
-          <dd>{scenario.after?.nav ?? scenario.before?.nav ?? "Not available"}</dd>
-          <span>{scenario.before === null ? "not present in this evidence" : "mock USDC · confirmed"}</span>
+          <dt>Initial drift</dt>
+          <dd>{scenario.before?.drift ?? "Not available"}</dd>
+          <span>{scenario.before === null ? "no portfolio snapshot asserted" : "confirmed fork state"}</span>
         </div>
         <div>
-          <dt>Authoritative drift</dt>
-          <dd>{scenario.after?.drift ?? scenario.before?.drift ?? "Not available"}</dd>
-          <span>{scenario.before !== null && scenario.after !== null ? `from ${scenario.before.drift}` : "no portfolio snapshot asserted"}</span>
+          <dt>Simple batch</dt>
+          <dd>{scenario.originalPlan.length === 0 ? "No candidate" : `${scenario.originalPlan.length} legs`}</dd>
+          <span>{scenario.attemptedTurnover} NAV attempted</span>
         </div>
         <div>
-          <dt>Cash / base weight</dt>
-          <dd>{scenario.after?.cashWeight ?? scenario.before?.cashWeight ?? "Not available"}</dd>
-          <span>{scenario.after?.targetStatus ?? scenario.before?.targetStatus ?? "no portfolio snapshot"}</span>
+          <dt>Confirmed drift</dt>
+          <dd>{scenario.after?.drift ?? "No execution"}</dd>
+          <span>{scenario.executedTurnover} NAV executed</span>
         </div>
         <div>
           <dt>Current decision</dt>
           <dd><StatusBadge mode={scenario.mode} compact /></dd>
-          <span>{scenario.terminalReason}</span>
+          <span>{scenario.simulation.fastPathFailure ?? scenario.terminalReason} → {scenario.terminalReason}</span>
         </div>
       </dl>
     </section>
   );
+}
+
+function EvidenceFailure({ message, onReset }: { message: string; onReset: () => void }) {
+  return (
+    <section className="panel load-failure" role="alert" aria-labelledby="load-failure-title">
+      <p className="eyebrow">Application / evidence error</p>
+      <h2 id="load-failure-title">Evidence could not be loaded.</h2>
+      <p>{message}</p>
+      <p>This is a delivery error, not a Setpoint <code>NO_TRADE</code> safety decision.</p>
+      <button onClick={onReset} type="button">Return to Large Target evidence</button>
+    </section>
+  );
+}
+
+function initialScenarioId(): string {
+  return new URL(window.location.href).searchParams.get("scenario") ?? DEFAULT_SCENARIO_ID;
 }
 
 function GuardRail({ guards, scenario }: { guards: GuardViewModel[]; scenario: OperatorScenarioViewModel }) {
@@ -167,8 +202,38 @@ function BeforeAfter({ scenario }: { scenario: OperatorScenarioViewModel }) {
 }
 
 export default function App() {
-  const [scenarioId, setScenarioId] = useState("large-target-change");
-  const scenario = useMemo(() => getOperatorScenario(scenarioId), [scenarioId]);
+  const [scenarioId, setScenarioId] = useState(initialScenarioId);
+  const [scenario, setScenario] = useState<OperatorScenarioViewModel | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let current = true;
+    setScenario(null);
+    setLoadError(null);
+    void loadOperatorScenario(scenarioId)
+      .then((loaded) => {
+        if (current) setScenario(loaded);
+      })
+      .catch((error: unknown) => {
+        if (current) setLoadError(error instanceof Error ? error.message : "Unknown evidence loading failure");
+      });
+    return () => { current = false; };
+  }, [scenarioId]);
+
+  function selectScenario(id: string): void {
+    const url = new URL(window.location.href);
+    if (id === DEFAULT_SCENARIO_ID) url.searchParams.delete("scenario");
+    else url.searchParams.set("scenario", id);
+    window.history.replaceState(null, "", url);
+    setScenarioId(id);
+  }
+
+  function resetScenario(): void {
+    selectScenario(DEFAULT_SCENARIO_ID);
+  }
+
+  const selectedDefinition: ScenarioDefinition | undefined = [...coreScenarioDefinitions, ...securityScenarioDefinitions]
+    .find((definition) => definition.id === scenarioId);
 
   return (
     <div className="app-shell">
@@ -178,35 +243,54 @@ export default function App() {
           <span className="wordmark-section">/ OPERATOR CONSOLE</span>
         </a>
         <div className="topbar-context">
-          <span><i className="context-dot" />{scenario.source.network}</span>
-          {scenario.source.vault !== "Not applicable" && <span>Vault <code title={scenario.source.vault}>{compact(scenario.source.vault)}</code></span>}
-          {scenario.source.forkBlock !== "not applicable" && <span>Fork <strong>#{scenario.source.forkBlock}</strong></span>}
-          <span className="topbar-fork">{scenario.source.label}</span>
+          <span><i className="context-dot" />{scenario?.source.network ?? "Robinhood Chain testnet"}</span>
+          {scenario !== null && scenario.source.vault !== "Not applicable" && <span>Vault <code title={scenario.source.vault}>{compact(scenario.source.vault)}</code></span>}
+          {scenario !== null && scenario.source.forkBlock !== "not applicable" && <span>Fork <strong>#{scenario.source.forkBlock}</strong></span>}
+          <span className="topbar-fork">Public demo · no live funds</span>
         </div>
       </header>
 
       <main id="top">
-        <ScenarioSwitcher activeId={scenario.id} onChange={setScenarioId} />
-        <SummaryStrip scenario={scenario} />
+        <ProductContext />
+        <ScenarioSwitcher activeId={scenarioId} onChange={selectScenario} />
 
-        <div className="primary-grid">
-          <DecisionPanel scenario={scenario} />
-          <GuardRail guards={scenario.guards} scenario={scenario} />
-        </div>
+        {loadError !== null ? (
+          <EvidenceFailure message={loadError} onReset={resetScenario} />
+        ) : scenario === null ? (
+          <section className="panel load-state" role="status">
+            <p className="eyebrow">Loading checked-in evidence</p>
+            <h2>{selectedDefinition?.shortLabel ?? "Unknown scenario"}</h2>
+          </section>
+        ) : <>
+          <SummaryStrip scenario={scenario} />
 
-        <PortfolioTable scenario={scenario} />
-        <TradePlan key={scenario.id} scenario={scenario} />
+          <div className="primary-grid">
+            <DecisionPanel scenario={scenario} />
+            <GuardRail guards={scenario.guards} scenario={scenario} />
+          </div>
 
-        <div className="evidence-grid">
-          <BeforeAfter scenario={scenario} />
-          <EvidencePanel scenario={scenario} />
-        </div>
+          <PortfolioTable scenario={scenario} />
+          <TradePlan key={scenario.id} scenario={scenario} />
+
+          <div className="evidence-grid">
+            <BeforeAfter scenario={scenario} />
+            <EvidencePanel scenario={scenario} />
+          </div>
+        </>}
       </main>
 
       <footer>
-        <span>SETPOINT · EVIDENCE CONSOLE</span>
-        <span>External integration: RWA Index</span>
-        <span>Historical testnet evidence · no live funds</span>
+        <div>
+          <span>SETPOINT · EVIDENCE CONSOLE</span>
+          <span>External integration: RWA Index</span>
+          <span>Historical, fork-backed Robinhood Chain testnet evidence. No live funds or production execution.</span>
+        </div>
+        <nav aria-label="Project resources">
+          <a href="https://github.com/karagozemin/setpoint" target="_blank" rel="noreferrer">GitHub</a>
+          <a href="https://github.com/karagozemin/setpoint/blob/main/Setpoint_PRD_v1_2.md" target="_blank" rel="noreferrer">PRD v1.2</a>
+          <a href="https://github.com/karagozemin/setpoint/blob/main/docs/SECURITY.md" target="_blank" rel="noreferrer">Security model</a>
+          <a href="https://github.com/karagozemin/setpoint#reproduce" target="_blank" rel="noreferrer">Reproduce</a>
+        </nav>
       </footer>
     </div>
   );

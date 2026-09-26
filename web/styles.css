@@ -150,6 +150,63 @@ main {
   padding: 22px 0 52px;
 }
 
+.product-context {
+  display: grid;
+  grid-template-columns: minmax(360px, 1.4fr) minmax(560px, 1fr);
+  align-items: center;
+  gap: 32px;
+  padding: 20px 0 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.product-context h1 {
+  max-width: 760px;
+  margin-bottom: 7px;
+  font-size: clamp(1.3rem, 2.1vw, 2rem);
+  font-weight: 560;
+  letter-spacing: -0.035em;
+  line-height: 1.14;
+}
+
+.product-context > div > p:last-child {
+  margin: 0;
+  color: var(--muted-strong);
+  font-size: 0.79rem;
+}
+
+.product-context dl {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 0;
+  border: 1px solid var(--border);
+}
+
+.product-context dl > div {
+  min-width: 0;
+  padding: 12px 14px;
+  border-right: 1px solid var(--border);
+}
+
+.product-context dl > div:last-child {
+  border-right: 0;
+}
+
+.product-context dt {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.product-context dd {
+  margin: 0;
+  color: var(--muted-strong);
+  font-size: 0.65rem;
+  line-height: 1.35;
+}
+
 .scenario-switcher {
   display: flex;
   align-items: center;
@@ -1152,6 +1209,38 @@ tbody tr:hover td {
   color: var(--muted-strong);
 }
 
+.load-state,
+.load-failure {
+  min-height: 280px;
+  padding: 42px;
+}
+
+.load-state {
+  display: grid;
+  place-content: center;
+  text-align: center;
+}
+
+.load-failure h2 {
+  margin-bottom: 14px;
+}
+
+.load-failure > p:not(.eyebrow) {
+  max-width: 720px;
+  color: var(--muted-strong);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.load-failure button {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--info);
+  background: transparent;
+  color: var(--info);
+  cursor: pointer;
+}
+
 footer {
   display: flex;
   justify-content: space-between;
@@ -1163,6 +1252,26 @@ footer {
   font-size: 0.57rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+footer > div,
+footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+footer nav {
+  justify-content: flex-end;
+}
+
+footer a {
+  color: var(--muted-strong);
+  text-decoration: none;
+}
+
+footer a:hover {
+  color: var(--signal);
 }
 
 .fatal-state {
@@ -1196,6 +1305,10 @@ footer {
   }
 
   .summary-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .product-context {
     grid-template-columns: 1fr;
   }
 
@@ -1243,6 +1356,19 @@ footer {
     align-items: flex-start;
     flex-direction: column;
     gap: 9px;
+  }
+
+  .product-context dl {
+    grid-template-columns: 1fr;
+  }
+
+  .product-context dl > div {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .product-context dl > div:last-child {
+    border-bottom: 0;
   }
 
   .scenario-options {
@@ -1338,6 +1464,10 @@ footer {
 
   footer {
     flex-direction: column;
+  }
+
+  footer nav {
+    justify-content: flex-start;
   }
 }
 

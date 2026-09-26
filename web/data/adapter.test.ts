@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 import largeTargetArtifact from "../../artifacts/hybrid/large-target-change.json";
 import normalArtifact from "../../artifacts/hybrid/moderate-drift-deep-toy.json";
@@ -11,11 +11,49 @@ import {
   type RawSummaryArtifact,
   type ScenarioPresentation,
 } from "./adapter";
-import { coreOperatorScenarios, operatorScenarios, securityOperatorScenarios } from "./scenarios";
+import {
+  coreScenarioDefinitions,
+  DEFAULT_SCENARIO_ID,
+  EvidenceLoadError,
+  loadOperatorScenario,
+  scenarioDefinitions,
+  securityScenarioDefinitions,
+  type EvidenceFetcher,
+} from "./scenarios";
 
-const fastPath = operatorScenarios.find((scenario) => scenario.id === "moderate-drift-deep-toy")!;
-const fallback = operatorScenarios.find((scenario) => scenario.id === "large-target-change")!;
-const stale = operatorScenarios.find((scenario) => scenario.id === "stale-oracle")!;
+const summary = summaryArtifact as unknown as RawSummaryArtifact;
+
+function mapCore(raw: unknown, id: string) {
+  const definition = coreScenarioDefinitions.find((candidate) => candidate.id === id)!;
+  return mapScenarioArtifact(raw as RawScenarioArtifact, summary, {
+    shortLabel: definition.shortLabel,
+    subtitle: definition.subtitle,
+    artifactPath: definition.artifactPath,
+    evidenceHref: definition.evidenceHref,
+  });
+}
+
+const fastPath = mapCore(normalArtifact, "moderate-drift-deep-toy");
+const fallback = mapCore(largeTargetArtifact, "large-target-change");
+const stale = mapCore(staleOracleArtifact, "stale-oracle");
+
+const fileFetcher: EvidenceFetcher = async (input) => {
+  const relative = input === "/evidence/m4-2-summary.json"
+    ? "artifacts/m4-2-summary.json"
+    : input.startsWith("/evidence/security/")
+      ? `artifacts/security/${input.slice("/evidence/security/".length)}`
+      : `artifacts/hybrid/${input.slice("/evidence/".length)}`;
+  if (!existsSync(relative)) return { ok: false, status: 404, async json() { return {}; } };
+  return { ok: true, status: 200, async json() { return JSON.parse(readFileSync(relative, "utf8")); } };
+};
+
+test("large target is the default and core scenarios remain primary", () => {
+  assert.equal(DEFAULT_SCENARIO_ID, "large-target-change");
+  assert.deepEqual(
+    coreScenarioDefinitions.map((scenario) => scenario.id),
+    ["large-target-change", "moderate-drift-deep-toy", "stale-oracle"],
+  );
+});
 
 test("FAST_PATH artifact maps to the fast-path operator state", () => {
   assert.equal(fastPath.mode, "FAST_PATH");
@@ -36,6 +74,8 @@ test("ADAPTIVE_FALLBACK preserves the original real-vault failure", () => {
   assert.equal(fallback.selectedPlan.length, 3);
   assert.equal(fallback.attemptedTurnover, "60.051107%");
   assert.equal(fallback.executedTurnover, "22.500000%");
+  assert.equal(fallback.before?.drift, "31.025554%");
+  assert.equal(fallback.after?.drift, "19.113279%");
   assert.equal(fallback.terminalReason, "NO_SAFE_LIQUIDITY");
 });
 
@@ -73,30 +113,29 @@ test("unavailable stale-state values remain unavailable", () => {
 });
 
 test("fork and testnet labeling is explicit", () => {
-  for (const scenario of coreOperatorScenarios) {
+  for (const scenario of [fastPath, fallback, stale]) {
     assert.equal(scenario.source.network, "Robinhood Chain testnet");
     assert.equal(scenario.source.label, "Fork-backed historical evidence");
   }
 });
 
-test("raw evidence export resolves to the versioned source artifact", () => {
-  for (const scenario of operatorScenarios) {
-    assert.ok(scenario.source.evidenceHref.endsWith(".json"));
-    assert.ok(existsSync(scenario.source.artifactPath));
+test("every mapped public artifact exists and uses a relative evidence path", () => {
+  for (const scenario of scenarioDefinitions) {
+    assert.ok(scenario.evidenceHref.startsWith("/evidence/"));
+    assert.ok(scenario.evidenceHref.endsWith(".json"));
+    assert.ok(existsSync(scenario.artifactPath));
   }
 });
 
-test("security cases are evidence-backed no-execution or bounded fallback views", () => {
-  assert.equal(coreOperatorScenarios.length, 3);
-  assert.equal(securityOperatorScenarios.length, 5);
-  assert.equal(operatorScenarios.length, 8);
+test("public loader maps every core and safety scenario from source evidence", async () => {
+  const loaded = await Promise.all(scenarioDefinitions.map((scenario) => loadOperatorScenario(scenario.id, fileFetcher)));
+  assert.equal(loaded.length, 7);
+  assert.deepEqual(loaded.map((scenario) => scenario.id), scenarioDefinitions.map((scenario) => scenario.id));
 
-  const policy = securityOperatorScenarios.find((scenario) => scenario.id === "security-malicious-target")!;
-  const unsupported = securityOperatorScenarios.find((scenario) => scenario.id === "security-unsupported-route")!;
-  const unknown = securityOperatorScenarios.find((scenario) => scenario.id === "security-unknown-revert")!;
-  const unsafe = securityOperatorScenarios.find((scenario) => scenario.id === "security-unsafe-liquidity")!;
-
-  assert.equal(policy.mode, "NO_TRADE");
+  const policy = loaded.find((scenario) => scenario.id === "security-malicious-target")!;
+  const unsupported = loaded.find((scenario) => scenario.id === "security-unsupported-route")!;
+  const unknown = loaded.find((scenario) => scenario.id === "security-unknown-revert")!;
+  const unsafe = loaded.find((scenario) => scenario.id === "security-unsafe-liquidity")!;
   assert.equal(policy.terminalReason, "INVALID_POLICY");
   assert.equal(unsupported.simulation.fastPathStatus, "NOT_RUN");
   assert.equal(unsupported.terminalReason, "UNSUPPORTED_ASSET");
@@ -107,33 +146,36 @@ test("security cases are evidence-backed no-execution or bounded fallback views"
   assert.equal(unsafe.terminalReason, "NO_SAFE_LIQUIDITY");
 });
 
-test("security view-models do not fabricate portfolio state", () => {
-  for (const scenario of securityOperatorScenarios) {
+test("security view-models do not fabricate portfolio state", async () => {
+  for (const definition of securityScenarioDefinitions) {
+    const scenario = await loadOperatorScenario(definition.id, fileFetcher);
     assert.equal(scenario.scenarioGroup, "security");
     assert.equal(scenario.before, null);
     assert.equal(scenario.after, null);
     assert.equal(scenario.originalPlan.length, 0);
-    assert.ok(scenario.source.evidenceHref.startsWith("/evidence/security/"));
-    assert.ok(existsSync(scenario.source.artifactPath));
   }
+});
+
+test("unknown, missing, and malformed evidence are application errors", async () => {
+  await assert.rejects(() => loadOperatorScenario("does-not-exist", fileFetcher), EvidenceLoadError);
+  await assert.rejects(
+    () => loadOperatorScenario(DEFAULT_SCENARIO_ID, async () => ({ ok: false, status: 404, async json() { return {}; } })),
+    /Evidence request failed/,
+  );
+  await assert.rejects(
+    () => loadOperatorScenario(DEFAULT_SCENARIO_ID, async () => ({ ok: true, status: 200, async json() { throw new Error("bad json"); } })),
+    /Malformed evidence JSON/,
+  );
 });
 
 test("view-model mapping is deterministic", () => {
   const presentation: ScenarioPresentation = {
-    shortLabel: "Large Target / Fallback",
+    shortLabel: "Large Target / Adaptive Fallback",
     subtitle: "Determinism fixture",
     artifactPath: "artifacts/hybrid/large-target-change.json",
     evidenceHref: "/evidence/large-target-change.json",
   };
-  const first = mapScenarioArtifact(
-    largeTargetArtifact as unknown as RawScenarioArtifact,
-    summaryArtifact as unknown as RawSummaryArtifact,
-    presentation,
-  );
-  const second = mapScenarioArtifact(
-    largeTargetArtifact as unknown as RawScenarioArtifact,
-    summaryArtifact as unknown as RawSummaryArtifact,
-    presentation,
-  );
+  const first = mapScenarioArtifact(largeTargetArtifact as unknown as RawScenarioArtifact, summary, presentation);
+  const second = mapScenarioArtifact(largeTargetArtifact as unknown as RawScenarioArtifact, summary, presentation);
   assert.deepEqual(first, second);
 });

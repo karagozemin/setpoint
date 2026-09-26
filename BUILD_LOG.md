@@ -1,5 +1,69 @@
 # Build log
 
+## 2026-09-26 — Public demo and deployment readiness
+
+### Implemented
+
+- Prepared the existing Vite/React operator console for static Vercel deployment with a minimal `vercel.json`, explicit build/output settings, no backend, and restrictive browser security headers.
+- Kept Large Target / Adaptive Fallback as the default and moved it to the first core navigation position. The first evidence viewport now exposes the 31.025554% initial drift, 10-leg and 60.051107%-NAV simple attempt, `INSUFFICIENT_OUTPUT`, adaptive decision, 22.5%-NAV execution, 19.113279% confirmed drift, and terminal refusal evidence without claiming completion.
+- Added compact product context using the PRD wording, precise RWA Index compatibility language, and a persistent public-demo/no-live-funds disclosure.
+- Added restrained GitHub, PRD v1.2, security-model, and reproduction links.
+- Replaced eager JSON imports with selected-scenario evidence fetching. Raw checked-in artifacts remain the single source, first-render JavaScript fell from 353.32 kB to approximately 260 kB uncompressed, and evidence-fetch/application errors remain distinct from typed `NO_TRADE` decisions.
+- Added explicit handling and tests for unknown scenarios, missing evidence, malformed JSON, and rendering failures.
+- Disabled production source maps and added professional title, description, Open Graph, Twitter summary, and theme-color metadata. No unapproved logo, social proof, or favicon was introduced.
+- Added `pnpm demo:check` to build and audit the emitted static bundle, verify byte-identical evidence exports, frozen results, security invariants, scenario mappings, local-path absence, credential signatures, and the lack of browser execution endpoints.
+
+### Public-safety audit
+
+- `.env.example` contains only the public Robinhood testnet RPC and local Anvil host controls; it contains no private credential. `.env` remains ignored.
+- The production bundle contains no private keys, wallet secrets, RPC credentials, internal tokens, environment secrets, local filesystem paths, localhost URLs, shell/Anvil trigger, writable API, mutation endpoint, or transaction-submission client.
+- Browser data loading is same-origin and read-only. All nine emitted evidence/summary files are byte-identical to their checked-in sources.
+- Fork-only transaction hashes remain labeled `Fork transaction`; no public explorer link is generated for local Anvil transactions.
+- Public contract addresses and reproducibility data remain visible because they are not secrets.
+
+### Deployment target and status
+
+- Target: Vercel static hosting.
+- Build command: `pnpm build`.
+- Output directory: `dist/operator-console`.
+- Root directory: repository root.
+- Public URL: `https://setpoint-neon.vercel.app`.
+- The authenticated Vercel CLI created project `karagozs-projects/setpoint`, connected it to `https://github.com/karagozemin/setpoint`, and assigned the stable production alias above.
+
+### Errors and corrections
+
+- The pre-readiness bundle eagerly imported all core and security JSON into the main JavaScript. The scenario catalog now contains metadata only and fetches the selected checked-in artifact on demand.
+- The first `demo:check` run scanned Node-based test files as browser sources and correctly rejected their `node:` imports. The scan boundary was corrected to exclude test-only files while continuing to inspect every shipped frontend source and emitted file.
+- Runtime evidence previously could not express fetch or malformed-JSON failures because data was compiled into the bundle. The new loader exposes a dedicated application/evidence error state and never represents delivery failure as `NO_TRADE`.
+
+### Validation and freeze
+
+```bash
+pnpm install --frozen-lockfile
+pnpm security:demo
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm demo:check
+```
+
+- 76/76 tests pass.
+- Security invariants remain 11/11.
+- All required production evidence URLs resolve from the static bundle and match their sources byte-for-byte.
+- The live root and required evidence URLs return HTTP 200 with the configured CSP, referrer, permissions, framing, and content-type protections.
+- Headless Chrome inspection passed for the desktop default, normal, stale-oracle, one safety case, and 520px compact layouts.
+- The public-output safety scan passes.
+- Existing M4.2 scenario outcomes remain unchanged.
+- No file under `src/core/` or `integrations/rwa-index/` changed.
+- M2 planner SHA-256 remains `dcd079ed25ff6fd7683c947fbf46748abd70862fe2a85a368c919b26fe7cee92`.
+
+### Remaining limitations
+
+- This is a historical evidence console, not a production execution service. It has no live refresh, wallet, transaction submission, authentication, or production funds.
+- Evidence availability depends on the static host serving the emitted JSON files. Delivery failures are reported as application errors.
+- The public demo is tied to Vercel availability and the `setpoint-neon.vercel.app` alias; no custom domain is configured.
+- External founder validation and hackathon/Founder House presentation work have not started.
+
 ## 2026-09-26 — Security and failure demonstrations
 
 ### Implemented

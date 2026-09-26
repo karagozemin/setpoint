@@ -76,7 +76,7 @@ The M5 console is a thin React presentation layer over the accepted M4.2 artifac
 
 The console loads versioned JSON from `artifacts/hybrid/` and `artifacts/security/` through deterministic presentation adapters. Its “View raw evidence” and “Download JSON” actions serve those exact source artifacts. Evidence levels are explicit; fork-backed screens do not imply production or live-fund execution.
 
-The compact **Safety cases** selector adds stale-oracle, rejected-policy, unsupported-route, unsafe-liquidity, and unknown-failure evidence without changing the three accepted core demo flows. Fork-backed and deterministic integration-test evidence are labeled separately, and missing portfolio state is left unavailable rather than reconstructed.
+The compact **Safety cases** selector adds rejected-policy, unsupported-route, unsafe-liquidity, and unknown-failure evidence without changing the three accepted core demo flows. Stale-oracle evidence remains one of the primary core flows. Fork-backed and deterministic integration-test evidence are labeled separately, and missing portfolio state is left unavailable rather than reconstructed.
 
 Run it locally:
 
@@ -111,6 +111,43 @@ pnpm security:demo
 ```
 
 Outputs are written to `artifacts/security/`. See [the security model](./docs/SECURITY.md) for evidence levels, trust assumptions, demonstrated invariants, and threats that remain out of scope. This evidence is not an audit or formal verification.
+
+## Public demo
+
+The read-only operator console is live at **[setpoint-neon.vercel.app](https://setpoint-neon.vercel.app)**. It is deployed as a static Vite site on Vercel.
+
+The public demo represents checked-in historical fork evidence and deterministic integration-test evidence. It is read-only: it has no wallet connection, transaction submission, writable API, RPC credential, Anvil trigger, custody path, or production execution service. Fork-only transaction hashes are labeled as fork transactions and are not linked to a public explorer.
+
+The default scenario is **Large Target / Adaptive Fallback**. It preserves the accepted result: a 10-leg, 60.051107%-NAV simple batch fails exact-vault simulation with `INSUFFICIENT_OUTPUT`; a simulation-approved three-leg subset executes 22.5% NAV turnover; drift moves from 31.025554% to 19.113279%; and the unsafe residual USDC→NFLX route is refused with `NO_SAFE_LIQUIDITY`.
+
+Validate the complete public bundle locally:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm security:demo
+pnpm typecheck
+pnpm test
+pnpm demo:check
+pnpm preview
+```
+
+`pnpm demo:check` builds the app, verifies that every emitted evidence JSON is byte-identical to its checked-in source, confirms the frozen hashes/results, and scans the deployable output for local paths, localhost references, common credential signatures, and writable execution surfaces.
+
+Vercel settings are committed in `vercel.json`:
+
+- framework: Vite;
+- build command: `pnpm build`;
+- output directory: `dist/operator-console`; and
+- repository root: the repository root.
+
+After authenticating the Vercel CLI, create a preview and then promote a reviewed build:
+
+```bash
+npx vercel
+npx vercel --prod
+```
+
+The production bundle fetches only the selected scenario's checked-in JSON plus the M4.2 summary when needed. Evidence is never reconstructed in the browser. Project source, [PRD v1.2](./Setpoint_PRD_v1_2.md), [security model](./docs/SECURITY.md), and reproduction instructions remain linked from the console without turning it into a documentation portal.
 
 ## Reproduce
 

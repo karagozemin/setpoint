@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -p tsconfig.web.json --noEmit && vite build",
+    "demo:check": "pnpm build && tsx scripts/demo-check.ts",
     "preview": "vite preview",
     "security:demo": "tsx scripts/security-demo.ts",
     "m1:rwa-index": "bash scripts/m1-rwa-index.sh",

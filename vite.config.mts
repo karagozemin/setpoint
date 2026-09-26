@@ -16,6 +16,7 @@ const securityEvidenceFiles = [
   "unsafe-liquidity.json",
   "unsupported-route.json",
 ] as const;
+const summaryFile = "m4-2-summary.json";
 
 function evidencePlugin() {
   return {
@@ -23,6 +24,12 @@ function evidencePlugin() {
     configureServer(server: { middlewares: { use: (handler: (request: { url?: string }, response: { statusCode: number; setHeader: (name: string, value: string) => void; end: (body?: Uint8Array | string) => void }, next: () => void) => void) => void } }) {
       server.middlewares.use((request, response, next) => {
         const requestPath = request.url?.split("?")[0];
+        if (requestPath === `/evidence/${summaryFile}`) {
+          response.setHeader("Content-Type", "application/json; charset=utf-8");
+          response.setHeader("Cache-Control", "no-store");
+          response.end(readFileSync(resolve("artifacts", summaryFile)));
+          return;
+        }
         const securityFileName = requestPath?.replace("/evidence/security/", "");
         if (requestPath?.startsWith("/evidence/security/") && securityFileName !== undefined && securityEvidenceFiles.includes(securityFileName as (typeof securityEvidenceFiles)[number])) {
           response.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -41,6 +48,11 @@ function evidencePlugin() {
       });
     },
     generateBundle(this: { emitFile: (asset: { type: "asset"; fileName: string; source: Uint8Array }) => void }) {
+      this.emitFile({
+        type: "asset",
+        fileName: `evidence/${summaryFile}`,
+        source: readFileSync(resolve("artifacts", summaryFile)),
+      });
       for (const fileName of evidenceFiles) {
         this.emitFile({
           type: "asset",
@@ -65,6 +77,6 @@ export default defineConfig({
   build: {
     outDir: "dist/operator-console",
     emptyOutDir: true,
-    sourcemap: true,
+    sourcemap: false,
   },
 });
