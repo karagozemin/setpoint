@@ -23,7 +23,7 @@ pnpm dev
 
 Open `http://localhost:5173`. Public vault reads do not require a wallet. MetaMask, Rabby, and other EIP-1193 wallets can connect for network/authorization detection and transaction submission when the account is actually authorized.
 
-The current production alias is [setpoint-neon.vercel.app](https://setpoint-neon.vercel.app). The M6 build must be previewed and reviewed before that alias is promoted; this README does not claim promotion before it happens.
+The reviewed M6 product is live at [setpoint-neon.vercel.app](https://setpoint-neon.vercel.app).
 
 Reviewed M6 preview: `https://setpoint-fl1z2lkvh-karagozs-projects.vercel.app` (Vercel deployment protection may require team access).
 

@@ -41,7 +41,8 @@ pnpm live:smoke
 - No file under `src/core/` and no accepted historical artifact changed.
 - Vercel preview: `https://setpoint-fl1z2lkvh-karagozs-projects.vercel.app` (deployment-protected). Hosted visual checks passed for `/`, `/app`, the live `NO_TRADE` result, mobile, `/evidence`, wallet-disconnected state, and forced RPC failure.
 - Review screenshots: `docs/images/m6-landing-desktop.png`, `m6-live-vault.png`, `m6-analysis-result.png`, `m6-mobile.png`, and `m6-evidence.png`.
-- Production was not promoted before preview review.
+- Production deployment: `dpl_FHRuFn85uprdgViJWRPNbkatt29c`; immutable URL `https://setpoint-6zlcnr3de-karagozs-projects.vercel.app`; stable alias `https://setpoint-neon.vercel.app`.
+- After promotion, `/`, `/app`, and `/evidence` each returned HTTP 200 and the full hosted visual suite passed again on the stable alias.
 
 ## 2026-09-26 — Public demo and deployment readiness
 
