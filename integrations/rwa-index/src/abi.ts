@@ -15,6 +15,7 @@ export const vaultAbi = [
   { type: "function", name: "maxRebalanceLoss", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
   { type: "function", name: "paused", stateMutability: "view", inputs: [], outputs: [{ type: "bool" }] },
   { type: "function", name: "hasRole", stateMutability: "view", inputs: [{ type: "bytes32" }, { type: "address" }], outputs: [{ type: "bool" }] },
+  { type: "function", name: "setStrategy", stateMutability: "nonpayable", inputs: [{ name: "tokens", type: "address[]" }, { name: "weights", type: "uint256[]" }, { name: "cashTarget", type: "uint256" }], outputs: [] },
   {
     type: "function",
     name: "rebalance",
@@ -36,7 +37,10 @@ export const vaultAbi = [
   { type: "error", name: "SlippageTooLoose", inputs: [] },
   { type: "error", name: "DriftNotImproved", inputs: [] },
   { type: "error", name: "ExcessiveValueLoss", inputs: [] },
-  { type: "error", name: "NotAuthorized", inputs: [] }
+  { type: "error", name: "NotAuthorized", inputs: [] },
+  { type: "error", name: "NotAnAsset", inputs: [{ name: "token", type: "address" }] },
+  { type: "error", name: "InsufficientOutput", inputs: [] },
+  { type: "error", name: "ERC20InsufficientBalance", inputs: [{ name: "sender", type: "address" }, { name: "balance", type: "uint256" }, { name: "needed", type: "uint256" }] }
 ] as const;
 
 export const oracleAbi = [

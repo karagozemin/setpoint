@@ -1,4 +1,4 @@
-# RWA Index M1 integration
+# RWA Index M1/M2 integration
 
 This adapter-first harness targets the existing RWA Index vault; it does not redeploy a Setpoint-owned copy.
 
@@ -49,3 +49,34 @@ The command exits successfully only when all of the following hold:
 - the same call succeeds as a local-fork transaction;
 - `totalDrift()` strictly decreases; and
 - post-rebalance NAV satisfies the deployed `maxRebalanceLoss` floor.
+
+## M2 truthful static baseline
+
+Run:
+
+```bash
+pnpm m2:baseline
+```
+
+The baseline mirrors the external project's static planner and the PRD control-group definition. For each exact onchain target it computes oracle-valued overweights and underweights, chunks each desired transfer by `maxTradeFraction`, orders all USDC sales before purchases, and uses the deployed slippage floor for `minAmountOut`. It never reads pool depth or quote impact when choosing sizes and does not back off after a failed simulation.
+
+Every successful cycle is followed by a new authoritative vault read before another cycle can be considered. Target-region completion is defined as `totalDrift() <= driftThreshold`, using the deployed 5% threshold. Exact target weights are reported as zero-width ranges.
+
+### Scenario construction
+
+- **Moderate/deeper toy:** approximately 10% target weight moves from AMD to TSLA.
+- **Moderate/thin toy:** the same approximate shift moves from AMD to NFLX.
+- **Asymmetric:** the shift out of AMD is split across TSLA and NFLX.
+- **Large target change:** NFLX rises to 49%; static sizing proposes three buy chunks after its sells.
+- **Defensive:** cash target rises from 0% to 20%, with each stock target set to 16%.
+- **Stale oracle:** uses untouched deployment timestamps and must return `STALE_ORACLE` without proposing trades.
+
+The first four target-change scenarios declare a 2% cash target. This is an explicit, identical scenario-policy input that prevents ordinary DEX fees from being confused with the intended deep/thin comparison. It does not change the baseline algorithm or vault guards. All scenario changes use the deployed `setStrategy` function on the disposable fork.
+
+“Deep” and “thin” are only relative labels within these toy pools. The runner records active liquidity and token inventory as context, but does not present either as production executable depth.
+
+### Artifacts
+
+Each `artifacts/baseline/<scenario>.json` contains the fork identifier, guards, before/after state, exact target ranges, proposed `Trade[]`, leg count, attempted turnover, simulation outcome, classified revert, realized state deltas, successful/attempted cycle counts, cumulative turnover, and target-region status.
+
+`artifacts/baseline-summary.json` aggregates the matrix. Generated evidence is ignored by git and recreated by the command.

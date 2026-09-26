@@ -2,4 +2,8 @@ node_modules/
 .env
 artifacts/*.json
 artifacts/*.log
+artifacts/**/*.json
+artifacts/**/*.log
 !artifacts/.gitkeep
+!artifacts/baseline/.gitkeep
+.Setpoint_PRD_v0.1.pdf

@@ -1,5 +1,89 @@
 # Build log
 
+## 2026-09-26 — M2 truthful static baseline
+
+### Implemented
+
+- Added a deterministic static baseline matching the RWA Index planner boundary: oracle-valued deltas, 10%-NAV maximum legs, sells before buys, and vault-consistent minimum outputs.
+- Kept liquidity/depth entirely outside baseline sizing.
+- Added a six-scenario runner using isolated Anvil snapshots of one recorded source fork.
+- Added actual-state re-reads after successful cycles; no expected state is reused as confirmed state.
+- Persisted per-scenario and aggregate machine-readable artifacts.
+- Added typed revert classification for stale price, size, slippage, adapter output, balance, drift, NAV loss, authorization, and asset failures.
+- Added eight tests for caps, minimum output, delta detection, sequencing, determinism, recomputation, revert classification, and stale prices.
+
+### Commands
+
+```bash
+pnpm typecheck
+pnpm test
+pnpm m2:baseline
+```
+
+Generated output:
+
+- `artifacts/baseline/stale-oracle.json`
+- `artifacts/baseline/moderate-drift-deep-toy.json`
+- `artifacts/baseline/moderate-drift-thin-toy.json`
+- `artifacts/baseline/asymmetric-liquidity.json`
+- `artifacts/baseline/large-target-change.json`
+- `artifacts/baseline/defensive-cash-target.json`
+- `artifacts/baseline-summary.json`
+
+### Baseline algorithm
+
+For each confirmed state:
+
+1. Calculate each stock's target value from vault NAV and its exact onchain target weight.
+2. Split every excess/deficit into static chunks no larger than `NAV * maxTradeFraction`.
+3. Convert overweight stock chunks to mock USDC first.
+4. Spend mock USDC on underweight chunks second.
+5. Set each `minAmountOut` to oracle-implied output times `(1 - slippageTolerance)`.
+6. Simulate the whole batch against the external vault.
+7. On success, execute only on Anvil and re-read the vault. On failure, record the reason and stop without depth-aware resizing.
+
+Target-region completion uses the deployed trigger: `totalDrift() <= 5%`.
+
+### Verified scenario matrix
+
+Final validation fork:
+
+- block: `124684453`
+- block hash: `0x87b14680e6386f5622ed1765d10c258f34f5b84ac768d4ff88095d47c8636698`
+- chain ID: `46630`
+
+| Scenario | Initial drift | Final drift | Legs | Attempted turnover / NAV | Result |
+|---|---:|---:|---:|---:|---|
+| Stale oracle | unavailable | unavailable | 0 | 0% | Expected `STALE_ORACLE` no-trade |
+| Moderate, relatively deep toy | 11.417713% | 0.075394% | 6 | 20.835426% | Reached region in one successful cycle |
+| Moderate, thin toy | 11.425554% | 0.143624% | 6 | 20.851107% | Reached region in one successful cycle |
+| Asymmetric liquidity | 11.043267% | 0.072184% | 6 | 20.086533% | Reached region in one successful cycle |
+| Large target change | 31.025554% | 31.025554% | 10 | 60.051107% | Simulation failed: `INSUFFICIENT_OUTPUT`; no turnover executed |
+| Defensive 20% cash target | 20.000000% | 0.063295% | 5 | 20.000000% | Reached region in one successful cycle |
+
+The thin scenario passed; it simply retained more residual drift and incurred more NAV loss than the relatively deep toy scenario. This is an observation about this recorded toy-pool state, not a Setpoint performance claim. The large change demonstrates a concrete static-sizing failure against the adapter's output floor.
+
+### Errors encountered and corrections
+
+- The first scenario actor address used invalid mixed-case checksum formatting; it was corrected before any benchmark result was accepted.
+- The initial large-target vector summed to 90%, so `setStrategy` correctly rejected it. The final vector plus cash target sums exactly to WAD.
+- Initial exploratory reallocation scenarios used a 0% cash target. Their static buys consumed the full oracle-valued sale proceeds and failed with `ERC20InsufficientBalance` after DEX fees. The final deep/thin/asymmetric matrix uses an explicit 2% policy cash target for both baseline and future solver runs so liquidity effects are not conflated with a zero-cash funding shortfall.
+
+### Assumptions and fork-only behavior
+
+- Scenario policy changes use the deployed manager and `setStrategy` through Anvil impersonation.
+- Existing stale price values are re-timestamped, then the real testnet syncer aligns the toy pools as in M1.
+- Snapshot/revert isolates every non-stale scenario at the same prepared fork state.
+- Pool token inventory is only a reproducible context proxy; it is not treated as a production quote curve or claimed market depth.
+- All writes and scenario target changes exist only on the disposable fork.
+
+### Remaining blockers and next work
+
+- There is no M2 blocker: the control-group artifacts are reproducible with one command.
+- The public RPC remains non-archival, so exact old-block replay requires an archival endpoint.
+- M3/M4 must use these exact scenario inputs, guards, fork preparation, and metrics when implementing adaptive sizing.
+- No comparative or Setpoint performance claim is made in M2.
+
 ## 2026-09-26 — M0/M1 external-vault harness
 
 ### Implemented
@@ -94,5 +178,5 @@ These are local-fork results from the recorded source block, not live-chain tran
 
 - There is no M1 blocker: the exit criterion is met.
 - Exact replay at an old block depends on an archival Robinhood Chain RPC. The default reproducible path therefore records and uses latest available state.
-- This is not yet the M2 truthful static baseline or the M3/M4 Setpoint solver. No comparative performance claim should be made from this harness result.
+- M2 now supplies the truthful static baseline. The M3/M4 Setpoint solver and comparative benchmark remain unimplemented.
 - Pool depth is toy-sized and must not be represented as production liquidity.

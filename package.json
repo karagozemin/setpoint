@@ -9,6 +9,8 @@
   },
   "scripts": {
     "m1:rwa-index": "bash scripts/m1-rwa-index.sh",
+    "m2:baseline": "bash scripts/m2-baseline.sh",
+    "test": "tsx --test integrations/rwa-index/test/baseline.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

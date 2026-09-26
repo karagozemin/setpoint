@@ -2,7 +2,7 @@
 
 Setpoint is a non-custodial, policy-driven rebalance solver and orchestration layer for multi-asset onchain vaults. It reads authoritative vault accounting and constraints, proposes the safest useful next rebalance step, simulates that step against the target vault, and re-solves from confirmed state.
 
-The source of truth is [Setpoint PRD v1.1](./Setpoint_PRD_v1_1.pdf). This repository currently implements only M0/M1: a reproducible external-vault harness for the RWA Index deployment on Robinhood Chain testnet. It does not contain the Setpoint solver, UI, CoW/0x adapters, custody, a DEX, cross-vault netting, or new vault accounting.
+The source of truth is [Setpoint PRD v1.1](./Setpoint_PRD_v1_1.pdf). This repository currently implements M0/M1 external-vault compatibility and the M2 truthful static baseline for the RWA Index deployment on Robinhood Chain testnet. It does not contain the adaptive Setpoint solver, UI, CoW/0x adapters, custody, a DEX, cross-vault netting, or new vault accounting.
 
 ## M1 status
 
@@ -21,6 +21,21 @@ The harness:
 
 The external source is included as the pinned git submodule `third_party/rwa-index` at commit `b2456ca5400ba9ec36d81691554b889fb9250513`.
 
+## M2 status
+
+The static baseline reproduces the upstream RWA Index-style policy without depth-aware optimization:
+
+- value every delta with the vault oracle;
+- split desired notional into legs no larger than the deployed 10%-NAV cap;
+- emit every overweight sale to mock USDC before any underweight purchase;
+- set `minAmountOut` to the vault's oracle output multiplied by its 98% floor;
+- simulate the complete batch through the real `rebalance(Trade[])` interface; and
+- after a successful fork transaction, discard the old plan and read authoritative state again.
+
+The one-command runner covers relatively deep toy liquidity, thin toy liquidity, asymmetric liquidity, a large target change, a defensive cash target, and stale-oracle no-trade. It writes one JSON record per scenario under `artifacts/baseline/` and an aggregate `artifacts/baseline-summary.json`.
+
+M2 is a control group only. It makes no claim that Setpoint outperforms this baseline.
+
 ## Reproduce
 
 Prerequisites:
@@ -37,7 +52,9 @@ git submodule update --init --recursive
 corepack enable
 pnpm install --frozen-lockfile
 pnpm typecheck
+pnpm test
 pnpm m1:rwa-index
+pnpm m2:baseline
 ```
 
 No private key is needed. The command starts and cleans up Anvil itself. It uses fork-only account impersonation for the deployed oracle feeder/syncer owner and vault manager.
@@ -56,6 +73,7 @@ An explicit fork block is also supported with `RWA_FORK_BLOCK_NUMBER`, but the p
 config/rwa-index.json             chain, addresses, and pinned upstream revision
 integrations/rwa-index/src/       ABI, state reader, candidate builder, fork harness
 scripts/m1-rwa-index.sh           disposable Anvil lifecycle and M1 entry point
+scripts/m2-baseline.sh            scenario runner and static-baseline entry point
 third_party/rwa-index/            pinned external project (git submodule)
 artifacts/                        generated run evidence and Anvil log (ignored)
 BUILD_LOG.md                      implementation record, assumptions, and blockers
@@ -68,6 +86,6 @@ BUILD_LOG.md                      implementation record, assumptions, and blocke
 - The oracle refresh deliberately preserves the deployed price values and updates only their timestamps on the fork. This proves stale-data recovery without claiming those old values are current market prices.
 - Pool synchronization uses the external project's testnet-only syncer. Mainnet markets would require real price discovery/arbitrage rather than this helper.
 - Every state-changing operation is confined to local Anvil. Setpoint does not custody or transfer live funds.
-- M1 proves compatibility and safe simulation against this external vault. It does not yet prove adaptive sizing outperforms the truthful static baseline; that belongs to later benchmark milestones.
+- M1 proves compatibility and M2 establishes the static control group. Neither proves adaptive sizing outperforms the baseline; that comparison belongs to M3/M4 and later benchmark milestones.
 
 See [the integration notes](./integrations/rwa-index/README.md) and [BUILD_LOG.md](./BUILD_LOG.md) for exact behavior and the latest verified run.
