@@ -239,6 +239,7 @@ export default function EvidenceApp() {
     <div className="app-shell">
       <header className="topbar">
         <a className="wordmark" href="/evidence" aria-label="Setpoint evidence console home">
+          <img alt="" className="brand-mark" height={28} src="/brand/mark.png" width={28} />
           <span className="wordmark-name">SETPOINT</span>
           <span className="wordmark-section">/ OPERATOR CONSOLE</span>
         </a>
@@ -281,7 +282,7 @@ export default function EvidenceApp() {
 
       <footer>
         <div>
-          <span>SETPOINT · EVIDENCE CONSOLE</span>
+          <span className="footer-brand"><img alt="" className="brand-mark brand-mark-sm" height={18} src="/brand/mark.png" width={18} />SETPOINT · EVIDENCE CONSOLE</span>
           <span>External integration: RWA Index</span>
           <span>Historical, fork-backed Robinhood Chain testnet evidence. No live funds or production execution.</span>
         </div>

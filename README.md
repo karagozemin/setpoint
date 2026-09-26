@@ -1,5 +1,9 @@
 # Setpoint
 
+<p align="center">
+  <img src="./web/public/brand/setpoint.jpg" alt="Setpoint" width="420" />
+</p>
+
 Setpoint is a non-custodial safety and execution orchestration layer for onchain vault rebalances.
 
 It reads a vault's current state, validates an operator's proposed allocation, constructs the simplest coherent rebalance, and simulates the exact vault call. A safe full batch returns `FAST_PATH`. Recoverable execution failures may enter `ADAPTIVE_FALLBACK` only when trustworthy executable-liquidity evidence exists. Invalid, stale, unsupported, or unprovable paths return `NO_TRADE`.

@@ -44,7 +44,7 @@ function Header({ wallet, onConnect, onSwitch, onDisconnect }: { wallet: WalletS
   const wrongNetwork = wallet.account !== null && wallet.chainId !== rwaIndexLiveConfig.chainId;
   return (
     <header className="product-header">
-      <a href="/" className="product-wordmark">SETPOINT</a>
+      <a href="/" className="product-wordmark"><img alt="" className="brand-mark" height={28} src="/brand/mark.png" width={28} /><span>SETPOINT</span></a>
       <nav aria-label="Primary navigation">
         <a aria-current="page" href="/app">App</a>
         <a href="/evidence">Evidence</a>

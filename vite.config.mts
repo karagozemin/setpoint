@@ -73,7 +73,7 @@ function evidencePlugin() {
 
 export default defineConfig({
   plugins: [react(), evidencePlugin()],
-  publicDir: false,
+  publicDir: "web/public",
   build: {
     outDir: "dist/operator-console",
     emptyOutDir: true,
