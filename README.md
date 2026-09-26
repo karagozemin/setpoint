@@ -2,7 +2,7 @@
 
 Setpoint is a non-custodial safety and execution orchestration layer for onchain vault rebalances. It preflights simple rebalances and adapts only when liquidity or vault constraints make them unsafe.
 
-The source of truth is [Setpoint PRD v1.2](./Setpoint_PRD_v1_2.md). Its hybrid execution decision is backed by the accepted [architecture decision](./docs/decisions/0001-hybrid-rebalance-orchestration.md); [PRD v1.1](./Setpoint_PRD_v1_1.pdf) is retained for history and the [v1.1 → v1.2 changelog](./Setpoint_PRD_v1_1_to_v1_2_CHANGELOG.md) summarizes the revision. This repository currently implements M0/M1 external-vault compatibility, the M2 truthful static baseline, M3 deterministic Solver v1, M4/M4.1 liquidity-aware planning, and the M4.2 hybrid fast-path/fallback orchestrator for the RWA Index deployment on Robinhood Chain testnet. It does not contain UI, CoW/0x adapters, custody, a DEX, cross-vault netting, or new vault accounting.
+The source of truth is [Setpoint PRD v1.2](./Setpoint_PRD_v1_2.md). Its hybrid execution decision is backed by the accepted [architecture decision](./docs/decisions/0001-hybrid-rebalance-orchestration.md); [PRD v1.1](./Setpoint_PRD_v1_1.pdf) is retained for history and the [v1.1 → v1.2 changelog](./Setpoint_PRD_v1_1_to_v1_2_CHANGELOG.md) summarizes the revision. This repository implements M0–M4.2 execution evidence and the M5 operator console for the RWA Index deployment on Robinhood Chain testnet. It does not contain a production execution service, CoW/0x adapters, custody, a DEX, cross-vault netting, or new vault accounting.
 
 ## M1 status
 
@@ -64,6 +64,34 @@ Setpoint now uses the simple coherent planner as its default fast path. It check
 
 Only explicitly recoverable failures activate the existing M4.1 planner. On the final fork, deep, thin, asymmetric, and defensive scenarios all selected `FAST_PATH`, completed in one batch, and exactly matched M2's final states. The large-target fast path reproduced `INSUFFICIENT_OUTPUT`, automatically selected `ADAPTIVE_FALLBACK`, executed the same safe 22.5%-NAV subset as M4.1, then refused the unsafe residual NFLX route. Stale prices selected `NO_TRADE` without invoking fallback.
 
+## M5 operator console
+
+The M5 console is a thin React presentation layer over the accepted M4.2 artifacts. It presents the three core demo flows without reimplementing portfolio math, liquidity logic, simulation classification, or hybrid mode selection:
+
+- normal rebalance → `FAST_PATH` → one confirmed batch → target bands reached;
+- large target → `INSUFFICIENT_OUTPUT` → `ADAPTIVE_FALLBACK` → three-leg safe subset → residual `NO_SAFE_LIQUIDITY`; and
+- stale oracle → `NO_TRADE` before simulation, fallback, or execution.
+
+![Setpoint M5 operator console](./docs/images/operator-console.png)
+
+The console loads the versioned JSON in `artifacts/hybrid/` through one deterministic presentation adapter. Its “View raw evidence” and “Download JSON” actions serve those exact source artifacts. Every screen is labeled as historical, fork-backed Robinhood Chain testnet evidence; it does not imply production or live-fund execution.
+
+Run it locally:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+Open `http://localhost:5173`. Validate and preview the production bundle with:
+
+```bash
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm preview
+```
+
 ## Reproduce
 
 Prerequisites:
@@ -87,6 +115,7 @@ pnpm m3:solver
 pnpm m4:adaptive
 pnpm m4:batch
 pnpm m4:hybrid
+pnpm build
 ```
 
 No private key is needed. The command starts and cleans up Anvil itself. It uses fork-only account impersonation for the deployed oracle feeder/syncer owner and vault manager.
@@ -105,6 +134,9 @@ An explicit fork block is also supported with `RWA_FORK_BLOCK_NUMBER`, but the p
 config/rwa-index.json             chain, addresses, and pinned upstream revision
 integrations/rwa-index/src/       ABI, state reader, candidate builder, fork harness
 src/core/                         chain-independent policy, liquidity, Solver v1/v2
+web/data/                         deterministic artifact-to-view-model adapter and tests
+web/components/                   operator-console presentation components
+web/App.tsx                       single-screen M5 console
 scripts/m1-rwa-index.sh           disposable Anvil lifecycle and M1 entry point
 scripts/m2-baseline.sh            scenario runner and static-baseline entry point
 scripts/m3-solver.sh              scenario runner and Solver v1 entry point
@@ -113,6 +145,7 @@ scripts/m4-batch.sh               multi-leg comparison on a fresh disposable for
 scripts/m4-hybrid.sh              simple fast path plus adaptive fallback benchmark
 third_party/rwa-index/            pinned external project (git submodule)
 artifacts/                        versioned latest JSON evidence; local Anvil logs ignored
+docs/images/operator-console.png  captured M5 console screenshot
 BUILD_LOG.md                      implementation record, assumptions, and blockers
 ```
 
@@ -123,6 +156,7 @@ BUILD_LOG.md                      implementation record, assumptions, and blocke
 - The oracle refresh deliberately preserves the deployed price values and updates only their timestamps on the fork. This proves stale-data recovery without claiming those old values are current market prices.
 - Pool synchronization uses the external project's testnet-only syncer. Mainnet markets would require real price discovery/arbitrage rather than this helper.
 - Every state-changing operation is confined to local Anvil. Setpoint does not custody or transfer live funds.
+- The M5 console is a static view of versioned historical evidence. It neither starts Anvil nor submits transactions.
 - M1 proves compatibility, M2 establishes the static control group, M3 proves deterministic simulation-gated planning, and M4 records the first equivalent-state liquidity-aware comparison. M4 does not support a blanket claim that Setpoint outperforms the baseline.
 
 See [the integration notes](./integrations/rwa-index/README.md) and [BUILD_LOG.md](./BUILD_LOG.md) for exact behavior and the latest verified run.

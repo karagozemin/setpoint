@@ -1,5 +1,64 @@
 # Build log
 
+## 2026-09-26 — M5 operator console
+
+### Implemented
+
+- Added a Vite 8, React 19, and TypeScript operator console at the repository root with `pnpm dev`, `pnpm build`, and `pnpm preview` commands.
+- Added a deterministic presentation adapter in `web/data/` that maps the existing M4.2 summary and hybrid scenario artifacts into `OperatorScenarioViewModel`; React components contain no solver, portfolio, liquidity, or failure-classification logic.
+- Added the required demo scenarios: normal `FAST_PATH`, large-target `ADAPTIVE_FALLBACK`, and stale-oracle `NO_TRADE`.
+- Added exact ordered trade views for the simple batch and selected safe subset, plus artifact-backed resized, removed, and blocked-leg evidence.
+- Added policy guards, portfolio target bands, before/after confirmed state, simulation provenance, execution hash, fork/testnet labeling, and direct raw-artifact view/download actions.
+- Added an explicit application error boundary so UI failures remain distinct from typed `NO_TRADE` outcomes.
+- Added responsive desktop, laptop, and compact-screen layouts with keyboard focus states and non-color status labels.
+- Added the captured console image at `docs/images/operator-console.png` and documented local UI operation in the README.
+
+### Artifact adapter
+
+```text
+artifacts/m4-2-summary.json + artifacts/hybrid/*.json
+                         ↓
+              web/data/adapter.ts
+                         ↓
+             OperatorScenarioViewModel
+                         ↓
+               React presentation only
+```
+
+The production build copies the actual `artifacts/hybrid/*.json` files as static evidence exports. It does not reconstruct replacement JSON in the browser.
+
+### Validation
+
+```bash
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+Results:
+
+- core and presentation typechecks passed;
+- 62/62 tests passed, including nine artifact/view-model tests;
+- Vite production build passed;
+- 1440px desktop and compact-screen headless Chrome renders were inspected;
+- direct raw-evidence serving was verified against `large-target-change.json`; and
+- M2 planner SHA-256 remains `dcd079ed25ff6fd7683c947fbf46748abd70862fe2a85a368c919b26fe7cee92`.
+
+### Errors and corrections
+
+- The first UI mapping displayed aggregate attempted turnover for the large-target scenario (`120.259613%`). M4.2 intentionally counts both failed attempts and the executed fallback in that aggregate. The operator story requires the original simple-plan figure, so the adapter now derives `60.051107%` from the artifact's fast-path expected turnover and authoritative initial NAV; executed turnover remains the recorded `22.500000%`.
+- Vite initially warned that a TypeScript config was loaded as CommonJS. Renaming it to `vite.config.mts` removed the warning without changing repository module semantics.
+- Pointing Vite's public directory directly at the imported artifact folder caused development warnings. A narrow Vite plugin now serves and emits only the three allowlisted source artifacts under `/evidence/`, without copying or reconstructing their contents in application code.
+
+### Assumptions, fork-only behavior, and limitations
+
+- The console is a reliable static demo over accepted, versioned evidence. It does not trigger Anvil or expose shell execution in the browser.
+- NAV is denominated in the deployment's 18-decimal mock USDC. All fork executions and transaction hashes are explicitly labeled fork-only.
+- The stale-oracle artifact does not record a trustworthy portfolio snapshot or precise oracle age, so the UI shows those values as unavailable instead of fabricating them.
+- The UI presents three required scenarios. Thin, asymmetric, and defensive artifacts are retained but are not exposed in the initial selector.
+- There is no authentication, persistence, live RPC refresh, production transaction submission, public deployment, or external validation in M5.
+- No file under `src/core/` or `integrations/rwa-index/` changed. Hybrid selection, M2, M4.1, liquidity sampling, failure taxonomy, vault behavior, and benchmark results remain frozen.
+
 ## 2026-09-26 — PRD v1.2 hybrid source of truth
 
 ### Implemented
