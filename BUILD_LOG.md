@@ -1,5 +1,91 @@
 # Build log
 
+## 2026-09-26 — M3 Setpoint Solver v1
+
+### Implemented
+
+- Added chain-independent canonical types for portfolio state, policy, ranges, prices, trades, plans, simulations, rejected alternatives, and typed no-trade outcomes.
+- Added target-range classification and feasibility validation before candidate generation.
+- Added a deterministic one-step USDC-hub solver with hard-constraint-first ordering, address-based tie-breaking, available-balance checks, optional turnover/improvement/cash policies, and a mandatory simulation gate.
+- Added simple deterministic halving only for M3-eligible failures. `INSUFFICIENT_OUTPUT` is intentionally not resized because that requires the M4 liquidity/depth model.
+- Added an RWA Index adapter that reads the deployed vault's actual state, targets, prices, and guards and simulates the exact `rebalance(Trade[])` interface.
+- Extracted the exact M2 scenario policies into a shared module so M2 and M3 cannot silently diverge.
+- Added an isolated M3 runner and artifacts. After each executed step it discards the old plan, reads confirmed fork state, and solves again.
+- Added nine solver tests; the combined M2/M3 suite now contains 17 passing tests.
+
+### Commands
+
+```bash
+pnpm typecheck
+pnpm test
+pnpm m3:solver
+```
+
+Generated output:
+
+- `artifacts/solver-v1/stale-oracle.json`
+- `artifacts/solver-v1/moderate-drift-deep-toy.json`
+- `artifacts/solver-v1/moderate-drift-thin-toy.json`
+- `artifacts/solver-v1/asymmetric-liquidity.json`
+- `artifacts/solver-v1/large-target-change.json`
+- `artifacts/solver-v1/defensive-cash-target.json`
+- `artifacts/solver-v1-summary.json`
+
+### Solver behavior
+
+For each confirmed state:
+
+1. Validate NAV, pause state, allowlist, positions, prices, freshness, target feasibility, and policy bounds.
+2. Stop with a typed result when the configured target region is reached or authoritative drift is at/below the deployed trigger.
+3. Restore cash into its acceptable range first when necessary.
+4. Otherwise choose the largest out-of-range source and destination, with token address as the deterministic tie-break.
+5. Cap each leg by the deployed absolute 10%-NAV value, available balance, cash policy, and range distance.
+6. Construct the deployed 98%-of-oracle `minAmountOut` floor.
+7. Accept a plan only after the real external vault simulation passes.
+8. Execute only on Anvil, assert actual strict drift reduction and the NAV floor, then re-read and re-solve.
+
+RWA exact targets are adapted to ranges of target ±0.25 percentage points. This tolerance is an explicit M3 integration policy, not a vault contract change. The deployed 5% drift trigger remains authoritative and can stop solving before every asset is inside that tighter range.
+
+### Verified scenario matrix
+
+Final validation fork:
+
+- block: `124692520`
+- block hash: `0xb68ec12972f8e4e230f31d1aee4c7790ac84c93e3c151de4785eb30a08d5e803`
+- chain ID: `46630`
+
+| Scenario | Initial drift | Final drift | Executed steps | Terminal result |
+|---|---:|---:|---:|---|
+| Stale oracle | unavailable | unavailable | 0 | `STALE_PRICE` before simulation |
+| Moderate, relatively deep toy | 11.417713% | 1.479128% | 2 | `DRIFT_BELOW_TRIGGER` |
+| Moderate, thin toy | 11.425554% | 1.538422% | 2 | `DRIFT_BELOW_TRIGGER` |
+| Asymmetric liquidity | 11.043267% | 4.755752% | 2 | `DRIFT_BELOW_TRIGGER` |
+| Large target change | 31.025554% | 19.506853% | 2 | `SIMULATION_REJECTED` / `INSUFFICIENT_OUTPUT` |
+| Defensive 20% cash target | 20.000000% | 3.986560% | 4 | `DRIFT_BELOW_TRIGGER` |
+
+The large-target scenario made two simulation-approved, executed steps and reduced authoritative drift before a later candidate hit the adapter output floor. The solver stopped without executing that rejected candidate. This establishes safe progress, not an M2-vs-M3 performance claim.
+
+### Errors encountered and corrections
+
+- The first full matrix run completed the deep scenario, then Anvil returned “block not found” after a snapshot revert reused a local block number. The adapter now identifies confirmed state from Anvil's authoritative latest block object instead of querying an invalidated explicit local block. The unchanged matrix then completed.
+- Expected drift initially mixed the vault's exact-target `totalDrift()` with Setpoint's range-distance projection. Plan expectation fields now use range drift consistently; artifacts separately retain authoritative vault drift before and after execution.
+- Basic backoff initially divided an already-rounded `minAmountOut`. It now recomputes the oracle floor from the reduced input to avoid a one-wei slippage-floor violation.
+
+### Assumptions and fork-only behavior
+
+- The RWA integration uses a ±0.25 percentage-point acceptable range around each deployed exact target.
+- The vault's `totalAssets()`, `totalDrift()`, balances, targets, guard values, and oracle are authoritative; Setpoint does not reproduce vault accounting.
+- The stale solver test replays the original deployed oracle timestamps onto a valid post-refresh portfolio input so validation can fail before simulation. M1/M2 independently record the actual vault stale-read revert.
+- Oracle re-timestamping, pool synchronization, manager/syncer impersonation, gas funding, strategy changes, and rebalance execution occur only on disposable Anvil.
+- Pool inventory is recorded for context but is not consumed by Solver v1.
+
+### Deliberately deferred / remaining blockers
+
+- No M3 implementation blocker remains; the scenario matrix and artifact schema checks complete reproducibly.
+- M4 must add executable depth/quote inputs, cost-aware sizing, and liquidity-aware retry for `INSUFFICIENT_OUTPUT` before any comparative performance claim.
+- Gas and expected execution cost remain `null` in M3 plans.
+- Exact historical replay still requires an archival Robinhood Chain endpoint; the public RPC supports the latest-state path used here.
+
 ## 2026-09-26 — M2 truthful static baseline
 
 ### Implemented
@@ -116,7 +202,7 @@ Output:
 - `artifacts/rwa-index-m1-latest.json`
 - `artifacts/anvil.log`
 
-Both are regenerated on each run and intentionally ignored by git.
+The latest JSON evidence is versioned; local Anvil logs are regenerated and ignored by git.
 
 ### Verified run
 

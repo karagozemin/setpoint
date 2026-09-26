@@ -1,4 +1,4 @@
-# RWA Index M1/M2 integration
+# RWA Index M1–M3 integration
 
 This adapter-first harness targets the existing RWA Index vault; it does not redeploy a Setpoint-owned copy.
 
@@ -79,4 +79,39 @@ The first four target-change scenarios declare a 2% cash target. This is an expl
 
 Each `artifacts/baseline/<scenario>.json` contains the fork identifier, guards, before/after state, exact target ranges, proposed `Trade[]`, leg count, attempted turnover, simulation outcome, classified revert, realized state deltas, successful/attempted cycle counts, cumulative turnover, and target-region status.
 
-`artifacts/baseline-summary.json` aggregates the matrix. Generated evidence is ignored by git and recreated by the command.
+`artifacts/baseline-summary.json` aggregates the matrix. The latest JSON evidence is versioned and recreated by the command; local Anvil logs are ignored.
+
+## M3 Solver v1 adapter
+
+Run:
+
+```bash
+pnpm m3:solver
+```
+
+`setpoint-adapter.ts` maps the external deployment into the chain-independent types in `src/core/`. It discovers the same deployed basket and execution path as M1/M2, reads authoritative NAV and drift, and derives absolute per-leg capacity from the deployed `maxTradeFraction`. Exact RWA targets become acceptable ranges of ±0.25 percentage points, clipped to `[0%, 100%]`.
+
+The runner uses the exact shared M2 scenario definitions. Each iteration reads confirmed state, asks Solver v1 for one deterministic USDC-hub step, and executes only a plan that passed the real vault's `rebalance(Trade[])` simulation. It then throws away that plan and starts the next iteration with another authoritative read.
+
+Typed terminal outcomes include stale/missing inputs, invalid or impossible policy, unsupported assets, invalid NAV, paused state, low drift, reached range, no feasible plan, insufficient balance, and simulation rejection. Raw vault reverts are retained in rejected-alternative records and mapped to typed simulation codes.
+
+### M3 artifact shape
+
+Each `artifacts/solver-v1/<scenario>.json` records:
+
+- source fork and deployed guards;
+- exact scenario policy and the explicit target-range tolerance;
+- every confirmed solver input;
+- proposed trades, expected range drift, turnover, active constraints, rejected alternatives, and simulation result;
+- fork transaction hash and actual post-execution vault state for successful steps; and
+- terminal typed result, target-region status, actual drift progress, and limitations.
+
+`artifacts/solver-v1-summary.json` aggregates the matrix and records milestone checks and claim boundaries. The latest JSON evidence is versioned; Anvil logs remain ignored.
+
+### Deliberate M3 limits
+
+- Pool depth and inventory do not influence sizing.
+- There is no DEX quote curve, price-impact model, gas model, or non-USDC route search.
+- Basic deterministic halving applies only to size, balance, minOut construction, and drift-improvement failures.
+- `INSUFFICIENT_OUTPUT` stops safely; liquidity-aware resizing is M4.
+- Results are fork observations, not a claim that Solver v1 outperforms the M2 baseline.

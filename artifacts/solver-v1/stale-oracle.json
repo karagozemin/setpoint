@@ -1,0 +1,199 @@
+{
+  "schemaVersion": 1,
+  "benchmark": "setpoint-solver-v1",
+  "scenario": {
+    "id": "stale-oracle",
+    "title": "Stale oracle expected no-trade",
+    "rationale": "Replays the untouched deployment timestamps captured before fork-only oracle refresh. M1/M2 separately prove the deployed vault itself rejects these stale inputs."
+  },
+  "fork": {
+    "sourceBlockNumber": "124692520",
+    "sourceBlockHash": "0xb68ec12972f8e4e230f31d1aee4c7790ac84c93e3c151de4785eb30a08d5e803",
+    "sourceTimestamp": "1790437818"
+  },
+  "rangeTolerance": "2500000000000000",
+  "input": {
+    "vault": "0x357CD10343829DBd5889c7b0B2fBc4388fC4875B",
+    "state": {
+      "stateId": "46630:124692526:0x58c1a370e0c8212c07e107945df6a38dda2f733f34053ec48d6e0d347e21ff64",
+      "blockNumber": "124692526",
+      "blockTimestamp": "1790437852",
+      "nav": "69349575584908354972",
+      "navFormatted": "69.349575584908354972",
+      "drift": "578391995426804",
+      "driftFormatted": "0.057839%",
+      "baseAssetBalance": "3",
+      "baseAssetBalanceFormatted": "0.000000000000000003",
+      "baseAssetWeight": "0",
+      "baseAssetWeightFormatted": "0.000000%",
+      "positions": [
+        {
+          "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+          "balance": "31798873727877429",
+          "value": "13857631181871704783",
+          "weight": "199822869354190548",
+          "symbol": "TSLA",
+          "valueFormatted": "13.857631181871704783",
+          "weightFormatted": "19.982287%"
+        },
+        {
+          "token": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+          "balance": "51255465276334823",
+          "value": "13871779122387256496",
+          "weight": "200026878396729383",
+          "symbol": "AMZN",
+          "valueFormatted": "13.871779122387256496",
+          "weightFormatted": "20.002688%"
+        },
+        {
+          "token": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+          "balance": "88538451246826119",
+          "value": "13859809158178160668",
+          "weight": "199854275116779380",
+          "symbol": "PLTR",
+          "valueFormatted": "13.859809158178160668",
+          "weightFormatted": "19.985428%"
+        },
+        {
+          "token": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+          "balance": "161034570698565338",
+          "value": "13852193771490590374",
+          "weight": "199744463533603267",
+          "symbol": "NFLX",
+          "valueFormatted": "13.852193771490590374",
+          "weightFormatted": "19.974446%"
+        },
+        {
+          "token": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+          "balance": "26948580412673208",
+          "value": "13908162350980642648",
+          "weight": "200551513598697421",
+          "symbol": "AMD",
+          "valueFormatted": "13.908162350980642648",
+          "weightFormatted": "20.055151%"
+        }
+      ]
+    },
+    "policy": {
+      "baseAsset": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+      "assets": [
+        {
+          "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+          "target": {
+            "min": "197500000000000000",
+            "max": "202500000000000000"
+          },
+          "maxWeight": "1000000000000000000",
+          "enabled": true
+        },
+        {
+          "token": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+          "target": {
+            "min": "197500000000000000",
+            "max": "202500000000000000"
+          },
+          "maxWeight": "1000000000000000000",
+          "enabled": true
+        },
+        {
+          "token": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+          "target": {
+            "min": "197500000000000000",
+            "max": "202500000000000000"
+          },
+          "maxWeight": "1000000000000000000",
+          "enabled": true
+        },
+        {
+          "token": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+          "target": {
+            "min": "197500000000000000",
+            "max": "202500000000000000"
+          },
+          "maxWeight": "1000000000000000000",
+          "enabled": true
+        },
+        {
+          "token": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+          "target": {
+            "min": "197500000000000000",
+            "max": "202500000000000000"
+          },
+          "maxWeight": "1000000000000000000",
+          "enabled": true
+        }
+      ],
+      "cashTarget": {
+        "min": "0",
+        "max": "2500000000000000"
+      },
+      "driftTrigger": "50000000000000000",
+      "maxLegValue": "6934957558490835497",
+      "maxNavLoss": "20000000000000000",
+      "slippageTolerance": "20000000000000000",
+      "maxPriceAge": "86400",
+      "paused": false
+    },
+    "prices": [
+      {
+        "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+        "priceWad": "435790000000000000000",
+        "updatedAt": "1780265370",
+        "source": "RWA Index AgentOracle 0x2F2316d6D4a8952730a71BfCD9fa0Af5A0138AB9; original fork timestamp replay",
+        "symbol": "TSLA"
+      },
+      {
+        "token": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+        "priceWad": "270640000000000000000",
+        "updatedAt": "1780265370",
+        "source": "RWA Index AgentOracle 0x2F2316d6D4a8952730a71BfCD9fa0Af5A0138AB9; original fork timestamp replay",
+        "symbol": "AMZN"
+      },
+      {
+        "token": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+        "priceWad": "156540000000000000000",
+        "updatedAt": "1780265370",
+        "source": "RWA Index AgentOracle 0x2F2316d6D4a8952730a71BfCD9fa0Af5A0138AB9; original fork timestamp replay",
+        "symbol": "PLTR"
+      },
+      {
+        "token": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+        "priceWad": "86020000000000000000",
+        "updatedAt": "1780265370",
+        "source": "RWA Index AgentOracle 0x2F2316d6D4a8952730a71BfCD9fa0Af5A0138AB9; original fork timestamp replay",
+        "symbol": "NFLX"
+      },
+      {
+        "token": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+        "priceWad": "516100000000000000000",
+        "updatedAt": "1780265370",
+        "source": "RWA Index AgentOracle 0x2F2316d6D4a8952730a71BfCD9fa0Af5A0138AB9; original fork timestamp replay",
+        "symbol": "AMD"
+      }
+    ]
+  },
+  "result": {
+    "kind": "no-trade",
+    "stateId": "46630:124692526:0x58c1a370e0c8212c07e107945df6a38dda2f733f34053ec48d6e0d347e21ff64",
+    "reason": "STALE_PRICE",
+    "details": [
+      "stale price for 0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+      "stale price for 0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+      "stale price for 0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+      "stale price for 0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+      "stale price for 0x71178BAc73cBeb415514eB542a8995b82669778d"
+    ],
+    "rejectedAlternatives": []
+  },
+  "simulationCalls": 0,
+  "attemptedSolveCount": 1,
+  "successfulStepCount": 0,
+  "cumulativeTurnover": "0",
+  "targetRegionReached": false,
+  "outcome": "no-trade",
+  "finalReason": "STALE_PRICE",
+  "limitations": [
+    "Authoritative vault NAV cannot be read while the original oracle timestamps are stale, so this solver-path check replays real captured timestamps onto the post-refresh state.",
+    "The actual onchain stale-oracle failure is recorded independently by the M1 and M2 artifacts."
+  ]
+}

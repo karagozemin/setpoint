@@ -2,7 +2,7 @@
 
 Setpoint is a non-custodial, policy-driven rebalance solver and orchestration layer for multi-asset onchain vaults. It reads authoritative vault accounting and constraints, proposes the safest useful next rebalance step, simulates that step against the target vault, and re-solves from confirmed state.
 
-The source of truth is [Setpoint PRD v1.1](./Setpoint_PRD_v1_1.pdf). This repository currently implements M0/M1 external-vault compatibility and the M2 truthful static baseline for the RWA Index deployment on Robinhood Chain testnet. It does not contain the adaptive Setpoint solver, UI, CoW/0x adapters, custody, a DEX, cross-vault netting, or new vault accounting.
+The source of truth is [Setpoint PRD v1.1](./Setpoint_PRD_v1_1.pdf). This repository currently implements M0/M1 external-vault compatibility, the M2 truthful static baseline, and the M3 deterministic Setpoint Solver v1 for the RWA Index deployment on Robinhood Chain testnet. It does not contain the M4 depth-aware sizing work, UI, CoW/0x adapters, custody, a DEX, cross-vault netting, or new vault accounting.
 
 ## M1 status
 
@@ -36,6 +36,14 @@ The one-command runner covers relatively deep toy liquidity, thin toy liquidity,
 
 M2 is a control group only. It makes no claim that Setpoint outperforms this baseline.
 
+## M3 status
+
+Solver v1 is a reusable, chain-independent module under `src/core/`. It validates policy and confirmed portfolio inputs, classifies target ranges, generates one deterministic USDC-hub step, enforces balance and leg constraints, and returns either a simulation-approved `RebalancePlan` or a typed `NoTradeResult`.
+
+The RWA adapter maps real vault state and guards into the core types. The runner executes at most one approved step, discards the plan, re-reads confirmed fork state, and solves again. It uses the exact M2 scenario definitions through one shared matrix module; M2 remains independently runnable.
+
+M3 deliberately has no pool-depth input, quote-curve optimization, gas model, or liquidity-aware `INSUFFICIENT_OUTPUT` backoff. Those are M4 boundaries. Its artifacts record observed behavior but make no performance comparison with M2.
+
 ## Reproduce
 
 Prerequisites:
@@ -55,6 +63,7 @@ pnpm typecheck
 pnpm test
 pnpm m1:rwa-index
 pnpm m2:baseline
+pnpm m3:solver
 ```
 
 No private key is needed. The command starts and cleans up Anvil itself. It uses fork-only account impersonation for the deployed oracle feeder/syncer owner and vault manager.
@@ -72,10 +81,12 @@ An explicit fork block is also supported with `RWA_FORK_BLOCK_NUMBER`, but the p
 ```text
 config/rwa-index.json             chain, addresses, and pinned upstream revision
 integrations/rwa-index/src/       ABI, state reader, candidate builder, fork harness
+src/core/                         chain-independent policy, types, and Solver v1
 scripts/m1-rwa-index.sh           disposable Anvil lifecycle and M1 entry point
 scripts/m2-baseline.sh            scenario runner and static-baseline entry point
+scripts/m3-solver.sh              scenario runner and Solver v1 entry point
 third_party/rwa-index/            pinned external project (git submodule)
-artifacts/                        generated run evidence and Anvil log (ignored)
+artifacts/                        versioned latest JSON evidence; local Anvil logs ignored
 BUILD_LOG.md                      implementation record, assumptions, and blockers
 ```
 
@@ -86,6 +97,6 @@ BUILD_LOG.md                      implementation record, assumptions, and blocke
 - The oracle refresh deliberately preserves the deployed price values and updates only their timestamps on the fork. This proves stale-data recovery without claiming those old values are current market prices.
 - Pool synchronization uses the external project's testnet-only syncer. Mainnet markets would require real price discovery/arbitrage rather than this helper.
 - Every state-changing operation is confined to local Anvil. Setpoint does not custody or transfer live funds.
-- M1 proves compatibility and M2 establishes the static control group. Neither proves adaptive sizing outperforms the baseline; that comparison belongs to M3/M4 and later benchmark milestones.
+- M1 proves compatibility, M2 establishes the static control group, and M3 proves deterministic simulation-gated planning and safe iterative progress. None proves that Setpoint outperforms the baseline; depth-aware comparison belongs to M4 and later benchmark milestones.
 
 See [the integration notes](./integrations/rwa-index/README.md) and [BUILD_LOG.md](./BUILD_LOG.md) for exact behavior and the latest verified run.

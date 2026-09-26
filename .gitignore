@@ -9,4 +9,7 @@ artifacts/**/*.log
 !artifacts/baseline-summary.json
 !artifacts/baseline/.gitkeep
 !artifacts/baseline/*.json
+!artifacts/solver-v1-summary.json
+!artifacts/solver-v1/.gitkeep
+!artifacts/solver-v1/*.json
 .Setpoint_PRD_v0.1.pdf

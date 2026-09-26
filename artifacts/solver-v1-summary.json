@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "benchmark": "setpoint-solver-v1",
+  "startedAt": "2026-09-26T15:50:20.965Z",
+  "completedAt": "2026-09-26T15:51:27.644Z",
+  "upstream": {
+    "repository": "https://github.com/RaYYeR220/rwa-index",
+    "commit": "b2456ca5400ba9ec36d81691554b889fb9250513"
+  },
+  "network": {
+    "name": "Robinhood Chain testnet",
+    "chainId": 46630
+  },
+  "fork": {
+    "sourceBlockNumber": "124692520",
+    "sourceBlockHash": "0xb68ec12972f8e4e230f31d1aee4c7790ac84c93e3c151de4785eb30a08d5e803",
+    "sourceTimestamp": "1790437818"
+  },
+  "contracts": {
+    "vault": "0x357CD10343829DBd5889c7b0B2fBc4388fC4875B",
+    "oracle": "0x2F2316d6D4a8952730a71BfCD9fa0Af5A0138AB9",
+    "manager": "0xbB91Fe38652991f0E9735dc139601bD637ae4d66",
+    "poolSyncer": "0x1f954000e202EBbB82Da88D53000b3eF0Cd34aeA",
+    "syncerOwner": "0x156aB5483E47eCd1aFb1260d1093c96F1b9596b7",
+    "baseAsset": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+    "swapAdapter": "0x6E498DB59449aF170A9525a69456154F226a4E03"
+  },
+  "guards": {
+    "driftThreshold": "50000000000000000",
+    "maxTradeFraction": "100000000000000000",
+    "slippageTolerance": "20000000000000000",
+    "maxStaleness": "86400",
+    "maxRebalanceLoss": "20000000000000000",
+    "paused": false
+  },
+  "rangeTolerance": "2500000000000000",
+  "poolContext": [
+    {
+      "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+      "pool": "0xfedC57791E6d17c484742C84174424243592E6a8",
+      "activeLiquidity": "73756355658343098480",
+      "stockInventory": "3533150374936559144",
+      "baseInventory": "1539723595959603802419",
+      "stockInventoryOracleValue": "1539711601893603109363",
+      "targetErrorBps": "0"
+    },
+    {
+      "token": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+      "pool": "0x8A970d79CEEF300AF8a3bc040101455C8155295e",
+      "activeLiquidity": "59329587896765303589",
+      "stockInventory": "3606427528804427620",
+      "baseInventory": "976049945870227306815",
+      "stockInventoryOracleValue": "976043546395630291076",
+      "targetErrorBps": "0"
+    },
+    {
+      "token": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+      "pool": "0x315F7A44299FfA359f36D09468D1E22F1bfE65db",
+      "activeLiquidity": "37947331922020551984",
+      "stockInventory": "3033010352670255348",
+      "baseInventory": "474794810094847680952",
+      "stockInventoryOracleValue": "474787440607001772175",
+      "targetErrorBps": "0"
+    },
+    {
+      "token": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+      "pool": "0x8B903359fA8DEE42D4140Dfda10c96d8B4F5631E",
+      "activeLiquidity": "47051993846561229891",
+      "stockInventory": "5073221069458606215",
+      "baseInventory": "436398110132828704331",
+      "stockInventoryOracleValue": "436398476394829306614",
+      "targetErrorBps": "0"
+    },
+    {
+      "token": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+      "pool": "0xB8033384ce15A1112bFd58Dc6d5619708a1be98e",
+      "activeLiquidity": "47328638264796928340",
+      "stockInventory": "2083334500389836001",
+      "baseInventory": "1075242970770168452224",
+      "stockInventoryOracleValue": "1075208935651194360116",
+      "targetErrorBps": "0"
+    }
+  ],
+  "scenarioCount": 6,
+  "results": [
+    {
+      "id": "stale-oracle",
+      "outcome": "no-trade",
+      "attemptedSolveCount": 1,
+      "successfulStepCount": 0,
+      "cumulativeTurnover": "0",
+      "targetRegionReached": false,
+      "initialDrift": null,
+      "finalDrift": null,
+      "finalReason": "STALE_PRICE"
+    },
+    {
+      "id": "moderate-drift-deep-toy",
+      "outcome": "safe-no-trade",
+      "attemptedSolveCount": 3,
+      "successfulStepCount": 2,
+      "cumulativeTurnover": "12548226476813428330",
+      "targetRegionReached": false,
+      "initialDrift": "114177130645809451",
+      "finalDrift": "14791280892631266",
+      "finalReason": "DRIFT_BELOW_TRIGGER"
+    },
+    {
+      "id": "moderate-drift-thin-toy",
+      "outcome": "safe-no-trade",
+      "attemptedSolveCount": 3,
+      "successfulStepCount": 2,
+      "cumulativeTurnover": "12548226476813428330",
+      "targetRegionReached": false,
+      "initialDrift": "114255536466396732",
+      "finalDrift": "15384221636601467",
+      "finalReason": "DRIFT_BELOW_TRIGGER"
+    },
+    {
+      "id": "asymmetric-liquidity",
+      "outcome": "safe-no-trade",
+      "attemptedSolveCount": 3,
+      "successfulStepCount": 2,
+      "cumulativeTurnover": "9903388461779235587",
+      "targetRegionReached": false,
+      "initialDrift": "110432667112206184",
+      "finalDrift": "47557518255761919",
+      "finalReason": "DRIFT_BELOW_TRIGGER"
+    },
+    {
+      "id": "large-target-change",
+      "outcome": "safe-no-trade",
+      "attemptedSolveCount": 3,
+      "successfulStepCount": 2,
+      "cumulativeTurnover": "14904376761338714129",
+      "targetRegionReached": false,
+      "initialDrift": "310255536466396732",
+      "finalDrift": "195068527461727310",
+      "finalReason": "SIMULATION_REJECTED"
+    },
+    {
+      "id": "defensive-cash-target",
+      "outcome": "safe-no-trade",
+      "attemptedSolveCount": 5,
+      "successfulStepCount": 4,
+      "cumulativeTurnover": "11816984952964578565",
+      "targetRegionReached": false,
+      "initialDrift": "199999999999999999",
+      "finalDrift": "39865604476542566",
+      "finalReason": "DRIFT_BELOW_TRIGGER"
+    }
+  ],
+  "milestoneChecks": {
+    "staleInputFailedClosedBeforeSimulation": true,
+    "largeTargetMadeSafeProgress": true,
+    "confirmedStateRereadBetweenSteps": true,
+    "executablePlansSimulationGated": true
+  },
+  "claims": {
+    "performanceComparisonMade": false,
+    "depthAwareSizingIncluded": false,
+    "note": "M3 validates solver architecture and safe progress only. It makes no performance claim against M2."
+  }
+}
