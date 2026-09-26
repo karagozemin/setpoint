@@ -1,0 +1,342 @@
+{
+  "schemaVersion": 1,
+  "benchmark": "truthful-static-baseline",
+  "algorithm": {
+    "sizing": "oracle-valued target delta chunked by the deployed maxTradeFraction",
+    "sequencing": "all overweight sells to base asset, then all underweight buys from base asset",
+    "minAmountOut": "oracle-implied output multiplied by (1 - deployed slippageTolerance)",
+    "depthAwareness": false,
+    "failedSimulationPolicy": "stop without resizing; no Setpoint-style liquidity backoff",
+    "targetRegion": "totalDrift <= deployed driftThreshold"
+  },
+  "scenario": {
+    "id": "large-target-change",
+    "title": "Target change too large for one safe static batch",
+    "rationale": "Raises NFLX to 49%, reduces TSLA, AMZN, and PLTR to 9.8% each, keeps AMD near 20%, and declares the same 2% cash target. Static 10%-NAV chunks are submitted without depth-aware resizing.",
+    "weights": [
+      "98000000000000000",
+      "98000000000000000",
+      "98000000000000000",
+      "490000000000000000",
+      "196000000000000000"
+    ],
+    "cashTarget": "20000000000000000",
+    "liquidityClass": "large-change",
+    "focusAssets": [
+      "NFLX"
+    ],
+    "maxCycles": 8
+  },
+  "fork": {
+    "sourceBlockNumber": "124684453",
+    "sourceBlockHash": "0x87b14680e6386f5622ed1765d10c258f34f5b84ac768d4ff88095d47c8636698",
+    "sourceTimestamp": "1790436368"
+  },
+  "setupTransactions": [
+    "0xc237734743c7f70ccc1297593ad6be1e9ef6205ca9fd7086923c54052a6781f5"
+  ],
+  "poolContext": [
+    {
+      "asset": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+      "symbol": "NFLX",
+      "pool": "0x8B903359fA8DEE42D4140Dfda10c96d8B4F5631E",
+      "fee": 100,
+      "activeLiquidity": "47051993846561229891",
+      "stockInventory": "5073221069458606215",
+      "stockInventoryOracleValue": "436398476394829306614",
+      "baseInventory": "436398110132828704331",
+      "inventoryValueProxy": "872796586527658010945",
+      "sqrtPriceX96": "734817182214707251673284500214",
+      "targetSqrtPriceX96": "734817182214707251673284500214",
+      "targetErrorBps": "0"
+    }
+  ],
+  "guards": {
+    "driftThreshold": "50000000000000000",
+    "maxTradeFraction": "100000000000000000",
+    "slippageTolerance": "20000000000000000",
+    "maxStaleness": "86400",
+    "maxRebalanceLoss": "20000000000000000",
+    "paused": false
+  },
+  "attemptedCycleCount": 1,
+  "successfulCycleCount": 0,
+  "stepsToTargetRegion": null,
+  "cumulativeTurnover": "0",
+  "cumulativeTurnoverOverInitialNav": "0",
+  "targetRegionReached": false,
+  "outcome": "simulation-failed",
+  "cycles": [
+    {
+      "cycle": 1,
+      "sourceBlock": "124684461",
+      "guards": {
+        "driftThreshold": "50000000000000000",
+        "maxTradeFraction": "100000000000000000",
+        "slippageTolerance": "20000000000000000",
+        "maxStaleness": "86400",
+        "maxRebalanceLoss": "20000000000000000",
+        "paused": false
+      },
+      "stateBefore": {
+        "blockNumber": "124684461",
+        "nav": "69349575584908354972",
+        "navFormatted": "69.349575584908354972",
+        "drift": "310255536466396732",
+        "driftFormatted": "31.025554%",
+        "cash": "3",
+        "cashFormatted": "0.000000000000000003",
+        "cashWeight": "0",
+        "cashTarget": "20000000000000000",
+        "assets": [
+          {
+            "symbol": "TSLA",
+            "address": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+            "balance": "31798873727877429",
+            "oraclePriceWad": "435790000000000000000",
+            "oracleUpdatedAt": "1790436378",
+            "value": "13857631181871704783",
+            "valueFormatted": "13.857631181871704783",
+            "currentWeight": "199822869354190548",
+            "currentWeightFormatted": "19.982287%",
+            "targetRange": {
+              "min": "98000000000000000",
+              "max": "98000000000000000"
+            },
+            "targetWeightFormatted": "9.800000%"
+          },
+          {
+            "symbol": "AMZN",
+            "address": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+            "balance": "51255465276334823",
+            "oraclePriceWad": "270640000000000000000",
+            "oracleUpdatedAt": "1790436378",
+            "value": "13871779122387256496",
+            "valueFormatted": "13.871779122387256496",
+            "currentWeight": "200026878396729383",
+            "currentWeightFormatted": "20.002688%",
+            "targetRange": {
+              "min": "98000000000000000",
+              "max": "98000000000000000"
+            },
+            "targetWeightFormatted": "9.800000%"
+          },
+          {
+            "symbol": "PLTR",
+            "address": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+            "balance": "88538451246826119",
+            "oraclePriceWad": "156540000000000000000",
+            "oracleUpdatedAt": "1790436378",
+            "value": "13859809158178160668",
+            "valueFormatted": "13.859809158178160668",
+            "currentWeight": "199854275116779380",
+            "currentWeightFormatted": "19.985428%",
+            "targetRange": {
+              "min": "98000000000000000",
+              "max": "98000000000000000"
+            },
+            "targetWeightFormatted": "9.800000%"
+          },
+          {
+            "symbol": "NFLX",
+            "address": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+            "balance": "161034570698565338",
+            "oraclePriceWad": "86020000000000000000",
+            "oracleUpdatedAt": "1790436378",
+            "value": "13852193771490590374",
+            "valueFormatted": "13.852193771490590374",
+            "currentWeight": "199744463533603267",
+            "currentWeightFormatted": "19.974446%",
+            "targetRange": {
+              "min": "490000000000000000",
+              "max": "490000000000000000"
+            },
+            "targetWeightFormatted": "49.000000%"
+          },
+          {
+            "symbol": "AMD",
+            "address": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+            "balance": "26948580412673208",
+            "oraclePriceWad": "516100000000000000000",
+            "oracleUpdatedAt": "1790436378",
+            "value": "13908162350980642648",
+            "valueFormatted": "13.908162350980642648",
+            "currentWeight": "200551513598697421",
+            "currentWeightFormatted": "20.055151%",
+            "targetRange": {
+              "min": "196000000000000000",
+              "max": "196000000000000000"
+            },
+            "targetWeightFormatted": "19.600000%"
+          }
+        ]
+      },
+      "proposedTrades": [
+        {
+          "tokenIn": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+          "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+          "amountIn": "15913530733818663",
+          "minAmountOut": "6796258407321018445"
+        },
+        {
+          "tokenIn": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+          "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+          "amountIn": "290082874916474",
+          "minAmountOut": "123886911738653199"
+        },
+        {
+          "tokenIn": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+          "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+          "amountIn": "25624288939147337",
+          "minAmountOut": "6796258407321018579"
+        },
+        {
+          "tokenIn": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+          "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+          "amountIn": "519373176823094",
+          "minAmountOut": "137751893443894116"
+        },
+        {
+          "tokenIn": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+          "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+          "amountIn": "44301504781466944",
+          "minAmountOut": "6796258407321018704"
+        },
+        {
+          "tokenIn": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+          "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+          "amountIn": "821471779521568",
+          "minAmountOut": "126021328518980128"
+        },
+        {
+          "tokenIn": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+          "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+          "amountIn": "611597629022679",
+          "minAmountOut": "309332625611832538"
+        },
+        {
+          "tokenIn": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+          "tokenOut": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+          "amountIn": "6934957558490835497",
+          "minAmountOut": "79007886623122747"
+        },
+        {
+          "tokenIn": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+          "tokenOut": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+          "amountIn": "6934957558490835497",
+          "minAmountOut": "79007886623122747"
+        },
+        {
+          "tokenIn": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+          "tokenOut": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+          "amountIn": "6259183148132832568",
+          "minAmountOut": "71308991922461937"
+        }
+      ],
+      "numberOfLegs": 10,
+      "grossTurnover": "41645188041927172657",
+      "grossTurnoverOverNav": "600511072932793443",
+      "simulationPass": false,
+      "revertReason": "The contract function \"rebalance\" reverted.\n\nError: InsufficientOutput()\n \nContract Call:\n  address:   0x357CD10343829DBd5889c7b0B2fBc4388fC4875B\n  function:  rebalance((address tokenIn, address tokenOut, uint256 amountIn, uint256 minAmountOut)[])\n  args:               ([{\"tokenIn\":\"0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E\",\"tokenOut\":\"0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA\",\"amountIn\":\"15913530733818663\",\"minAmountOut\":\"6796258407321018445\"},{\"tokenIn\":\"0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E\",\"tokenOut\":\"0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA\",\"amountIn\":\"290082874916474\",\"minAmountOut\":\"123886911738653199\"},{\"tokenIn\":\"0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02\",\"tokenOut\":\"0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA\",\"amountIn\":\"25624288939147337\",\"minAmountOut\":\"6796258407321018579\"},{\"tokenIn\":\"0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02\",\"tokenOut\":\"0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA\",\"amountIn\":\"519373176823094\",\"minAmountOut\":\"137751893443894116\"},{\"tokenIn\":\"0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0\",\"tokenOut\":\"0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA\",\"amountIn\":\"44301504781466944\",\"minAmountOut\":\"6796258407321018704\"},{\"tokenIn\":\"0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0\",\"tokenOut\":\"0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA\",\"amountIn\":\"821471779521568\",\"minAmountOut\":\"126021328518980128\"},{\"tokenIn\":\"0x71178BAc73cBeb415514eB542a8995b82669778d\",\"tokenOut\":\"0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA\",\"amountIn\":\"611597629022679\",\"minAmountOut\":\"309332625611832538\"},{\"tokenIn\":\"0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA\",\"tokenOut\":\"0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93\",\"amountIn\":\"6934957558490835497\",\"minAmountOut\":\"79007886623122747\"},{\"tokenIn\":\"0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA\",\"tokenOut\":\"0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93\",\"amountIn\":\"6934957558490835497\",\"minAmountOut\":\"79007886623122747\"},{\"tokenIn\":\"0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA\",\"tokenOut\":\"0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93\",\"amountIn\":\"6259183148132832568\",\"minAmountOut\":\"71308991922461937\"}])\n  sender:    0xbB91Fe38652991f0E9735dc139601bD637ae4d66\n\nDocs: https://viem.sh/docs/contract/simulateContract\nDetails: execution reverted: custom error 0xbb2875c3\nVersion: viem@2.56.9",
+      "revertClass": "INSUFFICIENT_OUTPUT"
+    }
+  ],
+  "finalState": {
+    "blockNumber": "124684460",
+    "nav": "69349575584908354972",
+    "navFormatted": "69.349575584908354972",
+    "drift": "310255536466396732",
+    "driftFormatted": "31.025554%",
+    "cash": "3",
+    "cashFormatted": "0.000000000000000003",
+    "cashWeight": "0",
+    "cashTarget": "20000000000000000",
+    "assets": [
+      {
+        "symbol": "TSLA",
+        "address": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+        "balance": "31798873727877429",
+        "oraclePriceWad": "435790000000000000000",
+        "oracleUpdatedAt": "1790436378",
+        "value": "13857631181871704783",
+        "valueFormatted": "13.857631181871704783",
+        "currentWeight": "199822869354190548",
+        "currentWeightFormatted": "19.982287%",
+        "targetRange": {
+          "min": "98000000000000000",
+          "max": "98000000000000000"
+        },
+        "targetWeightFormatted": "9.800000%"
+      },
+      {
+        "symbol": "AMZN",
+        "address": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+        "balance": "51255465276334823",
+        "oraclePriceWad": "270640000000000000000",
+        "oracleUpdatedAt": "1790436378",
+        "value": "13871779122387256496",
+        "valueFormatted": "13.871779122387256496",
+        "currentWeight": "200026878396729383",
+        "currentWeightFormatted": "20.002688%",
+        "targetRange": {
+          "min": "98000000000000000",
+          "max": "98000000000000000"
+        },
+        "targetWeightFormatted": "9.800000%"
+      },
+      {
+        "symbol": "PLTR",
+        "address": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+        "balance": "88538451246826119",
+        "oraclePriceWad": "156540000000000000000",
+        "oracleUpdatedAt": "1790436378",
+        "value": "13859809158178160668",
+        "valueFormatted": "13.859809158178160668",
+        "currentWeight": "199854275116779380",
+        "currentWeightFormatted": "19.985428%",
+        "targetRange": {
+          "min": "98000000000000000",
+          "max": "98000000000000000"
+        },
+        "targetWeightFormatted": "9.800000%"
+      },
+      {
+        "symbol": "NFLX",
+        "address": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+        "balance": "161034570698565338",
+        "oraclePriceWad": "86020000000000000000",
+        "oracleUpdatedAt": "1790436378",
+        "value": "13852193771490590374",
+        "valueFormatted": "13.852193771490590374",
+        "currentWeight": "199744463533603267",
+        "currentWeightFormatted": "19.974446%",
+        "targetRange": {
+          "min": "490000000000000000",
+          "max": "490000000000000000"
+        },
+        "targetWeightFormatted": "49.000000%"
+      },
+      {
+        "symbol": "AMD",
+        "address": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+        "balance": "26948580412673208",
+        "oraclePriceWad": "516100000000000000000",
+        "oracleUpdatedAt": "1790436378",
+        "value": "13908162350980642648",
+        "valueFormatted": "13.908162350980642648",
+        "currentWeight": "200551513598697421",
+        "currentWeightFormatted": "20.055151%",
+        "targetRange": {
+          "min": "196000000000000000",
+          "max": "196000000000000000"
+        },
+        "targetWeightFormatted": "19.600000%"
+      }
+    ]
+  },
+  "limitations": [
+    "Liquidity labels are relative descriptions of the deployed toy pools, not production market classifications.",
+    "Pool inventory is recorded as context only; the static planner does not consume depth or quotes.",
+    "Exact onchain target weights are represented as zero-width target ranges for baseline reporting."
+  ]
+}

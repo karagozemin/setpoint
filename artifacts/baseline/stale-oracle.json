@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "benchmark": "truthful-static-baseline",
+  "scenario": {
+    "id": "stale-oracle",
+    "title": "Stale oracle expected no-trade",
+    "rationale": "Uses the untouched deployed oracle timestamps and requires authoritative NAV ingestion to fail closed."
+  },
+  "fork": {
+    "sourceBlockNumber": "124684453",
+    "sourceBlockHash": "0x87b14680e6386f5622ed1765d10c258f34f5b84ac768d4ff88095d47c8636698",
+    "sourceTimestamp": "1790436368"
+  },
+  "guards": {
+    "driftThreshold": "50000000000000000",
+    "maxTradeFraction": "100000000000000000",
+    "slippageTolerance": "20000000000000000",
+    "maxStaleness": "86400",
+    "maxRebalanceLoss": "20000000000000000",
+    "paused": false
+  },
+  "oraclePrices": [
+    {
+      "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+      "price": "435790000000000000000",
+      "updatedAt": "1780265370"
+    },
+    {
+      "token": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+      "price": "270640000000000000000",
+      "updatedAt": "1780265370"
+    },
+    {
+      "token": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+      "price": "156540000000000000000",
+      "updatedAt": "1780265370"
+    },
+    {
+      "token": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+      "price": "86020000000000000000",
+      "updatedAt": "1780265370"
+    },
+    {
+      "token": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+      "price": "516100000000000000000",
+      "updatedAt": "1780265370"
+    }
+  ],
+  "staleTokens": [
+    "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+    "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+    "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+    "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+    "0x71178BAc73cBeb415514eB542a8995b82669778d"
+  ],
+  "attemptedCycleCount": 0,
+  "successfulCycleCount": 0,
+  "cumulativeTurnover": "0",
+  "stepsToTargetRegion": null,
+  "targetRegionReached": false,
+  "outcome": "no-trade",
+  "noTradeReason": "STALE_ORACLE",
+  "revertReason": "The contract function \"totalAssets\" reverted.\n\nError: StalePrice(address token)\n                 (0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E)\n \nContract Call:\n  address:   0x357CD10343829DBd5889c7b0B2fBc4388fC4875B\n  function:  totalAssets()\n\nDocs: https://viem.sh/docs/contract/readContract\nDetails: execution reverted: custom error 0x81927929: 000000000000000000000000c9f9c86933092bbbfff3ccb4b105a4a94bf3bd4e\nVersion: viem@2.56.9",
+  "cycles": [],
+  "limitations": [
+    "No current weights or NAV are reported because the authoritative vault reads correctly reject stale inputs."
+  ]
+}

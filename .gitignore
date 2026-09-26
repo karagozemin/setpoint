@@ -5,5 +5,8 @@ artifacts/*.log
 artifacts/**/*.json
 artifacts/**/*.log
 !artifacts/.gitkeep
+!artifacts/rwa-index-m1-latest.json
+!artifacts/baseline-summary.json
 !artifacts/baseline/.gitkeep
+!artifacts/baseline/*.json
 .Setpoint_PRD_v0.1.pdf
