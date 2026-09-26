@@ -511,6 +511,7 @@ export function mapScenarioArtifact(
 
   return {
     id: artifact.scenario.id,
+    scenarioGroup: "core",
     shortLabel: presentation.shortLabel,
     title: artifact.scenario.title,
     subtitle: presentation.subtitle,
@@ -565,6 +566,9 @@ export function mapScenarioArtifact(
     },
     source: sourceFor(artifact, summary, presentation, initialState),
     oracleAge: null,
+    stateEvidenceNote: isStale
+      ? "The fork artifact contains no accepted portfolio snapshot because authoritative freshness failed first."
+      : "Portfolio state is read from the accepted fork artifact.",
     terminalExplanation: isStale
       ? "Fail-closed input validation. NO_TRADE is a deliberate safety decision, not an application error."
       : isFallback

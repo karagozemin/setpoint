@@ -4,14 +4,14 @@ export type StepTone = "neutral" | "passed" | "intervention" | "blocked" | "conf
 
 export interface EvidenceSourceViewModel {
   network: string;
-  chainId: number;
+  chainId: number | null;
   vault: string;
   caller: string;
   forkBlock: string;
-  forkHash: string;
+  forkHash: string | null;
   stateBlock: string | null;
   stateId: string | null;
-  label: "Fork-backed historical evidence";
+  label: string;
   artifactPath: string;
   evidenceHref: string;
 }
@@ -82,6 +82,7 @@ export interface SimulationViewModel {
 
 export interface OperatorScenarioViewModel {
   id: string;
+  scenarioGroup: "core" | "security";
   shortLabel: string;
   title: string;
   subtitle: string;
@@ -105,5 +106,6 @@ export interface OperatorScenarioViewModel {
   simulation: SimulationViewModel;
   source: EvidenceSourceViewModel;
   oracleAge: string | null;
+  stateEvidenceNote: string;
   terminalExplanation: string;
 }

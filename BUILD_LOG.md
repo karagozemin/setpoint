@@ -1,5 +1,68 @@
 # Build log
 
+## 2026-09-26 — Security and failure demonstrations
+
+### Implemented
+
+- Added deterministic evidence for stale accounting, a policy-breaking target, an unsupported route, unsafe residual liquidity, and an unknown simulation failure under `artifacts/security/`.
+- Added `pnpm security:demo`, which builds the five artifacts from the frozen hybrid core or accepted fork evidence, validates their invariants, verifies source hashes, and writes `security-summary.json`.
+- Reused the accepted stale-oracle and large-target M4.2 fork artifacts. No historical artifact or benchmark outcome was overwritten.
+- Added a policy-validation fixture whose 95% target exceeds the allowlisted asset's 80% maximum. This proves Setpoint policy rejection, not actor-level authorization in the external vault.
+- Added an unsupported asset-to-asset route fixture that preserves the rejected leg in evidence and stops before simulation.
+- Added an `UNKNOWN_REVERT` simulation fixture proving unknown failures cannot enter the recoverable fallback path.
+- Recorded the explicit recoverable simulation allowlist and eleven security invariants, including simulation gating, safe residual refusal, confirmed-state re-read, authorization boundary, and UI/policy separation.
+- Added [the security model](./docs/SECURITY.md) with trust assumptions, addressed threats, and explicit out-of-scope threats. It makes no audit or formal-verification claim.
+- Added a compact Safety cases selector to the existing operator console. The three accepted M5 flows remain unchanged and all safety screens are mapped from raw artifacts through a presentation-only adapter.
+
+### Evidence levels and results
+
+| Scenario | Level | Result |
+|---|---|---|
+| Stale oracle | Fork evidence | `STALE_PRICE`; zero fallback, legs, and turnover |
+| Policy-breaking target | Integration test evidence | `INVALID_POLICY`; no simulation, fallback, or execution |
+| Unsupported route | Integration test evidence | `UNSUPPORTED_ASSET` with `UNSUPPORTED_ROUTE` evidence; no fallback or execution |
+| Unsafe liquidity | Fork evidence | 10-leg fast path fails `INSUFFICIENT_OUTPUT`; 3 safe legs and 22.5% turnover execute; residual USDC→NFLX ends `NO_SAFE_LIQUIDITY` |
+| Unknown failure | Integration test evidence | `UNKNOWN_REVERT`; no fallback or execution |
+
+The unsafe-liquidity artifact preserves the accepted observations: drift improves from 31.025554% to 19.113279%, attempted simple turnover is 60.051107% of NAV, and the confirmed-state re-read occurs before the residual no-trade decision.
+
+### Tests and validation
+
+Added tests for every required fail-closed outcome, the recoverable allowlist, simulation-gated fallback, failed-plan non-execution, unsupported-leg preservation, unchanged normal and large-target behavior, deterministic artifact generation, checked-in artifact parity, UI evidence mapping, and the frozen M2 hash.
+
+```bash
+pnpm install --frozen-lockfile
+pnpm security:demo
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+Validation results:
+
+- deterministic evidence generation passed with 11/11 invariants held;
+- core and presentation typechecks passed;
+- 74/74 tests passed;
+- Vite production build passed and emitted all allowlisted raw security evidence exports;
+- accepted M4.2 normal and large-target figures remained unchanged; and
+- M2 planner SHA-256 remains `dcd079ed25ff6fd7683c947fbf46748abd70862fe2a85a368c919b26fe7cee92`.
+
+### Errors encountered and corrections
+
+- The first new fallback-allowlist test passed a synchronous planner where the hybrid interface requires an asynchronous planner. The fixture was corrected to use an async wrapper; no production behavior changed.
+- The unsafe-liquidity wrapper initially inferred preflight success from the presence of fast-path evidence. It now reads the recorded `preflightPassed` field directly from the accepted M4.2 artifact.
+- Security evidence initially had no UI representation. A separate artifact-to-view-model adapter was added; it deliberately leaves portfolio snapshots and trade arrays empty when the compact security artifact does not contain them.
+
+### Assumptions, fork-only behavior, and remaining blockers
+
+- Fork evidence is historical Robinhood Chain testnet evidence. Oracle refresh, role impersonation, pool synchronization, strategy changes, and execution occurred only on disposable Anvil forks.
+- Integration-test evidence uses deterministic confirmed-state fixtures and the real frozen hybrid solver, but it was not observed onchain and is labeled accordingly.
+- The malicious-target demonstration covers Setpoint's constrained policy boundary. The external RWA integration does not provide evidence for actor-level target-change authorization, so none is claimed.
+- Precise oracle age is unavailable in the existing stale artifact and remains unreported.
+- The current evidence does not solve compromised admins, false-but-fresh oracles, compromised RPC, external smart-contract bugs, key compromise, MEV guarantees, production manipulation outside configured limits, or cross-venue risk.
+- No core safety bug was found. No file under `src/core/` or `integrations/rwa-index/` changed, and no solver, benchmark, or vault behavior was modified.
+- There is no public deployment or external validation in this milestone. Those remain intentionally blocked pending review.
+
 ## 2026-09-26 — M5 operator console
 
 ### Implemented

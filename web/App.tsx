@@ -4,7 +4,11 @@ import { EvidencePanel } from "./components/EvidencePanel";
 import { PortfolioTable } from "./components/PortfolioTable";
 import { StatusBadge } from "./components/StatusBadge";
 import { TradePlan } from "./components/TradePlan";
-import { getOperatorScenario, operatorScenarios } from "./data/scenarios";
+import {
+  coreOperatorScenarios,
+  getOperatorScenario,
+  securityOperatorScenarios,
+} from "./data/scenarios";
 import type { GuardViewModel, OperatorScenarioViewModel } from "./data/types";
 
 function compact(value: string): string {
@@ -22,7 +26,7 @@ function ScenarioSwitcher({
     <nav className="scenario-switcher" aria-label="Evidence scenario">
       <span className="scenario-label">Evidence scenario</span>
       <div className="scenario-options">
-        {operatorScenarios.map((scenario) => (
+        {coreOperatorScenarios.map((scenario) => (
           <button
             aria-current={scenario.id === activeId ? "page" : undefined}
             className={scenario.id === activeId ? "scenario-active" : ""}
@@ -35,6 +39,19 @@ function ScenarioSwitcher({
           </button>
         ))}
       </div>
+      <label className="safety-picker">
+        <span>Safety cases</span>
+        <select
+          aria-label="Safety failure demonstration"
+          onChange={(event) => event.target.value !== "" && onChange(event.target.value)}
+          value={securityOperatorScenarios.some((scenario) => scenario.id === activeId) ? activeId : ""}
+        >
+          <option value="">Select evidence</option>
+          {securityOperatorScenarios.map((scenario) => (
+            <option key={scenario.id} value={scenario.id}>{scenario.shortLabel}</option>
+          ))}
+        </select>
+      </label>
     </nav>
   );
 }
@@ -43,7 +60,7 @@ function SummaryStrip({ scenario }: { scenario: OperatorScenarioViewModel }) {
   return (
     <section className="summary-strip" aria-label="Portfolio summary">
       <div className="summary-intro">
-        <p className="eyebrow">RWA Index / rebalance control</p>
+        <p className="eyebrow">{scenario.scenarioGroup === "security" ? "Security evidence / fail-closed controls" : "RWA Index / rebalance control"}</p>
         <h1>{scenario.shortLabel}</h1>
         <p>{scenario.subtitle}</p>
       </div>
@@ -51,12 +68,12 @@ function SummaryStrip({ scenario }: { scenario: OperatorScenarioViewModel }) {
         <div>
           <dt>Vault NAV</dt>
           <dd>{scenario.after?.nav ?? scenario.before?.nav ?? "Not available"}</dd>
-          <span>mock USDC · confirmed</span>
+          <span>{scenario.before === null ? "not present in this evidence" : "mock USDC · confirmed"}</span>
         </div>
         <div>
           <dt>Authoritative drift</dt>
           <dd>{scenario.after?.drift ?? scenario.before?.drift ?? "Not available"}</dd>
-          <span>{scenario.before !== null && scenario.after !== null ? `from ${scenario.before.drift}` : "freshness blocked"}</span>
+          <span>{scenario.before !== null && scenario.after !== null ? `from ${scenario.before.drift}` : "no portfolio snapshot asserted"}</span>
         </div>
         <div>
           <dt>Cash / base weight</dt>
@@ -73,7 +90,7 @@ function SummaryStrip({ scenario }: { scenario: OperatorScenarioViewModel }) {
   );
 }
 
-function GuardRail({ guards }: { guards: GuardViewModel[] }) {
+function GuardRail({ guards, scenario }: { guards: GuardViewModel[]; scenario: OperatorScenarioViewModel }) {
   return (
     <section className="panel guard-panel" aria-labelledby="guard-title">
       <div className="panel-heading">
@@ -96,8 +113,8 @@ function GuardRail({ guards }: { guards: GuardViewModel[] }) {
         ))}
       </ul>
       <div className="guard-footer">
-        <span>Quotes</span>
-        <strong>State-bound · 60s max age</strong>
+        <span>{scenario.scenarioGroup === "security" ? "Evidence" : "Quotes"}</span>
+        <strong>{scenario.scenarioGroup === "security" ? scenario.source.label : "State-bound · 60s max age"}</strong>
       </div>
     </section>
   );
@@ -119,7 +136,7 @@ function BeforeAfter({ scenario }: { scenario: OperatorScenarioViewModel }) {
       {scenario.before === null ? (
         <div className="empty-state compact-empty">
           <span className="empty-code">NO STATE COMPARISON</span>
-          <p>The stale-oracle artifact stopped before a valid planning snapshot was accepted.</p>
+          <p>{scenario.stateEvidenceNote}</p>
         </div>
       ) : (
         <div className="state-comparison">
@@ -161,10 +178,10 @@ export default function App() {
           <span className="wordmark-section">/ OPERATOR CONSOLE</span>
         </a>
         <div className="topbar-context">
-          <span><i className="context-dot" />Robinhood Chain testnet</span>
-          <span>Vault <code title={scenario.source.vault}>{compact(scenario.source.vault)}</code></span>
-          <span>Fork <strong>#{scenario.source.forkBlock}</strong></span>
-          <span className="topbar-fork">Fork-backed evidence</span>
+          <span><i className="context-dot" />{scenario.source.network}</span>
+          {scenario.source.vault !== "Not applicable" && <span>Vault <code title={scenario.source.vault}>{compact(scenario.source.vault)}</code></span>}
+          {scenario.source.forkBlock !== "not applicable" && <span>Fork <strong>#{scenario.source.forkBlock}</strong></span>}
+          <span className="topbar-fork">{scenario.source.label}</span>
         </div>
       </header>
 
@@ -174,7 +191,7 @@ export default function App() {
 
         <div className="primary-grid">
           <DecisionPanel scenario={scenario} />
-          <GuardRail guards={scenario.guards} />
+          <GuardRail guards={scenario.guards} scenario={scenario} />
         </div>
 
         <PortfolioTable scenario={scenario} />
@@ -187,7 +204,7 @@ export default function App() {
       </main>
 
       <footer>
-        <span>SETPOINT · M5 OPERATOR CONSOLE</span>
+        <span>SETPOINT · EVIDENCE CONSOLE</span>
         <span>External integration: RWA Index</span>
         <span>Historical testnet evidence · no live funds</span>
       </footer>

@@ -11,13 +11,14 @@
     "dev": "vite",
     "build": "tsc -p tsconfig.web.json --noEmit && vite build",
     "preview": "vite preview",
+    "security:demo": "tsx scripts/security-demo.ts",
     "m1:rwa-index": "bash scripts/m1-rwa-index.sh",
     "m2:baseline": "bash scripts/m2-baseline.sh",
     "m3:solver": "bash scripts/m3-solver.sh",
     "m4:adaptive": "bash scripts/m4-adaptive.sh",
     "m4:batch": "bash scripts/m4-batch.sh",
     "m4:hybrid": "bash scripts/m4-hybrid.sh",
-    "test": "tsx --test integrations/rwa-index/test/baseline.test.ts src/core/solver.test.ts src/core/adaptive-solver.test.ts src/core/batch-solver.test.ts src/core/hybrid-solver.test.ts web/data/adapter.test.ts",
+    "test": "tsx --test integrations/rwa-index/test/baseline.test.ts src/core/solver.test.ts src/core/adaptive-solver.test.ts src/core/batch-solver.test.ts src/core/hybrid-solver.test.ts security/security-demo.test.ts web/data/adapter.test.ts",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.web.json --noEmit"
   },
   "dependencies": {

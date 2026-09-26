@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "milestone": "security-failure-demonstrations",
+  "scenario": {
+    "id": "unsafe-liquidity",
+    "title": "Unsafe residual liquidity",
+    "shortLabel": "Unsafe liquidity",
+    "threat": "The complete rebalance and later residual route cannot satisfy the vault's oracle-derived output floor.",
+    "invalidCondition": "USDC to NFLX has no executable sample compatible with the 98%-of-oracle minimum-output floor",
+    "evidenceLevel": "fork evidence",
+    "boundary": "Existing RWA Index equivalent-state M4.2 fork artifact"
+  },
+  "source": {
+    "stateId": "46630:124725781:0x60cbb1caf69294b84d8834d2997f83698083183d6ba0501911f05feb261e986b",
+    "network": "Robinhood Chain testnet fork",
+    "chainId": 46630,
+    "vault": "0x357CD10343829DBd5889c7b0B2fBc4388fC4875B",
+    "caller": "0xbB91Fe38652991f0E9735dc139601bD637ae4d66",
+    "sourceArtifact": "artifacts/hybrid/large-target-change.json",
+    "sourceArtifactSha256": "02fb50806ed05d6f88a42d544f8287d73e1edca1cde7279b84bcc563b0267df6"
+  },
+  "policyValidation": {
+    "invoked": true,
+    "passed": true,
+    "reason": null,
+    "details": []
+  },
+  "fastPath": {
+    "candidateLegs": 10,
+    "preflightPassed": true,
+    "simulationInvoked": true,
+    "simulationPassed": false,
+    "failureCode": "INSUFFICIENT_OUTPUT",
+    "failedPlanExecuted": false
+  },
+  "fallback": {
+    "invoked": true,
+    "trigger": "INSUFFICIENT_OUTPUT",
+    "selectedLegs": 3,
+    "simulationPassed": true
+  },
+  "execution": {
+    "attempted": true,
+    "occurred": true,
+    "executedLegs": 3,
+    "transactionHash": "0xf778b8512e1bf192285646d5d1bfe99059ece39e3d4c27ba74ea2b637305b29f",
+    "confirmedStateReread": true
+  },
+  "terminal": {
+    "mode": "ADAPTIVE_FALLBACK_THEN_NO_TRADE",
+    "reason": "NO_SAFE_LIQUIDITY",
+    "explanation": "A simulation-approved safe subset executed; the remaining unsafe route was refused after confirmed-state re-read."
+  },
+  "observedMetrics": {
+    "initialDrift": "31.025554%",
+    "finalDrift": "19.113279%",
+    "attemptedTurnover": "60.051107%",
+    "executedTurnover": "22.500000%",
+    "residualRoute": "USDC→NFLX"
+  },
+  "relevantEvidence": [
+    "sourceForkBlock=124725774",
+    "fastPathFailure=INSUFFICIENT_OUTPUT",
+    "safeSubsetSimulationPassed=true",
+    "safeSubsetExecutionHash=0xf778b8512e1bf192285646d5d1bfe99059ece39e3d4c27ba74ea2b637305b29f",
+    "confirmedStateReread=true",
+    "residualReason=NO_MINOUT_COMPATIBLE_SAMPLE"
+  ],
+  "invariant": {
+    "id": "unsafe-residual-never-submitted",
+    "expected": "Only the simulation-approved safe subset executes; unsafe residual liquidity is refused.",
+    "held": true
+  }
+}

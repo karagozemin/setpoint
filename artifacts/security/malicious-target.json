@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "milestone": "security-failure-demonstrations",
+  "scenario": {
+    "id": "malicious-target",
+    "title": "Policy rejected: malicious target",
+    "shortLabel": "Policy rejected",
+    "threat": "An arbitrary target attempts to assign 95% weight to an asset capped by policy at 80%.",
+    "invalidCondition": "target.max exceeds the allowlisted asset maxWeight and the target ranges cannot form a valid portfolio",
+    "evidenceLevel": "integration test evidence",
+    "boundary": "Setpoint policy validation; actor-level target authorization is not asserted by this fixture"
+  },
+  "source": {
+    "stateId": "security:confirmed:1",
+    "network": "Deterministic core fixture",
+    "chainId": null,
+    "vault": "0x0000000000000000000000000000000000000010",
+    "caller": null,
+    "sourceArtifact": null,
+    "sourceArtifactSha256": null
+  },
+  "policyValidation": {
+    "invoked": true,
+    "passed": false,
+    "reason": "INVALID_POLICY",
+    "details": [
+      "invalid target or max weight for 0x0000000000000000000000000000000000000002",
+      "target ranges cannot contain a portfolio summing to WAD"
+    ]
+  },
+  "fastPath": {
+    "candidateLegs": 2,
+    "preflightPassed": false,
+    "simulationInvoked": false,
+    "simulationPassed": null,
+    "failureCode": null,
+    "failedPlanExecuted": false
+  },
+  "fallback": {
+    "invoked": false,
+    "trigger": null,
+    "selectedLegs": 0,
+    "simulationPassed": null
+  },
+  "execution": {
+    "attempted": false,
+    "occurred": false,
+    "executedLegs": 0,
+    "transactionHash": null,
+    "confirmedStateReread": false
+  },
+  "terminal": {
+    "mode": "NO_TRADE",
+    "reason": "INVALID_POLICY",
+    "explanation": "Target policy rejected by Setpoint before preflight or vault simulation; this is not a vault transaction revert."
+  },
+  "observedMetrics": {
+    "initialDrift": null,
+    "finalDrift": null,
+    "attemptedTurnover": "0.000000%",
+    "executedTurnover": "0.000000%",
+    "residualRoute": null
+  },
+  "relevantEvidence": [
+    "modeSelectionReason=NON_RECOVERABLE_INPUT_VALIDATION",
+    "simulationCalls=0",
+    "adaptiveFallbackCalls=0",
+    "invalid target or max weight for 0x0000000000000000000000000000000000000002",
+    "target ranges cannot contain a portfolio summing to WAD"
+  ],
+  "invariant": {
+    "id": "invalid-policy-never-executes",
+    "expected": "Invalid or malicious target policy cannot become executable.",
+    "held": true
+  }
+}

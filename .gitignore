@@ -34,4 +34,6 @@ artifacts/**/*.log
 !artifacts/hybrid/*.json
 !artifacts/comparison-m4-2/.gitkeep
 !artifacts/comparison-m4-2/*.json
+!artifacts/security/
+!artifacts/security/*.json
 .Setpoint_PRD_v0.1.pdf

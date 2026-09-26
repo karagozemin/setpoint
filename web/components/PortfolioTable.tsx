@@ -29,11 +29,11 @@ export function PortfolioTable({ scenario }: PortfolioTableProps) {
             <p className="eyebrow">Authoritative portfolio</p>
             <h2 id="portfolio-title">State unavailable</h2>
           </div>
-          <span className="data-state data-state-blocked">Freshness rejected</span>
+          <span className="data-state data-state-blocked">No accepted snapshot</span>
         </div>
         <div className="empty-state">
-          <span className="empty-code">STALE_PRICE</span>
-          <p>The artifact intentionally contains no portfolio snapshot. Accounting freshness failed before planning.</p>
+          <span className="empty-code">{scenario.terminalReason}</span>
+          <p>{scenario.stateEvidenceNote}</p>
         </div>
       </section>
     );

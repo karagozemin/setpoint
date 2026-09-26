@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "milestone": "security-failure-demonstrations",
+  "scenario": {
+    "id": "stale-oracle",
+    "title": "Stale authoritative oracle",
+    "shortLabel": "Stale oracle",
+    "threat": "Vault accounting prices exceed the deployed freshness limit.",
+    "invalidCondition": "authoritative vault accounting rejects stale prices before planning",
+    "evidenceLevel": "fork evidence",
+    "boundary": "Existing RWA Index fork artifact; precise oracle age is not recorded"
+  },
+  "source": {
+    "stateId": null,
+    "network": "Robinhood Chain testnet fork",
+    "chainId": 46630,
+    "vault": "0x357CD10343829DBd5889c7b0B2fBc4388fC4875B",
+    "caller": "0xbB91Fe38652991f0E9735dc139601bD637ae4d66",
+    "sourceArtifact": "artifacts/hybrid/stale-oracle.json",
+    "sourceArtifactSha256": "05cedf06c6731b3cd26e05d7933bedf5c5b129540c70048cf6e0a27ea7e252bb"
+  },
+  "policyValidation": {
+    "invoked": true,
+    "passed": false,
+    "reason": "STALE_PRICE",
+    "details": [
+      "authoritative vault accounting rejects stale prices before planning"
+    ]
+  },
+  "fastPath": {
+    "candidateLegs": 0,
+    "preflightPassed": false,
+    "simulationInvoked": false,
+    "simulationPassed": null,
+    "failureCode": "STALE_PRICE",
+    "failedPlanExecuted": false
+  },
+  "fallback": {
+    "invoked": false,
+    "trigger": null,
+    "selectedLegs": 0,
+    "simulationPassed": null
+  },
+  "execution": {
+    "attempted": false,
+    "occurred": false,
+    "executedLegs": 0,
+    "transactionHash": null,
+    "confirmedStateReread": false
+  },
+  "terminal": {
+    "mode": "NO_TRADE",
+    "reason": "STALE_PRICE",
+    "explanation": "Stale accounting fails closed before a plan, simulation-approved execution, or fallback can exist."
+  },
+  "observedMetrics": {
+    "initialDrift": null,
+    "finalDrift": null,
+    "attemptedTurnover": "0.000000%",
+    "executedTurnover": "0.000000%",
+    "residualRoute": null
+  },
+  "relevantEvidence": [
+    "sourceForkBlock=124725774",
+    "modeSelectionReason=NON_RECOVERABLE_INPUT_VALIDATION:STALE_PRICE",
+    "fallbackInvoked=false",
+    "executedLegs=0",
+    "oracleAge=not recorded"
+  ],
+  "invariant": {
+    "id": "stale-price-never-executes",
+    "expected": "Stale authoritative prices produce NO_TRADE with zero execution.",
+    "held": true
+  }
+}

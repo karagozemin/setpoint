@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "milestone": "security-failure-demonstrations",
+  "deterministic": true,
+  "scenarios": [
+    {
+      "id": "stale-oracle",
+      "evidenceLevel": "fork evidence",
+      "artifact": "artifacts/security/stale-oracle.json",
+      "terminalReason": "STALE_PRICE",
+      "invariantHeld": true
+    },
+    {
+      "id": "malicious-target",
+      "evidenceLevel": "integration test evidence",
+      "artifact": "artifacts/security/malicious-target.json",
+      "terminalReason": "INVALID_POLICY",
+      "invariantHeld": true
+    },
+    {
+      "id": "unsupported-route",
+      "evidenceLevel": "integration test evidence",
+      "artifact": "artifacts/security/unsupported-route.json",
+      "terminalReason": "UNSUPPORTED_ASSET",
+      "invariantHeld": true
+    },
+    {
+      "id": "unsafe-liquidity",
+      "evidenceLevel": "fork evidence",
+      "artifact": "artifacts/security/unsafe-liquidity.json",
+      "terminalReason": "NO_SAFE_LIQUIDITY",
+      "invariantHeld": true
+    },
+    {
+      "id": "unknown-revert",
+      "evidenceLevel": "integration test evidence",
+      "artifact": "artifacts/security/unknown-revert.json",
+      "terminalReason": "SIMULATION_REJECTED",
+      "invariantHeld": true
+    }
+  ],
+  "invariants": [
+    {
+      "id": "stale-price-never-executes",
+      "description": "Stale authoritative prices produce NO_TRADE with zero execution.",
+      "held": true,
+      "evidence": [
+        "stale-oracle.json"
+      ]
+    },
+    {
+      "id": "invalid-policy-never-executes",
+      "description": "Invalid or malicious target policy cannot become executable.",
+      "held": true,
+      "evidence": [
+        "malicious-target.json"
+      ]
+    },
+    {
+      "id": "unsupported-route-never-executes",
+      "description": "Unsupported routes cannot be silently dropped or executed.",
+      "held": true,
+      "evidence": [
+        "unsupported-route.json"
+      ]
+    },
+    {
+      "id": "unknown-failure-never-falls-back",
+      "description": "Unknown failures fail closed and never activate adaptive fallback.",
+      "held": true,
+      "evidence": [
+        "unknown-revert.json"
+      ]
+    },
+    {
+      "id": "fallback-is-explicit-allowlist",
+      "description": "Only named recoverable simulation failures activate adaptive fallback.",
+      "held": true,
+      "evidence": [
+        "unknown-revert.json",
+        "unsafe-liquidity.json"
+      ]
+    },
+    {
+      "id": "failed-fast-path-never-executes",
+      "description": "A failed simple batch is never submitted before fallback.",
+      "held": true,
+      "evidence": [
+        "unsafe-liquidity.json"
+      ]
+    },
+    {
+      "id": "adaptive-plan-simulation-gated",
+      "description": "The observed adaptive execution passed exact vault simulation.",
+      "held": true,
+      "evidence": [
+        "unsafe-liquidity.json"
+      ]
+    },
+    {
+      "id": "unsafe-residual-never-submitted",
+      "description": "Only the simulation-approved safe subset executes; unsafe residual liquidity is refused.",
+      "held": true,
+      "evidence": [
+        "unsafe-liquidity.json"
+      ]
+    },
+    {
+      "id": "confirmed-state-reread",
+      "description": "A successful adaptive execution is followed by confirmed-state re-read before the terminal decision.",
+      "held": true,
+      "evidence": [
+        "unsafe-liquidity.json"
+      ]
+    },
+    {
+      "id": "authorization-not-bypassed",
+      "description": "Integration fixtures do not execute and fork execution uses the configured RWA manager identity.",
+      "held": true,
+      "evidence": [
+        "malicious-target.json",
+        "unsupported-route.json",
+        "unknown-revert.json",
+        "unsafe-liquidity.json"
+      ]
+    },
+    {
+      "id": "ui-policy-separation",
+      "description": "UI sources do not import or invoke execution-core solvers.",
+      "held": true,
+      "evidence": [
+        "web/"
+      ]
+    }
+  ],
+  "recoverableSimulationFailures": [
+    "INSUFFICIENT_OUTPUT",
+    "TRADE_TOO_LARGE",
+    "INSUFFICIENT_BALANCE",
+    "DRIFT_NOT_IMPROVED",
+    "EXCESSIVE_VALUE_LOSS"
+  ],
+  "nonRecoverableExamples": [
+    "STALE_PRICE",
+    "SLIPPAGE_TOO_LOOSE",
+    "UNAUTHORIZED",
+    "UNSUPPORTED_ASSET",
+    "UNKNOWN_REVERT"
+  ],
+  "sourceIntegrity": {
+    "m2PlannerSha256": "dcd079ed25ff6fd7683c947fbf46748abd70862fe2a85a368c919b26fe7cee92",
+    "expectedM2PlannerSha256": "dcd079ed25ff6fd7683c947fbf46748abd70862fe2a85a368c919b26fe7cee92",
+    "m2PlannerUnchanged": true,
+    "m4_2SummarySha256": "66ad62637de5c9b94dfd4d574bf20c8ebd07a4323b7e11f1bdfdf98f77248fc7"
+  },
+  "allInvariantsHeld": true
+}

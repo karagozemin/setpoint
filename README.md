@@ -2,7 +2,7 @@
 
 Setpoint is a non-custodial safety and execution orchestration layer for onchain vault rebalances. It preflights simple rebalances and adapts only when liquidity or vault constraints make them unsafe.
 
-The source of truth is [Setpoint PRD v1.2](./Setpoint_PRD_v1_2.md). Its hybrid execution decision is backed by the accepted [architecture decision](./docs/decisions/0001-hybrid-rebalance-orchestration.md); [PRD v1.1](./Setpoint_PRD_v1_1.pdf) is retained for history and the [v1.1 → v1.2 changelog](./Setpoint_PRD_v1_1_to_v1_2_CHANGELOG.md) summarizes the revision. This repository implements M0–M4.2 execution evidence and the M5 operator console for the RWA Index deployment on Robinhood Chain testnet. It does not contain a production execution service, CoW/0x adapters, custody, a DEX, cross-vault netting, or new vault accounting.
+The source of truth is [Setpoint PRD v1.2](./Setpoint_PRD_v1_2.md). Its hybrid execution decision is backed by the accepted [architecture decision](./docs/decisions/0001-hybrid-rebalance-orchestration.md); [PRD v1.1](./Setpoint_PRD_v1_1.pdf) is retained for history and the [v1.1 → v1.2 changelog](./Setpoint_PRD_v1_1_to_v1_2_CHANGELOG.md) summarizes the revision. This repository implements M0–M4.2 execution evidence, the M5 operator console, and a reproducible security/failure evidence suite for the RWA Index deployment on Robinhood Chain testnet. It does not contain a production execution service, CoW/0x adapters, custody, a DEX, cross-vault netting, or new vault accounting.
 
 ## M1 status
 
@@ -74,7 +74,9 @@ The M5 console is a thin React presentation layer over the accepted M4.2 artifac
 
 ![Setpoint M5 operator console](./docs/images/operator-console.png)
 
-The console loads the versioned JSON in `artifacts/hybrid/` through one deterministic presentation adapter. Its “View raw evidence” and “Download JSON” actions serve those exact source artifacts. Every screen is labeled as historical, fork-backed Robinhood Chain testnet evidence; it does not imply production or live-fund execution.
+The console loads versioned JSON from `artifacts/hybrid/` and `artifacts/security/` through deterministic presentation adapters. Its “View raw evidence” and “Download JSON” actions serve those exact source artifacts. Evidence levels are explicit; fork-backed screens do not imply production or live-fund execution.
+
+The compact **Safety cases** selector adds stale-oracle, rejected-policy, unsupported-route, unsafe-liquidity, and unknown-failure evidence without changing the three accepted core demo flows. Fork-backed and deterministic integration-test evidence are labeled separately, and missing portfolio state is left unavailable rather than reconstructed.
 
 Run it locally:
 
@@ -91,6 +93,24 @@ pnpm test
 pnpm build
 pnpm preview
 ```
+
+## Security and failure demonstrations
+
+The security suite proves the current fail-closed behavior; it does not add a new solver mode. It covers:
+
+- stale accounting → `STALE_PRICE` with no fallback or execution;
+- a policy-breaking target → `INVALID_POLICY` before simulation;
+- an unsupported direct route → rejection without silently dropping the leg;
+- the accepted large-target fork result → a simulation-approved safe subset followed by refusal of unsafe USDC→NFLX liquidity; and
+- an unknown simulation failure → no adaptive fallback or execution.
+
+Run the deterministic generator and invariant validator:
+
+```bash
+pnpm security:demo
+```
+
+Outputs are written to `artifacts/security/`. See [the security model](./docs/SECURITY.md) for evidence levels, trust assumptions, demonstrated invariants, and threats that remain out of scope. This evidence is not an audit or formal verification.
 
 ## Reproduce
 
@@ -115,6 +135,7 @@ pnpm m3:solver
 pnpm m4:adaptive
 pnpm m4:batch
 pnpm m4:hybrid
+pnpm security:demo
 pnpm build
 ```
 

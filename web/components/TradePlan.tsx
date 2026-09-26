@@ -60,11 +60,13 @@ export function TradePlan({ scenario }: TradePlanProps) {
   const [view, setView] = useState<PlanView>(scenario.mode === "ADAPTIVE_FALLBACK" ? "selected" : "original");
   const isFallback = scenario.mode === "ADAPTIVE_FALLBACK";
   const legs = view === "selected" ? scenario.selectedPlan : view === "blocked" ? scenario.blockedLegs : scenario.originalPlan;
-  const heading = view === "selected" ? "Simulation-approved safe subset" : view === "blocked" ? "Removed and blocked legs" : isFallback ? "Original simple batch" : "Executed simple batch";
+  const heading = scenario.mode === "NO_TRADE" ? "No executable Trade[]" : view === "selected" ? "Simulation-approved safe subset" : view === "blocked" ? "Removed and blocked legs" : isFallback ? "Original simple batch" : "Executed simple batch";
   const detail = view === "selected"
     ? "Ordered legs selected by the existing adaptive planner."
     : view === "blocked"
       ? "Legs the artifact records as excluded from safe portfolio progress."
+      : scenario.mode === "NO_TRADE"
+        ? "The safety boundary stopped this candidate before any executable trade array was returned."
       : isFallback
         ? "The honest simple plan preserved with its real simulation failure."
         : "Sell-before-buy ordering executed unchanged after simulation approval.";

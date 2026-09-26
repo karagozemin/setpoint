@@ -11,7 +11,7 @@ import {
   type RawSummaryArtifact,
   type ScenarioPresentation,
 } from "./adapter";
-import { operatorScenarios } from "./scenarios";
+import { coreOperatorScenarios, operatorScenarios, securityOperatorScenarios } from "./scenarios";
 
 const fastPath = operatorScenarios.find((scenario) => scenario.id === "moderate-drift-deep-toy")!;
 const fallback = operatorScenarios.find((scenario) => scenario.id === "large-target-change")!;
@@ -73,7 +73,7 @@ test("unavailable stale-state values remain unavailable", () => {
 });
 
 test("fork and testnet labeling is explicit", () => {
-  for (const scenario of operatorScenarios) {
+  for (const scenario of coreOperatorScenarios) {
     assert.equal(scenario.source.network, "Robinhood Chain testnet");
     assert.equal(scenario.source.label, "Fork-backed historical evidence");
   }
@@ -82,6 +82,38 @@ test("fork and testnet labeling is explicit", () => {
 test("raw evidence export resolves to the versioned source artifact", () => {
   for (const scenario of operatorScenarios) {
     assert.ok(scenario.source.evidenceHref.endsWith(".json"));
+    assert.ok(existsSync(scenario.source.artifactPath));
+  }
+});
+
+test("security cases are evidence-backed no-execution or bounded fallback views", () => {
+  assert.equal(coreOperatorScenarios.length, 3);
+  assert.equal(securityOperatorScenarios.length, 5);
+  assert.equal(operatorScenarios.length, 8);
+
+  const policy = securityOperatorScenarios.find((scenario) => scenario.id === "security-malicious-target")!;
+  const unsupported = securityOperatorScenarios.find((scenario) => scenario.id === "security-unsupported-route")!;
+  const unknown = securityOperatorScenarios.find((scenario) => scenario.id === "security-unknown-revert")!;
+  const unsafe = securityOperatorScenarios.find((scenario) => scenario.id === "security-unsafe-liquidity")!;
+
+  assert.equal(policy.mode, "NO_TRADE");
+  assert.equal(policy.terminalReason, "INVALID_POLICY");
+  assert.equal(unsupported.simulation.fastPathStatus, "NOT_RUN");
+  assert.equal(unsupported.terminalReason, "UNSUPPORTED_ASSET");
+  assert.equal(unknown.simulation.fastPathFailure, "UNKNOWN_REVERT");
+  assert.equal(unknown.fallbackInvoked, false);
+  assert.equal(unsafe.mode, "ADAPTIVE_FALLBACK");
+  assert.equal(unsafe.simulation.selectedPlanStatus, "PASSED");
+  assert.equal(unsafe.terminalReason, "NO_SAFE_LIQUIDITY");
+});
+
+test("security view-models do not fabricate portfolio state", () => {
+  for (const scenario of securityOperatorScenarios) {
+    assert.equal(scenario.scenarioGroup, "security");
+    assert.equal(scenario.before, null);
+    assert.equal(scenario.after, null);
+    assert.equal(scenario.originalPlan.length, 0);
+    assert.ok(scenario.source.evidenceHref.startsWith("/evidence/security/"));
     assert.ok(existsSync(scenario.source.artifactPath));
   }
 });
