@@ -77,10 +77,33 @@ export interface SimulationResult {
   reason?: string;
 }
 
+export interface ExecutionCostEstimate {
+  quoteLossValue: bigint;
+  estimatedFeeValue: bigint;
+  gasCostValue: null;
+  model: string;
+}
+
+export interface LiquidityDecisionRecord {
+  curveId: string;
+  sampleIndex: number;
+  tokenIn: TokenAddress;
+  tokenOut: TokenAddress;
+  amountIn: bigint;
+  expectedOut: bigint;
+  oracleOut: bigint;
+  safetyMarginOut: bigint;
+  safetyMarginWad: bigint;
+  priceImpactWad: bigint;
+}
+
 export interface RejectedAlternative {
   candidateId: string;
   reason: string;
   simulation?: SimulationResult;
+  trades?: Trade[];
+  expectedTurnover?: bigint;
+  liquidityDecisions?: LiquidityDecisionRecord[];
 }
 
 export interface RebalancePlan {
@@ -92,11 +115,12 @@ export interface RebalancePlan {
   expectedDriftBefore: bigint;
   expectedDriftAfter: bigint;
   expectedTurnover: bigint;
-  expectedCost: null;
+  expectedCost: ExecutionCostEstimate | null;
   activeConstraints: string[];
   rejectedAlternatives: RejectedAlternative[];
   simulation: SimulationResult;
   reason: string;
+  liquidityDecisions?: LiquidityDecisionRecord[];
 }
 
 export type NoTradeReason =
@@ -106,6 +130,8 @@ export type NoTradeReason =
   | "INVALID_POLICY"
   | "INVALID_NAV"
   | "NO_FEASIBLE_PLAN"
+  | "NO_SAFE_LIQUIDITY"
+  | "STALE_LIQUIDITY"
   | "INSUFFICIENT_BALANCE"
   | "SIMULATION_REJECTED"
   | "TARGET_REGION_REACHED"

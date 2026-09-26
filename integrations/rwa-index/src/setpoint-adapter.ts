@@ -72,6 +72,12 @@ export interface PreparedPool {
   targetErrorBps: bigint;
 }
 
+export interface ExecutableSwapProbe {
+  amountIn: bigint;
+  expectedOut?: bigint;
+  failureReason?: string;
+}
+
 export class RwaIndexSetpointAdapter implements SimulationAdapter {
   readonly config = loadConfig();
   readonly rpcUrl: string;
@@ -318,6 +324,64 @@ export class RwaIndexSetpointAdapter implements SimulationAdapter {
     const hash = await wallet.writeContract(simulation.request);
     await this.wait(hash);
     return hash;
+  }
+
+  /**
+   * Execute the real deployed adapter path with eth_call for each size. A fork
+   * snapshot is used only to grant temporary allowance and, for mock USDC,
+   * temporary probe inventory. Every mutation is reverted before returning.
+   */
+  async sampleExecutableSwaps(
+    tokenIn: Address,
+    tokenOut: Address,
+    amounts: readonly bigint[]
+  ): Promise<ExecutableSwapProbe[]> {
+    const deployment = this.requireDeployment();
+    const snapshot = await this.snapshot();
+    try {
+      const maximum = amounts.reduce((largest, amount) => amount > largest ? amount : largest, 0n);
+      if (maximum === 0n) return amounts.map((amountIn) => ({ amountIn, failureReason: "zero input" }));
+      const current = await this.client.readContract({ address: tokenIn, abi: erc20Abi, functionName: "balanceOf", args: [this.config.contracts.vault] });
+      if (tokenIn.toLowerCase() === deployment.baseAsset.toLowerCase() && current < maximum) {
+        const minter = await this.prepareAccount(this.config.contracts.manager);
+        const mint = await this.client.simulateContract({
+          account: this.config.contracts.manager,
+          address: tokenIn,
+          abi: erc20Abi,
+          functionName: "mint",
+          args: [this.config.contracts.vault, maximum - current]
+        });
+        await this.wait(await minter.writeContract(mint.request));
+      }
+      const vaultWallet = await this.prepareAccount(this.config.contracts.vault);
+      const approve = await this.client.simulateContract({
+        account: this.config.contracts.vault,
+        address: tokenIn,
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [deployment.adapter, maximum]
+      });
+      await this.wait(await vaultWallet.writeContract(approve.request));
+
+      const probes: ExecutableSwapProbe[] = [];
+      for (const amountIn of amounts) {
+        try {
+          const simulation = await this.client.simulateContract({
+            account: this.config.contracts.vault,
+            address: deployment.adapter,
+            abi: swapAdapterAbi,
+            functionName: "swap",
+            args: [tokenIn, tokenOut, amountIn, 1n]
+          });
+          probes.push({ amountIn, expectedOut: simulation.result });
+        } catch (error) {
+          probes.push({ amountIn, failureReason: errorText(error) });
+        }
+      }
+      return probes;
+    } finally {
+      await this.revert(snapshot);
+    }
   }
 
   async readGuards(): Promise<RwaGuardState> {

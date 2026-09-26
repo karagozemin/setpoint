@@ -2,7 +2,7 @@
 
 Setpoint is a non-custodial, policy-driven rebalance solver and orchestration layer for multi-asset onchain vaults. It reads authoritative vault accounting and constraints, proposes the safest useful next rebalance step, simulates that step against the target vault, and re-solves from confirmed state.
 
-The source of truth is [Setpoint PRD v1.1](./Setpoint_PRD_v1_1.pdf). This repository currently implements M0/M1 external-vault compatibility, the M2 truthful static baseline, and the M3 deterministic Setpoint Solver v1 for the RWA Index deployment on Robinhood Chain testnet. It does not contain the M4 depth-aware sizing work, UI, CoW/0x adapters, custody, a DEX, cross-vault netting, or new vault accounting.
+The source of truth is [Setpoint PRD v1.1](./Setpoint_PRD_v1_1.pdf). This repository currently implements M0/M1 external-vault compatibility, the M2 truthful static baseline, M3 deterministic Solver v1, and M4 liquidity-aware Solver v2 for the RWA Index deployment on Robinhood Chain testnet. It does not contain UI, CoW/0x adapters, custody, a DEX, cross-vault netting, or new vault accounting.
 
 ## M1 status
 
@@ -44,6 +44,14 @@ The RWA adapter maps real vault state and guards into the core types. The runner
 
 M3 deliberately has no pool-depth input, quote-curve optimization, gas model, or liquidity-aware `INSUFFICIENT_OUTPUT` backoff. Those are M4 boundaries. Its artifacts record observed behavior but make no performance comparison with M2.
 
+## M4 status
+
+Solver v2 consumes reproducible executable-liquidity curves. The RWA sampler calls the deployed `SynthraSwapAdapter.swap()` path with `eth_call` from isolated Anvil snapshots; it does not mistake the adapter's advisory spot `quote()` for executable depth. Candidate sizes are bounded by target distance, vault caps, balances, cash policy, turnover policy, quote validity, and the oracle min-out floor.
+
+The M4 comparison runner restores the baseline and Setpoint paths to the identical post-strategy fork state. Its common primary terminal criterion is all target bands satisfied; deployed 5% drift-trigger status is reported separately. Both paths may continue below that informational trigger during the comparison, without changing any deployed guard. The standalone M2 baseline remains unchanged.
+
+Current toy-pool evidence is mixed and is not a marketing claim: the static baseline reaches the target bands in the moderate, asymmetric, and defensive scenarios; Solver v2 remains outside the bands at the common cycle cap or runs out of safe liquidity. For the large target change, static sizing executes nothing, while Solver v2 makes two safe steps before the NFLX quote curve has no size compatible with the vault's 98% oracle floor. See the versioned M4 artifacts for exact values.
+
 ## Reproduce
 
 Prerequisites:
@@ -64,6 +72,7 @@ pnpm test
 pnpm m1:rwa-index
 pnpm m2:baseline
 pnpm m3:solver
+pnpm m4:adaptive
 ```
 
 No private key is needed. The command starts and cleans up Anvil itself. It uses fork-only account impersonation for the deployed oracle feeder/syncer owner and vault manager.
@@ -81,10 +90,11 @@ An explicit fork block is also supported with `RWA_FORK_BLOCK_NUMBER`, but the p
 ```text
 config/rwa-index.json             chain, addresses, and pinned upstream revision
 integrations/rwa-index/src/       ABI, state reader, candidate builder, fork harness
-src/core/                         chain-independent policy, types, and Solver v1
+src/core/                         chain-independent policy, liquidity, Solver v1/v2
 scripts/m1-rwa-index.sh           disposable Anvil lifecycle and M1 entry point
 scripts/m2-baseline.sh            scenario runner and static-baseline entry point
 scripts/m3-solver.sh              scenario runner and Solver v1 entry point
+scripts/m4-adaptive.sh            liquidity sampling and equivalent-state comparison
 third_party/rwa-index/            pinned external project (git submodule)
 artifacts/                        versioned latest JSON evidence; local Anvil logs ignored
 BUILD_LOG.md                      implementation record, assumptions, and blockers
@@ -97,6 +107,6 @@ BUILD_LOG.md                      implementation record, assumptions, and blocke
 - The oracle refresh deliberately preserves the deployed price values and updates only their timestamps on the fork. This proves stale-data recovery without claiming those old values are current market prices.
 - Pool synchronization uses the external project's testnet-only syncer. Mainnet markets would require real price discovery/arbitrage rather than this helper.
 - Every state-changing operation is confined to local Anvil. Setpoint does not custody or transfer live funds.
-- M1 proves compatibility, M2 establishes the static control group, and M3 proves deterministic simulation-gated planning and safe iterative progress. None proves that Setpoint outperforms the baseline; depth-aware comparison belongs to M4 and later benchmark milestones.
+- M1 proves compatibility, M2 establishes the static control group, M3 proves deterministic simulation-gated planning, and M4 records the first equivalent-state liquidity-aware comparison. M4 does not support a blanket claim that Setpoint outperforms the baseline.
 
 See [the integration notes](./integrations/rwa-index/README.md) and [BUILD_LOG.md](./BUILD_LOG.md) for exact behavior and the latest verified run.

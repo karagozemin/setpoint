@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "scenario": {
+    "id": "stale-oracle",
+    "title": "Stale oracle expected no-trade"
+  },
+  "fork": {
+    "sourceBlockNumber": "124702524",
+    "sourceBlockHash": "0x2d68067a4e1e0e149502c55e84bee780b2f76ced434a4c31b8d3e9f3a4ce6a8d",
+    "sourceTimestamp": "1790439479"
+  },
+  "stalePrices": [
+    {
+      "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+      "priceWad": "435790000000000000000",
+      "updatedAt": "1780265370"
+    },
+    {
+      "token": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+      "priceWad": "270640000000000000000",
+      "updatedAt": "1780265370"
+    },
+    {
+      "token": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+      "priceWad": "156540000000000000000",
+      "updatedAt": "1780265370"
+    },
+    {
+      "token": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+      "priceWad": "86020000000000000000",
+      "updatedAt": "1780265370"
+    },
+    {
+      "token": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+      "priceWad": "516100000000000000000",
+      "updatedAt": "1780265370"
+    }
+  ],
+  "baseline": {
+    "initialAuthoritativeDrift": null,
+    "finalAuthoritativeDrift": null,
+    "vaultTriggerSatisfied": false,
+    "targetBandsSatisfied": false,
+    "attemptedPlans": 0,
+    "successfulExecutionSteps": 0,
+    "failedSimulations": 0,
+    "attemptedLegs": 0,
+    "executedLegs": 0,
+    "attemptedTurnover": "0",
+    "executedTurnover": "0",
+    "realizedNavDelta": null,
+    "cyclesOffTarget": 0,
+    "terminalReason": "STALE_PRICE",
+    "algorithm": "unchanged M2 baseline"
+  },
+  "setpoint": {
+    "initialAuthoritativeDrift": null,
+    "finalAuthoritativeDrift": null,
+    "vaultTriggerSatisfied": false,
+    "targetBandsSatisfied": false,
+    "attemptedPlans": 0,
+    "successfulExecutionSteps": 0,
+    "failedSimulations": 0,
+    "attemptedLegs": 0,
+    "executedLegs": 0,
+    "attemptedTurnover": "0",
+    "executedTurnover": "0",
+    "realizedNavDelta": null,
+    "cyclesOffTarget": 0,
+    "terminalReason": "STALE_PRICE",
+    "algorithm": "Setpoint Solver v2",
+    "expectedExecutionCost": null
+  },
+  "fairness": "Both paths fail closed before liquidity sampling or trade construction because authoritative vault accounting rejects stale prices."
+}

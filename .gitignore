@@ -12,4 +12,11 @@ artifacts/**/*.log
 !artifacts/solver-v1-summary.json
 !artifacts/solver-v1/.gitkeep
 !artifacts/solver-v1/*.json
+!artifacts/m4-summary.json
+!artifacts/liquidity/.gitkeep
+!artifacts/liquidity/*.json
+!artifacts/solver-v2/.gitkeep
+!artifacts/solver-v2/*.json
+!artifacts/comparison/.gitkeep
+!artifacts/comparison/*.json
 .Setpoint_PRD_v0.1.pdf

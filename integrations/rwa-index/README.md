@@ -1,4 +1,4 @@
-# RWA Index M1–M3 integration
+# RWA Index M1–M4 integration
 
 This adapter-first harness targets the existing RWA Index vault; it does not redeploy a Setpoint-owned copy.
 
@@ -115,3 +115,43 @@ Each `artifacts/solver-v1/<scenario>.json` records:
 - Basic deterministic halving applies only to size, balance, minOut construction, and drift-improvement failures.
 - `INSUFFICIENT_OUTPUT` stops safely; liquidity-aware resizing is M4.
 - Results are fork observations, not a claim that Solver v1 outperforms the M2 baseline.
+
+## M4 executable-liquidity integration
+
+Run:
+
+```bash
+pnpm m4:adaptive
+```
+
+### Why adapter `quote()` is not used
+
+The upstream `SynthraSwapAdapter.quote()` is a `slot0` spot calculation and does not execute through pool liquidity. M4 samples the actual `swap()` path with `eth_call` instead. Each curve is produced from a temporary Anvil snapshot with a temporary vault allowance; mock-USDC probe balance is minted only inside that snapshot. The snapshot is reverted before solving.
+
+Each sample records the pair, venue, pool, fee, input, real adapter output, oracle output, numeraire input/output value, impact, estimated fee, quote loss, min-out compatibility, state ID, block, timestamp, expiry, and validity reason. The curve reports both maximum tested size and maximum sampled size compatible with the vault's oracle floor.
+
+### Adaptive sizing and scoring
+
+Solver v2 considers only current-state samples and caps them by target-band distance, max leg value, balance/cash, cash buffer, turnover policy, impact policy, and min-out compatibility. Feasible candidates are ordered lexicographically:
+
+1. smallest expected target-band drift;
+2. lowest quote loss;
+3. lowest turnover;
+4. largest min-out safety margin;
+5. fewest legs; and
+6. stable candidate ID.
+
+There are no opaque weighted scores. A real `INSUFFICIENT_OUTPUT` rejects the binding sampled leg and all same-or-larger alternatives for that curve; retry count is bounded.
+
+### Fair comparison
+
+M2 and M4 start from the same post-`setStrategy` snapshot for every scenario. The common primary terminal criterion is the ±0.25 percentage-point target region. The deployed 5% trigger is reported separately and is not changed. During the comparison only, both algorithms may continue below it until target bands, hard failure/no-trade, or the common cycle cap.
+
+Artifacts are split as follows:
+
+- `artifacts/liquidity/`: every curve used for an adaptive decision;
+- `artifacts/solver-v2/`: full Setpoint cycle records;
+- `artifacts/comparison/`: paired baseline/Setpoint records from identical scenario state; and
+- `artifacts/m4-summary.json`: aggregate metrics and fairness declarations.
+
+The current artifacts contain negative results as well as successful steps. In particular, the baseline reaches target bands faster in the normal toy scenarios. For the large target change, Solver v2 executes two safe steps but then the NFLX pool has no sampled buy size compatible with the 98% oracle floor. No broad performance claim is supported.

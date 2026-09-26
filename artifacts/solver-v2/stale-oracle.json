@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "benchmark": "setpoint-solver-v2",
+  "scenario": {
+    "id": "stale-oracle",
+    "title": "Stale oracle expected no-trade"
+  },
+  "fork": {
+    "sourceBlockNumber": "124702524",
+    "sourceBlockHash": "0x2d68067a4e1e0e149502c55e84bee780b2f76ced434a4c31b8d3e9f3a4ce6a8d",
+    "sourceTimestamp": "1790439479"
+  },
+  "setpoint": {
+    "initialAuthoritativeDrift": null,
+    "finalAuthoritativeDrift": null,
+    "vaultTriggerSatisfied": false,
+    "targetBandsSatisfied": false,
+    "attemptedPlans": 0,
+    "successfulExecutionSteps": 0,
+    "failedSimulations": 0,
+    "attemptedLegs": 0,
+    "executedLegs": 0,
+    "attemptedTurnover": "0",
+    "executedTurnover": "0",
+    "realizedNavDelta": null,
+    "cyclesOffTarget": 0,
+    "terminalReason": "STALE_PRICE",
+    "algorithm": "Setpoint Solver v2",
+    "expectedExecutionCost": null
+  }
+}

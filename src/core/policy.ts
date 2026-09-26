@@ -52,6 +52,10 @@ export function validateSolveInput(input: SolveInput): PolicyIssue[] {
     && (policy.minimumCashBuffer < 0n || (state.nav > 0n && policy.minimumCashBuffer > state.nav))) {
     issues.push({ reason: "INVALID_POLICY", detail: "minimumCashBuffer must be between zero and NAV" });
   }
+  if (policy.minimumCashBuffer !== undefined && state.nav > 0n
+    && policy.minimumCashBuffer > state.nav * policy.cashTarget.max / WAD) {
+    issues.push({ reason: "INVALID_POLICY", detail: "minimumCashBuffer exceeds the cash target maximum" });
+  }
 
   const policyTokens = new Set<string>();
   for (const asset of policy.assets) {

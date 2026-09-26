@@ -1,5 +1,100 @@
 # Build log
 
+## 2026-09-26 — M4 liquidity-aware adaptive sizing
+
+### Implemented
+
+- Added reusable liquidity snapshots, curves, samples, validity metadata, effective value rate, price impact, known fee, quote loss, and executable-size fields to Setpoint core.
+- Added deterministic Solver v2 candidate construction and lexicographic ranking: hard constraints first, then expected target-band drift, quote loss, turnover, min-out safety margin, leg count, and stable candidate ID.
+- Added adaptive sizing bounded by target-region distance, deployed per-leg cap, available balance, cash buffer/range, optional turnover policy, executable quote compatibility, and quote freshness.
+- Added bounded `INSUFFICIENT_OUTPUT` rebuilding using the binding curve/sample. It selects a smaller sampled alternative rather than blind repeated halving and persists rejected candidates.
+- Added non-null expected-cost estimates for Solver v2 plans. Quote loss includes fee and price impact; the known pool fee is also reported as a component and is not added twice. Gas remains unavailable.
+- Added a real RWA quote sampler and isolated artifacts for liquidity curves, Solver v2 runs, and equivalent-state comparisons.
+- Added eleven adaptive solver tests. The combined suite now has 28 passing tests, including an explicit unchanged-M2-output test.
+
+### Executable quote source
+
+The deployed adapter's `quote()` reads only `slot0` and is explicitly advisory in the upstream source. M4 therefore does not use it as depth.
+
+For each relevant USDC-hub direction, the sampler:
+
+1. snapshots the current confirmed Anvil state;
+2. grants the vault temporary input-token allowance and, only for the permissionless mock USDC probe, temporary inventory;
+3. invokes the real deployed `SynthraSwapAdapter.swap()` implementation with `eth_call` at 13 increasing sizes from 1/256 of directional need through the full need, plus exact cash-boundary sizes;
+4. records the returned pool execution output, oracle output, impact, fee, quote loss, min-out compatibility, state ID, block, and expiry; and
+5. reverts the probe snapshot, leaving the scenario state unchanged.
+
+Every executed solver step is still separately simulated through the real vault `rebalance(Trade[])` entry point.
+
+### Common benchmark terminal criterion
+
+The comparison's primary completion condition is: cash and all assets are inside the same ±0.25 percentage-point target bands. The following are reported independently:
+
+- target-band satisfied;
+- deployed 5% vault drift trigger satisfied; and
+- failure/no-trade/max-cycle terminal reason.
+
+For this benchmark only, both planners may continue below the informational 5% trigger until target bands, a hard failure/no-trade, or the shared scenario cycle cap. No onchain guard is changed. The standalone M2 runner, planner, scenarios, and versioned M2 artifacts remain unchanged.
+
+### Commands
+
+```bash
+pnpm typecheck
+pnpm test
+pnpm m4:adaptive
+```
+
+Output:
+
+- `artifacts/liquidity/*.json`
+- `artifacts/solver-v2/*.json`
+- `artifacts/comparison/*.json`
+- `artifacts/m4-summary.json`
+
+### Observed equivalent-state results
+
+Final validation fork:
+
+- block: `124702524`
+- block hash: `0x2d68067a4e1e0e149502c55e84bee780b2f76ced434a4c31b8d3e9f3a4ce6a8d`
+- chain ID: `46630`
+
+| Scenario | M2 baseline | Solver v2 | Target bands: M2 / v2 | Vault trigger: M2 / v2 |
+|---|---|---|---|---|
+| Stale oracle | `STALE_PRICE`, 0 steps | `STALE_PRICE`, 0 steps | no / no | no / no |
+| Moderate, deeper toy | 0.075394%, 1 step | 1.025983%, 8 steps, cycle cap | yes / no | yes / yes |
+| Moderate, thin toy | 0.143624%, 1 step | 1.452714%, 8 steps, cycle cap | yes / no | yes / yes |
+| Asymmetric liquidity | 0.072184%, 1 step | 4.391698%, 6 steps, no safe liquidity | yes / no | yes / yes |
+| Large target change | 31.025554%, 0 steps, `INSUFFICIENT_OUTPUT` | 20.320383%, 2 steps, no safe liquidity | no / no | no / no |
+| Defensive 20% cash | 0.063295%, 1 step | 1.260725%, 8 steps, cycle cap | yes / no | yes / yes |
+
+These results do not support a general “Setpoint is better” claim. The baseline is better on target-band completion, final drift, and step count in four non-stale scenarios. Solver v2's demonstrated advantage is narrower: it avoids the large batch failure, executes two safe transitions, and limits attempted turnover, but it still finishes with higher drift than M3's earlier trajectory and cannot continue once NFLX's executable curve falls below the vault floor.
+
+At the large-target terminal state, even the smallest NFLX buy sample (1/256 of the remaining directional need) has more than 2% oracle-relative loss; `maximumExecutableAmountIn` is zero. The solver therefore returns `NO_SAFE_LIQUIDITY` without submitting a doomed vault simulation. This is the observed limiting pool condition, not forced success.
+
+### Errors and corrections
+
+- The first implementation pass used eight linear points. Near target bands, the smallest point could exceed available cash capacity, causing a false `NO_SAFE_LIQUIDITY`. Sampling now includes geometric small sizes and exact cash-boundary points.
+- Initial curve maxima used the full min-to-max band headroom while candidates used only distance-to-entry. That made the largest samples unusable. Directional sampling now uses the same target-entry distance as candidate sizing.
+- Solver v2 initially omitted higher-priority use of an in-range asset when a one-sided violation remained. It now permits that only when needed to resolve the out-of-range asset, and supports one-sided cash-capacity corrections.
+- The adapter's spot `quote()` was rejected as a depth source after upstream inspection; executable `swap()` calls are used instead.
+
+### Assumptions and fork-only behavior
+
+- Liquidity curves are valid only for their exact confirmed state ID and expire after 60 seconds. Every successful transaction forces a state re-read and full re-sample.
+- The pool fee is the deployed fee tier (`100`, or 0.01%). Quote loss is measured in the vault's USDC numeraire against oracle value.
+- Probe funding uses the permissionless testnet mock-USDC `mint()` and temporary allowance only inside a reverted Anvil snapshot. It is not a live execution mechanism.
+- Pool labels remain relative toy-liquidity descriptions and are not production depth claims.
+- All strategy changes, probes, and executions are local-fork-only.
+
+### Remaining limitations
+
+- Discrete sampling does not prove the mathematical optimum between sampled sizes.
+- The quote model covers the deployed single Synthra route only; there is no venue routing, CoW, 0x, or cross-vault netting.
+- Gas cost is not estimated.
+- Pool state can become incompatible with the fixed oracle floor after Setpoint's own trades. Without external liquidity/price restoration, no further safe trade exists on that route.
+- M4 is complete for review; M5/UI was not started.
+
 ## 2026-09-26 — M3 Setpoint Solver v1
 
 ### Implemented
