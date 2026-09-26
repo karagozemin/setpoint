@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "scenario": "stale-oracle",
+  "samplingSkipped": true,
+  "reason": "STALE_PRICE validation precedes liquidity sampling"
+}

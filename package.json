@@ -12,7 +12,8 @@
     "m2:baseline": "bash scripts/m2-baseline.sh",
     "m3:solver": "bash scripts/m3-solver.sh",
     "m4:adaptive": "bash scripts/m4-adaptive.sh",
-    "test": "tsx --test integrations/rwa-index/test/baseline.test.ts src/core/solver.test.ts src/core/adaptive-solver.test.ts",
+    "m4:batch": "bash scripts/m4-batch.sh",
+    "test": "tsx --test integrations/rwa-index/test/baseline.test.ts src/core/solver.test.ts src/core/adaptive-solver.test.ts src/core/batch-solver.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

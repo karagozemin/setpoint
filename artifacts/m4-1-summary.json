@@ -1,0 +1,633 @@
+{
+  "schemaVersion": 1,
+  "milestone": "M4.1",
+  "startedAt": "2026-09-26T16:52:02.893Z",
+  "completedAt": "2026-09-26T16:54:45.150Z",
+  "upstream": {
+    "repository": "https://github.com/RaYYeR220/rwa-index",
+    "commit": "b2456ca5400ba9ec36d81691554b889fb9250513"
+  },
+  "network": {
+    "name": "Robinhood Chain testnet",
+    "chainId": 46630
+  },
+  "fork": {
+    "sourceBlockNumber": "124716128",
+    "sourceBlockHash": "0xac02366b6bea0ae2f95508500f3a8d95e4c217aa7b35348d781c1d580f3d2025",
+    "sourceTimestamp": "1790441520"
+  },
+  "contracts": {
+    "vault": "0x357CD10343829DBd5889c7b0B2fBc4388fC4875B",
+    "oracle": "0x2F2316d6D4a8952730a71BfCD9fa0Af5A0138AB9",
+    "manager": "0xbB91Fe38652991f0E9735dc139601bD637ae4d66",
+    "poolSyncer": "0x1f954000e202EBbB82Da88D53000b3eF0Cd34aeA",
+    "syncerOwner": "0x156aB5483E47eCd1aFb1260d1093c96F1b9596b7",
+    "baseAsset": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+    "swapAdapter": "0x6E498DB59449aF170A9525a69456154F226a4E03"
+  },
+  "guards": {
+    "driftThreshold": "50000000000000000",
+    "maxTradeFraction": "100000000000000000",
+    "slippageTolerance": "20000000000000000",
+    "maxStaleness": "86400",
+    "maxRebalanceLoss": "20000000000000000",
+    "paused": false
+  },
+  "pools": [
+    {
+      "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+      "pool": "0xfedC57791E6d17c484742C84174424243592E6a8",
+      "activeLiquidity": "73756355658343098480",
+      "stockInventory": "3533150374936559144",
+      "baseInventory": "1539723595959603802419",
+      "stockInventoryOracleValue": "1539711601893603109363",
+      "targetErrorBps": "0"
+    },
+    {
+      "token": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+      "pool": "0x8A970d79CEEF300AF8a3bc040101455C8155295e",
+      "activeLiquidity": "59329587896765303589",
+      "stockInventory": "3606427528804427620",
+      "baseInventory": "976049945870227306815",
+      "stockInventoryOracleValue": "976043546395630291076",
+      "targetErrorBps": "0"
+    },
+    {
+      "token": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+      "pool": "0x315F7A44299FfA359f36D09468D1E22F1bfE65db",
+      "activeLiquidity": "37947331922020551984",
+      "stockInventory": "3033010352670255348",
+      "baseInventory": "474794810094847680952",
+      "stockInventoryOracleValue": "474787440607001772175",
+      "targetErrorBps": "0"
+    },
+    {
+      "token": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+      "pool": "0x8B903359fA8DEE42D4140Dfda10c96d8B4F5631E",
+      "activeLiquidity": "47051993846561229891",
+      "stockInventory": "5073221069458606215",
+      "baseInventory": "436398110132828704331",
+      "stockInventoryOracleValue": "436398476394829306614",
+      "targetErrorBps": "0"
+    },
+    {
+      "token": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+      "pool": "0xB8033384ce15A1112bFd58Dc6d5619708a1be98e",
+      "activeLiquidity": "47328638264796928340",
+      "stockInventory": "2083334500389836001",
+      "baseInventory": "1075242970770168452224",
+      "stockInventoryOracleValue": "1075208935651194360116",
+      "targetErrorBps": "0"
+    }
+  ],
+  "rangeTolerance": "2500000000000000",
+  "quoteMaxAge": "60",
+  "quoteSampling": "13 geometric/linear points from 1/256 to full directional need, plus state-specific cash boundary amounts",
+  "m2PlannerSourceSha256": "dcd079ed25ff6fd7683c947fbf46748abd70862fe2a85a368c919b26fe7cee92",
+  "benchmarkFairness": {
+    "identicalForkStatePerScenario": true,
+    "commonPrimaryCriterion": "target bands satisfied",
+    "vaultTriggerReportedSeparately": true,
+    "deployedGuardsChanged": false,
+    "m2PlannerChanged": false,
+    "note": "The comparison harness explicitly allows both algorithms to continue below the informational drift trigger; the standalone M2 command and artifacts are unchanged."
+  },
+  "previousM4Results": [
+    {
+      "id": "stale-oracle",
+      "baseline": {
+        "terminalReason": "STALE_PRICE",
+        "vaultTriggerSatisfied": false,
+        "targetBandsSatisfied": false,
+        "attemptedPlans": 0,
+        "successfulExecutionSteps": 0,
+        "failedSimulations": 0,
+        "attemptedLegs": 0,
+        "executedLegs": 0,
+        "attemptedTurnoverOverInitialNav": "0",
+        "executedTurnoverOverInitialNav": "0",
+        "expectedExecutionCost": null,
+        "realizedNavDelta": null,
+        "minimumSafetyMarginWad": null,
+        "initialDrift": null,
+        "finalDrift": null
+      },
+      "setpoint": {
+        "terminalReason": "STALE_PRICE",
+        "vaultTriggerSatisfied": false,
+        "targetBandsSatisfied": false,
+        "attemptedPlans": 0,
+        "successfulExecutionSteps": 0,
+        "failedSimulations": 0,
+        "attemptedLegs": 0,
+        "executedLegs": 0,
+        "attemptedTurnoverOverInitialNav": "0",
+        "executedTurnoverOverInitialNav": "0",
+        "expectedExecutionCost": null,
+        "realizedNavDelta": null,
+        "minimumSafetyMarginWad": null,
+        "initialDrift": null,
+        "finalDrift": null
+      }
+    },
+    {
+      "id": "moderate-drift-deep-toy",
+      "baseline": {
+        "terminalReason": "TARGET_BANDS_SATISFIED",
+        "vaultTriggerSatisfied": true,
+        "targetBandsSatisfied": true,
+        "attemptedPlans": 1,
+        "successfulExecutionSteps": 1,
+        "failedSimulations": 0,
+        "attemptedLegs": 6,
+        "executedLegs": 6,
+        "attemptedTurnoverOverInitialNav": "208354261291618890",
+        "executedTurnoverOverInitialNav": "208354261291618890",
+        "expectedExecutionCost": null,
+        "realizedNavDelta": "-76133940479763468",
+        "minimumSafetyMarginWad": null,
+        "initialDrift": "114177130645809451",
+        "finalDrift": "753938045076458"
+      },
+      "setpoint": {
+        "terminalReason": "MAX_CYCLES",
+        "vaultTriggerSatisfied": true,
+        "targetBandsSatisfied": false,
+        "attemptedPlans": 8,
+        "successfulExecutionSteps": 8,
+        "failedSimulations": 0,
+        "attemptedLegs": 15,
+        "executedLegs": 15,
+        "attemptedTurnoverOverInitialNav": "191076738866591442",
+        "executedTurnoverOverInitialNav": "191076738866591442",
+        "expectedExecutionCost": {
+          "quoteLossValue": "69122894170244935",
+          "estimatedFeeValue": "1325109074454642",
+          "gasCostValue": null,
+          "note": "Quote loss includes fee and price impact; known fee is also broken out and must not be added again."
+        },
+        "realizedNavDelta": "-69122894170244934",
+        "minimumSafetyMarginWad": "12413702275117953",
+        "initialDrift": "114177130645809451",
+        "finalDrift": "10259830521727175"
+      }
+    },
+    {
+      "id": "moderate-drift-thin-toy",
+      "baseline": {
+        "terminalReason": "TARGET_BANDS_SATISFIED",
+        "vaultTriggerSatisfied": true,
+        "targetBandsSatisfied": true,
+        "attemptedPlans": 1,
+        "successfulExecutionSteps": 1,
+        "failedSimulations": 0,
+        "attemptedLegs": 6,
+        "executedLegs": 6,
+        "attemptedTurnoverOverInitialNav": "208511072932793447",
+        "executedTurnoverOverInitialNav": "208511072932793447",
+        "expectedExecutionCost": null,
+        "realizedNavDelta": "-144890081569549156",
+        "minimumSafetyMarginWad": null,
+        "initialDrift": "114255536466396732",
+        "finalDrift": "1436240844587272"
+      },
+      "setpoint": {
+        "terminalReason": "MAX_CYCLES",
+        "vaultTriggerSatisfied": true,
+        "targetBandsSatisfied": false,
+        "attemptedPlans": 8,
+        "successfulExecutionSteps": 8,
+        "failedSimulations": 0,
+        "attemptedLegs": 9,
+        "executedLegs": 9,
+        "attemptedTurnoverOverInitialNav": "183675423278755366",
+        "executedTurnoverOverInitialNav": "183675423278755366",
+        "expectedExecutionCost": {
+          "quoteLossValue": "115914155011799041",
+          "estimatedFeeValue": "1273781264976003",
+          "gasCostValue": null,
+          "note": "Quote loss includes fee and price impact; known fee is also broken out and must not be added again."
+        },
+        "realizedNavDelta": "-115914155011799043",
+        "minimumSafetyMarginWad": "7454510635762122",
+        "initialDrift": "114255536466396732",
+        "finalDrift": "14527138176444499"
+      }
+    },
+    {
+      "id": "asymmetric-liquidity",
+      "baseline": {
+        "terminalReason": "TARGET_BANDS_SATISFIED",
+        "vaultTriggerSatisfied": true,
+        "targetBandsSatisfied": true,
+        "attemptedPlans": 1,
+        "successfulExecutionSteps": 1,
+        "failedSimulations": 0,
+        "attemptedLegs": 6,
+        "executedLegs": 6,
+        "attemptedTurnoverOverInitialNav": "200865334224412357",
+        "executedTurnoverOverInitialNav": "200865334224412357",
+        "expectedExecutionCost": null,
+        "realizedNavDelta": "-77112636294084863",
+        "minimumSafetyMarginWad": null,
+        "initialDrift": "110432667112206184",
+        "finalDrift": "721839581629805"
+      },
+      "setpoint": {
+        "terminalReason": "NO_SAFE_LIQUIDITY",
+        "vaultTriggerSatisfied": true,
+        "targetBandsSatisfied": false,
+        "attemptedPlans": 7,
+        "successfulExecutionSteps": 6,
+        "failedSimulations": 0,
+        "attemptedLegs": 7,
+        "executedLegs": 7,
+        "attemptedTurnoverOverInitialNav": "115654510932996366",
+        "executedTurnoverOverInitialNav": "115654510932996366",
+        "expectedExecutionCost": {
+          "quoteLossValue": "27971217697165369",
+          "estimatedFeeValue": "802059124768340",
+          "gasCostValue": null,
+          "note": "Quote loss includes fee and price impact; known fee is also broken out and must not be added again."
+        },
+        "realizedNavDelta": "-27971217697165365",
+        "minimumSafetyMarginWad": "14602419160454842",
+        "initialDrift": "110432667112206184",
+        "finalDrift": "43916980123187629"
+      }
+    },
+    {
+      "id": "large-target-change",
+      "baseline": {
+        "terminalReason": "INSUFFICIENT_OUTPUT",
+        "vaultTriggerSatisfied": false,
+        "targetBandsSatisfied": false,
+        "attemptedPlans": 1,
+        "successfulExecutionSteps": 0,
+        "failedSimulations": 1,
+        "attemptedLegs": 10,
+        "executedLegs": 0,
+        "attemptedTurnoverOverInitialNav": "600511072932793443",
+        "executedTurnoverOverInitialNav": "0",
+        "expectedExecutionCost": null,
+        "realizedNavDelta": "0",
+        "minimumSafetyMarginWad": null,
+        "initialDrift": "310255536466396732",
+        "finalDrift": "310255536466396732"
+      },
+      "setpoint": {
+        "terminalReason": "NO_SAFE_LIQUIDITY",
+        "vaultTriggerSatisfied": false,
+        "targetBandsSatisfied": false,
+        "attemptedPlans": 3,
+        "successfulExecutionSteps": 2,
+        "failedSimulations": 0,
+        "attemptedLegs": 3,
+        "executedLegs": 3,
+        "attemptedTurnoverOverInitialNav": "204711627713202138",
+        "executedTurnoverOverInitialNav": "204711627713202138",
+        "expectedExecutionCost": {
+          "quoteLossValue": "184161308241058816",
+          "estimatedFeeValue": "1419666449920632",
+          "gasCostValue": null,
+          "note": "Quote loss includes fee and price impact; known fee is also broken out and must not be added again."
+        },
+        "realizedNavDelta": "-184161308241058816",
+        "minimumSafetyMarginWad": "5712140505178468",
+        "initialDrift": "310255536466396732",
+        "finalDrift": "203203829464895214"
+      }
+    },
+    {
+      "id": "defensive-cash-target",
+      "baseline": {
+        "terminalReason": "TARGET_BANDS_SATISFIED",
+        "vaultTriggerSatisfied": true,
+        "targetBandsSatisfied": true,
+        "attemptedPlans": 1,
+        "successfulExecutionSteps": 1,
+        "failedSimulations": 0,
+        "attemptedLegs": 5,
+        "executedLegs": 5,
+        "attemptedTurnoverOverInitialNav": "199999999999999987",
+        "executedTurnoverOverInitialNav": "199999999999999987",
+        "expectedExecutionCost": null,
+        "realizedNavDelta": "-54825095123473957",
+        "minimumSafetyMarginWad": null,
+        "initialDrift": "199999999999999999",
+        "finalDrift": "632949477251464"
+      },
+      "setpoint": {
+        "terminalReason": "MAX_CYCLES",
+        "vaultTriggerSatisfied": true,
+        "targetBandsSatisfied": false,
+        "attemptedPlans": 8,
+        "successfulExecutionSteps": 8,
+        "failedSimulations": 0,
+        "attemptedLegs": 8,
+        "executedLegs": 8,
+        "attemptedTurnoverOverInitialNav": "187960770375736795",
+        "executedTurnoverOverInitialNav": "187960770375736795",
+        "expectedExecutionCost": {
+          "quoteLossValue": "48476377217422900",
+          "estimatedFeeValue": "1303499965216972",
+          "gasCostValue": null,
+          "note": "Quote loss includes fee and price impact; known fee is also broken out and must not be added again."
+        },
+        "realizedNavDelta": "-48476377217422903",
+        "minimumSafetyMarginWad": "14291006899757079",
+        "initialDrift": "199999999999999999",
+        "finalDrift": "12607254092282646"
+      }
+    }
+  ],
+  "results": [
+    {
+      "id": "stale-oracle",
+      "baseline": {
+        "terminalReason": "STALE_PRICE",
+        "vaultTriggerSatisfied": false,
+        "targetBandsSatisfied": false,
+        "attemptedPlans": 0,
+        "attemptedBatches": 0,
+        "successfulExecutionSteps": 0,
+        "successfulBatches": 0,
+        "failedSimulations": 0,
+        "attemptedLegs": 0,
+        "executedLegs": 0,
+        "attemptedTurnoverOverInitialNav": "0",
+        "executedTurnoverOverInitialNav": "0",
+        "expectedExecutionCost": null,
+        "realizedNavDelta": null,
+        "minimumSafetyMarginWad": null,
+        "removedLegs": 0,
+        "initialDrift": null,
+        "finalDrift": null
+      },
+      "setpoint": {
+        "terminalReason": "STALE_PRICE",
+        "vaultTriggerSatisfied": false,
+        "targetBandsSatisfied": false,
+        "attemptedPlans": 0,
+        "attemptedBatches": 0,
+        "successfulExecutionSteps": 0,
+        "successfulBatches": 0,
+        "failedSimulations": 0,
+        "attemptedLegs": 0,
+        "executedLegs": 0,
+        "attemptedTurnoverOverInitialNav": "0",
+        "executedTurnoverOverInitialNav": "0",
+        "expectedExecutionCost": null,
+        "realizedNavDelta": null,
+        "minimumSafetyMarginWad": null,
+        "removedLegs": 0,
+        "initialDrift": null,
+        "finalDrift": null
+      }
+    },
+    {
+      "id": "moderate-drift-deep-toy",
+      "baseline": {
+        "terminalReason": "TARGET_BANDS_SATISFIED",
+        "vaultTriggerSatisfied": true,
+        "targetBandsSatisfied": true,
+        "attemptedPlans": 1,
+        "attemptedBatches": 1,
+        "successfulExecutionSteps": 1,
+        "successfulBatches": 1,
+        "failedSimulations": 0,
+        "attemptedLegs": 6,
+        "executedLegs": 6,
+        "attemptedTurnoverOverInitialNav": "208354261291618890",
+        "executedTurnoverOverInitialNav": "208354261291618890",
+        "expectedExecutionCost": null,
+        "realizedNavDelta": "-76133940479763468",
+        "minimumSafetyMarginWad": null,
+        "removedLegs": 0,
+        "initialDrift": "114177130645809451",
+        "finalDrift": "753938045076458"
+      },
+      "setpoint": {
+        "terminalReason": "TARGET_BANDS_SATISFIED",
+        "vaultTriggerSatisfied": true,
+        "targetBandsSatisfied": true,
+        "attemptedPlans": 3,
+        "attemptedBatches": 3,
+        "successfulExecutionSteps": 3,
+        "successfulBatches": 3,
+        "failedSimulations": 0,
+        "attemptedLegs": 13,
+        "executedLegs": 13,
+        "attemptedTurnoverOverInitialNav": "208784280365826065",
+        "executedTurnoverOverInitialNav": "208784280365826065",
+        "expectedExecutionCost": {
+          "quoteLossValue": "76096860727495311",
+          "estimatedFeeValue": "1447910123217048",
+          "gasCostValue": null,
+          "note": "Quote loss includes fee and price impact; known fee is also broken out and must not be added again."
+        },
+        "realizedNavDelta": "-76096860727495312",
+        "minimumSafetyMarginWad": "6929725639752644",
+        "removedLegs": 0,
+        "initialDrift": "114177130645809451",
+        "finalDrift": "389031387799696"
+      }
+    },
+    {
+      "id": "moderate-drift-thin-toy",
+      "baseline": {
+        "terminalReason": "TARGET_BANDS_SATISFIED",
+        "vaultTriggerSatisfied": true,
+        "targetBandsSatisfied": true,
+        "attemptedPlans": 1,
+        "attemptedBatches": 1,
+        "successfulExecutionSteps": 1,
+        "successfulBatches": 1,
+        "failedSimulations": 0,
+        "attemptedLegs": 6,
+        "executedLegs": 6,
+        "attemptedTurnoverOverInitialNav": "208511072932793447",
+        "executedTurnoverOverInitialNav": "208511072932793447",
+        "expectedExecutionCost": null,
+        "realizedNavDelta": "-144890081569549156",
+        "minimumSafetyMarginWad": null,
+        "removedLegs": 0,
+        "initialDrift": "114255536466396732",
+        "finalDrift": "1436240844587272"
+      },
+      "setpoint": {
+        "terminalReason": "NO_SAFE_LIQUIDITY",
+        "vaultTriggerSatisfied": true,
+        "targetBandsSatisfied": false,
+        "attemptedPlans": 2,
+        "attemptedBatches": 1,
+        "successfulExecutionSteps": 1,
+        "successfulBatches": 1,
+        "failedSimulations": 0,
+        "attemptedLegs": 5,
+        "executedLegs": 5,
+        "attemptedTurnoverOverInitialNav": "189489068399735752",
+        "executedTurnoverOverInitialNav": "189489068399735752",
+        "expectedExecutionCost": {
+          "quoteLossValue": "119901963792841706",
+          "estimatedFeeValue": "1314098647150131",
+          "gasCostValue": null,
+          "note": "Quote loss includes fee and price impact; known fee is also broken out and must not be added again."
+        },
+        "realizedNavDelta": "-119901963792841705",
+        "minimumSafetyMarginWad": "7107956792589925",
+        "removedLegs": 3,
+        "initialDrift": "114255536466396732",
+        "finalDrift": "12369995317934021"
+      }
+    },
+    {
+      "id": "asymmetric-liquidity",
+      "baseline": {
+        "terminalReason": "TARGET_BANDS_SATISFIED",
+        "vaultTriggerSatisfied": true,
+        "targetBandsSatisfied": true,
+        "attemptedPlans": 1,
+        "attemptedBatches": 1,
+        "successfulExecutionSteps": 1,
+        "successfulBatches": 1,
+        "failedSimulations": 0,
+        "attemptedLegs": 6,
+        "executedLegs": 6,
+        "attemptedTurnoverOverInitialNav": "200865334224412357",
+        "executedTurnoverOverInitialNav": "200865334224412357",
+        "expectedExecutionCost": null,
+        "realizedNavDelta": "-77112636294084863",
+        "minimumSafetyMarginWad": null,
+        "removedLegs": 0,
+        "initialDrift": "110432667112206184",
+        "finalDrift": "721839581629805"
+      },
+      "setpoint": {
+        "terminalReason": "TARGET_BANDS_SATISFIED",
+        "vaultTriggerSatisfied": true,
+        "targetBandsSatisfied": true,
+        "attemptedPlans": 2,
+        "attemptedBatches": 2,
+        "successfulExecutionSteps": 2,
+        "successfulBatches": 2,
+        "failedSimulations": 0,
+        "attemptedLegs": 7,
+        "executedLegs": 7,
+        "attemptedTurnoverOverInitialNav": "200452320878053753",
+        "executedTurnoverOverInitialNav": "200452320878053753",
+        "expectedExecutionCost": {
+          "quoteLossValue": "76850778095540637",
+          "estimatedFeeValue": "1390128337790286",
+          "gasCostValue": null,
+          "note": "Quote loss includes fee and price impact; known fee is also broken out and must not be added again."
+        },
+        "realizedNavDelta": "-76850778095540636",
+        "minimumSafetyMarginWad": "7121995501736246",
+        "removedLegs": 0,
+        "initialDrift": "110432667112206184",
+        "finalDrift": "772189086504832"
+      }
+    },
+    {
+      "id": "large-target-change",
+      "baseline": {
+        "terminalReason": "INSUFFICIENT_OUTPUT",
+        "vaultTriggerSatisfied": false,
+        "targetBandsSatisfied": false,
+        "attemptedPlans": 1,
+        "attemptedBatches": 1,
+        "successfulExecutionSteps": 0,
+        "successfulBatches": 0,
+        "failedSimulations": 1,
+        "attemptedLegs": 10,
+        "executedLegs": 0,
+        "attemptedTurnoverOverInitialNav": "600511072932793443",
+        "executedTurnoverOverInitialNav": "0",
+        "expectedExecutionCost": null,
+        "realizedNavDelta": "0",
+        "minimumSafetyMarginWad": null,
+        "removedLegs": 0,
+        "initialDrift": "310255536466396732",
+        "finalDrift": "310255536466396732"
+      },
+      "setpoint": {
+        "terminalReason": "NO_SAFE_LIQUIDITY",
+        "vaultTriggerSatisfied": false,
+        "targetBandsSatisfied": false,
+        "attemptedPlans": 2,
+        "attemptedBatches": 1,
+        "successfulExecutionSteps": 1,
+        "successfulBatches": 1,
+        "failedSimulations": 0,
+        "attemptedLegs": 3,
+        "executedLegs": 3,
+        "attemptedTurnoverOverInitialNav": "224999999999999993",
+        "executedTurnoverOverInitialNav": "224999999999999993",
+        "expectedExecutionCost": {
+          "quoteLossValue": "161671470616654498",
+          "estimatedFeeValue": "1560365450660437",
+          "gasCostValue": null,
+          "note": "Quote loss includes fee and price impact; known fee is also broken out and must not be added again."
+        },
+        "realizedNavDelta": "-161671470616654497",
+        "minimumSafetyMarginWad": "4347093866957748",
+        "removedLegs": 7,
+        "initialDrift": "310255536466396732",
+        "finalDrift": "191132785900057151"
+      }
+    },
+    {
+      "id": "defensive-cash-target",
+      "baseline": {
+        "terminalReason": "TARGET_BANDS_SATISFIED",
+        "vaultTriggerSatisfied": true,
+        "targetBandsSatisfied": true,
+        "attemptedPlans": 1,
+        "attemptedBatches": 1,
+        "successfulExecutionSteps": 1,
+        "successfulBatches": 1,
+        "failedSimulations": 0,
+        "attemptedLegs": 5,
+        "executedLegs": 5,
+        "attemptedTurnoverOverInitialNav": "199999999999999987",
+        "executedTurnoverOverInitialNav": "199999999999999987",
+        "expectedExecutionCost": null,
+        "realizedNavDelta": "-54825095123473957",
+        "minimumSafetyMarginWad": null,
+        "removedLegs": 0,
+        "initialDrift": "199999999999999999",
+        "finalDrift": "632949477251464"
+      },
+      "setpoint": {
+        "terminalReason": "TARGET_BANDS_SATISFIED",
+        "vaultTriggerSatisfied": true,
+        "targetBandsSatisfied": true,
+        "attemptedPlans": 1,
+        "attemptedBatches": 1,
+        "successfulExecutionSteps": 1,
+        "successfulBatches": 1,
+        "failedSimulations": 0,
+        "attemptedLegs": 5,
+        "executedLegs": 5,
+        "attemptedTurnoverOverInitialNav": "199999999999999987",
+        "executedTurnoverOverInitialNav": "199999999999999987",
+        "expectedExecutionCost": {
+          "quoteLossValue": "54825095123473956",
+          "estimatedFeeValue": "1386991511698164",
+          "gasCostValue": null,
+          "note": "Quote loss includes fee and price impact; known fee is also broken out and must not be added again."
+        },
+        "realizedNavDelta": "-54825095123473957",
+        "minimumSafetyMarginWad": "13902943364049142",
+        "removedLegs": 0,
+        "initialDrift": "199999999999999999",
+        "finalDrift": "632949477251464"
+      }
+    }
+  ],
+  "claims": {
+    "performanceConclusionAutomated": false,
+    "note": "Artifacts report observations under a common criterion. Reviewers must not infer production performance from toy testnet pools."
+  }
+}

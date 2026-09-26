@@ -1,5 +1,81 @@
 # Build log
 
+## 2026-09-26 — M4.1 multi-leg adaptive batch planner
+
+### Implemented
+
+- Added a chain-independent portfolio-level batch solver that combines all relevant safe stock→USDC sells and USDC→stock buys into one ordered `Trade[]`.
+- Added conservative intra-batch capital accounting: only sell-leg `minAmountOut` can fund buys, input balances cannot be overspent, and cash floors are preserved.
+- Added midpoint convergence for weights that begin outside their ranges. Assets already inside a range are not moved to midpoint solely for cosmetic precision.
+- Added a deterministic bounded search: maximal feasible batch plus one local reduction/removal per directional leg. Candidates are compared lexicographically by expected target-band drift, quote loss, turnover, minimum safety margin, leg count, and stable ID.
+- Added selective `INSUFFICIENT_OUTPUT` backoff using the tightest safety-margin leg and its next smaller executable curve sample. Independent legs remain in the rebuilt batch.
+- Added per-leg desired/selected/maximum-safe sizes, binding constraint, curve/sample, expected output, oracle-floor `minAmountOut`, expected quote loss, and safety margin.
+- Added terminal excluded-leg evidence, including no compatible sample and no remaining portfolio-level safe progress.
+- Added `pnpm m4:batch`, separate M4.1 artifacts, and runtime artifact validation.
+- Added nine batch-solver tests. The complete suite now passes 37/37 tests.
+
+### Construction algorithm
+
+For every confirmed state, the RWA integration samples all materially relevant directions through the real deployed `SynthraSwapAdapter.swap()` path. Out-of-band assets are sized toward the midpoint of their accepted range to avoid boundary-chasing after quote loss changes NAV. The solver caps every direction by target distance, balance, the vault's per-leg cap, sampled executable depth, price-impact policy, cash policy, and optional turnover policy.
+
+Buys are allocated from starting USDC above the required cash goal plus the sum of conservative sell `minAmountOut` values. The selected sells are then rebuilt against the exact funded buy spend. If discrete samples do not cover it, only the lowest-priority buy is reduced or removed. All sells precede buys.
+
+The maximal candidate and one local backoff/removal per leg form the bounded candidate set. There is no combinatorial subset search or weighted score. The best lexicographic candidate must strictly reduce projected target-band drift and pass the real vault simulation. A successful fork transaction is followed by a confirmed state read and complete re-sampling.
+
+### Commands and artifacts
+
+```bash
+pnpm typecheck
+pnpm test
+pnpm m4:batch
+```
+
+Output:
+
+- `artifacts/liquidity-m4-1/*.json`
+- `artifacts/solver-v2-batch/*.json`
+- `artifacts/comparison-m4-1/*.json`
+- `artifacts/m4-1-summary.json`
+
+Final validation fork:
+
+- block: `124716128`
+- block hash: `0xac02366b6bea0ae2f95508500f3a8d95e4c217aa7b35348d781c1d580f3d2025`
+- chain ID: `46630`
+- M2 planner SHA-256: `dcd079ed25ff6fd7683c947fbf46748abd70862fe2a85a368c919b26fe7cee92` (identical to M4)
+
+### Equivalent-state results
+
+| Scenario | M2 baseline | M4.1 batch planner | Target bands: M2 / M4.1 |
+|---|---|---|---|
+| Stale oracle | `STALE_PRICE`, 0 executions | `STALE_PRICE`, 0 batches | no / no |
+| Moderate, deeper toy | 0.075394%, 1 batch, 6 legs | 0.038903%, 3 batches, 13 legs | yes / yes |
+| Moderate, thin toy | 0.143624%, 1 batch, 6 legs | 1.237000%, 1 successful batch, 2 solve cycles, 5 legs, then no safe liquidity | yes / no |
+| Asymmetric liquidity | 0.072184%, 1 batch, 6 legs | 0.077219%, 2 batches, 7 legs | yes / yes |
+| Large target change | 31.025554%, 0 executions; first 10-leg batch fails | 19.113279%, 1 successful batch, 2 solve cycles, 3 legs, then no safe liquidity | no / no |
+| Defensive 20% cash | 0.063295%, 1 batch, 5 legs | 0.063295%, 1 batch, 5 legs | yes / yes |
+
+M4.1 improves materially over one-pair M4: deep moves from 8 batches/outside range to 3/inside; asymmetric from 6 batches and `NO_SAFE_LIQUIDITY` at 4.391698% to 2/inside; defensive from 8 batches/outside to 1/inside; and large-target drift improves from 20.320383% after two M4 steps to 19.113279% after one coherent batch. Thin improves from 1.452714% to 1.237000% but still cannot finish.
+
+M2 remains faster on all four normal non-stale scenarios where it succeeds. It also finishes thin while M4.1 does not. M4.1's demonstrated complement remains safety under stressed sizing: in the large scenario M2 attempts 60.051107% NAV turnover, fails simulation, and executes nothing; M4.1 executes 22.5% turnover as a safe subset before stopping.
+
+The binding terminal route in both thin and large is USDC→NFLX: even the sampled sizes have no output compatible with the vault's 98%-of-oracle floor. M4.1 retains the other sell directions as `NO_PORTFOLIO_LEVEL_SAFE_PROGRESS`; it does not submit a doomed batch. No benchmark result was forced.
+
+### Errors encountered and corrections
+
+- The first live batch run still converged geometrically toward band edges and hit the cycle cap. Quote loss changes NAV after each trade, so selecting exact entry boundaries recreated tiny residual violations. Out-of-band destinations now use the band midpoint, while in-range positions remain untouched unless needed for a safe one-sided correction.
+- The initial midpoint capital-accounting change reserved the current in-range cash balance and made discrete sell samples unable to fund matching buys in unit tests. Required funding now preserves the cash floor, while sell capacity may use the full allowed cash range; all buy funding still uses conservative `minAmountOut`.
+- Initial terminal no-trade records dropped catalog exclusions. Typed no-trade results now retain unavailable/binding leg evidence, and aggregate removed-leg metrics include the terminal cycle.
+
+### Assumptions, fork-only behavior, and remaining limits
+
+- All M4 assumptions remain: 60-second state-bound quote life, one deployed Synthra route, fork-only mock-USDC probe funding, unchanged vault guards, and no gas estimate.
+- The bounded search does not prove a continuous mathematical optimum between samples and intentionally avoids unbounded subset enumeration.
+- No simulation failure occurred in the final scenario matrix; selective failure localization is covered by deterministic unit tests. Every executed batch passed the real vault simulation gate.
+- The toy pools are not evidence of production liquidity. Oracle refresh, pool synchronization, role impersonation, strategy changes, and executions remain disposable-fork-only.
+- No UI/M5, CoW/0x adapter, new DEX, custody, cross-vault netting, contract modification, or AI execution logic was added.
+- M4.1 is complete for review. No later milestone was started.
+
 ## 2026-09-26 — M4 liquidity-aware adaptive sizing
 
 ### Implemented

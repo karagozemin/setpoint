@@ -1,0 +1,589 @@
+{
+  "schemaVersion": 1,
+  "scenario": "asymmetric-liquidity",
+  "cycle": 2,
+  "quoteSource": "real deployed SynthraSwapAdapter.swap executed with eth_call on an isolated fork snapshot",
+  "liquidity": {
+    "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+    "blockNumber": "124716136",
+    "observedAt": "1790441561",
+    "curves": [
+      {
+        "id": "0x911b4000D3422F482F4062a913885f7b035382Df:0xfedC57791E6d17c484742C84174424243592E6a8:0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA:0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E:46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+        "venue": "Synthra V3 via deployed SynthraSwapAdapter.swap eth_call",
+        "pool": "0xfedC57791E6d17c484742C84174424243592E6a8",
+        "tokenIn": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+        "tokenOut": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+        "fee": 100,
+        "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+        "blockNumber": "124716136",
+        "observedAt": "1790441561",
+        "maximumTestedAmountIn": "378819315094440974",
+        "maximumExecutableAmountIn": "378819315094440974",
+        "samples": [
+          {
+            "sampleIndex": 0,
+            "amountIn": "1479762949587660",
+            "expectedOut": "3383187608802",
+            "oracleOut": "3395587208489",
+            "inputValue": "1479762949587660",
+            "outputValue": "1474359328039823",
+            "effectiveValueRateWad": "996348319472829932",
+            "priceImpactWad": "3651680527008961",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "147976294958",
+            "quoteLossValue": "5403621547837",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          },
+          {
+            "sampleIndex": 1,
+            "amountIn": "2959525899175320",
+            "expectedOut": "6766368726877",
+            "oracleOut": "6791174416979",
+            "inputValue": "2959525899175320",
+            "outputValue": "2948715827485727",
+            "effectiveValueRateWad": "996347363713693042",
+            "priceImpactWad": "3652636286292675",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "295952589917",
+            "quoteLossValue": "10810071689593",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          },
+          {
+            "sampleIndex": 2,
+            "amountIn": "5919051798350640",
+            "expectedOut": "13532711490918",
+            "oracleOut": "13582348833958",
+            "inputValue": "5919051798350640",
+            "outputValue": "5897420340627155",
+            "effectiveValueRateWad": "996345452200720280",
+            "priceImpactWad": "3654547799265681",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "591905179835",
+            "quoteLossValue": "21631457723485",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          },
+          {
+            "sampleIndex": 3,
+            "amountIn": "11838103596701280",
+            "expectedOut": "27065319131087",
+            "oracleOut": "27164697667916",
+            "inputValue": "11838103596701280",
+            "outputValue": "11794795424136403",
+            "effectiveValueRateWad": "996341629196677672",
+            "priceImpactWad": "3658370803308264",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "1183810359670",
+            "quoteLossValue": "43308172564877",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          },
+          {
+            "sampleIndex": 4,
+            "amountIn": "23676207193402560",
+            "expectedOut": "54130222863958",
+            "oracleOut": "54329395335832",
+            "inputValue": "23676207193402560",
+            "outputValue": "23589409821884256",
+            "effectiveValueRateWad": "996333983276574369",
+            "priceImpactWad": "3666016723411594",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "2367620719340",
+            "quoteLossValue": "86797371518304",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          },
+          {
+            "sampleIndex": 5,
+            "amountIn": "47352414386805121",
+            "expectedOut": "108258784173304",
+            "oracleOut": "108658790671665",
+            "inputValue": "47352414386805121",
+            "outputValue": "47178095554884150",
+            "effectiveValueRateWad": "996318691788405504",
+            "priceImpactWad": "3681308211589638",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "4735241438680",
+            "quoteLossValue": "174318831920971",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          },
+          {
+            "sampleIndex": 6,
+            "amountIn": "94704828773610243",
+            "expectedOut": "216510922434162",
+            "oracleOut": "217317581343331",
+            "inputValue": "94704828773610243",
+            "outputValue": "94353294887583457",
+            "effectiveValueRateWad": "996288110220154456",
+            "priceImpactWad": "3711889779845254",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "9470482877361",
+            "quoteLossValue": "351533886026786",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          },
+          {
+            "sampleIndex": 7,
+            "amountIn": "142057243160415365",
+            "expectedOut": "324756415394536",
+            "oracleOut": "325976372014996",
+            "inputValue": "142057243160415365",
+            "outputValue": "141525598264784843",
+            "effectiveValueRateWad": "996257530529223544",
+            "priceImpactWad": "3742469470774642",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "14205724316041",
+            "quoteLossValue": "531644895630522",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          },
+          {
+            "sampleIndex": 8,
+            "amountIn": "189409657547220487",
+            "expectedOut": "432995263666311",
+            "oracleOut": "434635162686662",
+            "inputValue": "189409657547220487",
+            "outputValue": "188695005953141670",
+            "effectiveValueRateWad": "996226952715435579",
+            "priceImpactWad": "3773047284564132",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "18940965754722",
+            "quoteLossValue": "714651594078817",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          },
+          {
+            "sampleIndex": 9,
+            "amountIn": "236762071934025608",
+            "expectedOut": "541227467861299",
+            "oracleOut": "543293953358327",
+            "inputValue": "236762071934025608",
+            "outputValue": "235861518219275491",
+            "effectiveValueRateWad": "996196376778620780",
+            "priceImpactWad": "3803623221378020",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "23676207193402",
+            "quoteLossValue": "900553714750117",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          },
+          {
+            "sampleIndex": 10,
+            "amountIn": "284114486320830730",
+            "expectedOut": "649453028591235",
+            "oracleOut": "651952744029993",
+            "inputValue": "284114486320830730",
+            "outputValue": "283025135329774300",
+            "effectiveValueRateWad": "996165802718604423",
+            "priceImpactWad": "3834197281395292",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "28411448632083",
+            "quoteLossValue": "1089350991056430",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          },
+          {
+            "sampleIndex": 11,
+            "amountIn": "331466900707635852",
+            "expectedOut": "757671946467781",
+            "oracleOut": "760611534701658",
+            "inputValue": "331466900707635852",
+            "outputValue": "330185857551194281",
+            "effectiveValueRateWad": "996135230535215668",
+            "priceImpactWad": "3864769464783390",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "33146690070763",
+            "quoteLossValue": "1281043156441571",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          },
+          {
+            "sampleIndex": 12,
+            "amountIn": "378819315094440974",
+            "expectedOut": "865884222102523",
+            "oracleOut": "869270325373324",
+            "inputValue": "378819315094440974",
+            "outputValue": "377343685150058498",
+            "effectiveValueRateWad": "996104660228281664",
+            "priceImpactWad": "3895339771718051",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "37881931509444",
+            "quoteLossValue": "1475629944382476",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          }
+        ]
+      },
+      {
+        "id": "0x911b4000D3422F482F4062a913885f7b035382Df:0xB8033384ce15A1112bFd58Dc6d5619708a1be98e:0x71178BAc73cBeb415514eB542a8995b82669778d:0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA:46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+        "venue": "Synthra V3 via deployed SynthraSwapAdapter.swap eth_call",
+        "pool": "0xB8033384ce15A1112bFd58Dc6d5619708a1be98e",
+        "tokenIn": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+        "tokenOut": "0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA",
+        "fee": 100,
+        "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+        "blockNumber": "124716136",
+        "observedAt": "1790441561",
+        "maximumTestedAmountIn": "356767236354706",
+        "maximumExecutableAmountIn": "356767236354706",
+        "samples": [
+          {
+            "sampleIndex": 0,
+            "amountIn": "1393622017010",
+            "expectedOut": "709988597066517",
+            "oracleOut": "719248322978861",
+            "inputValue": "719248322978861",
+            "outputValue": "709988597066517",
+            "effectiveValueRateWad": "987125828984913535",
+            "priceImpactWad": "12874171015086464",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "71924832297",
+            "quoteLossValue": "9259725912344",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          },
+          {
+            "sampleIndex": 1,
+            "amountIn": "2787244034021",
+            "expectedOut": "1419976250434754",
+            "oracleOut": "1438496645958238",
+            "inputValue": "1438496645958238",
+            "outputValue": "1419976250434754",
+            "effectiveValueRateWad": "987125172953638100",
+            "priceImpactWad": "12874827046361899",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "143849664595",
+            "quoteLossValue": "18520395523484",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          },
+          {
+            "sampleIndex": 2,
+            "amountIn": "5574488068042",
+            "expectedOut": "2839948726082389",
+            "oracleOut": "2876993291916476",
+            "inputValue": "2876993291916476",
+            "outputValue": "2839948726082389",
+            "effectiveValueRateWad": "987123860893881268",
+            "priceImpactWad": "12876139106118731",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "287699329191",
+            "quoteLossValue": "37044565834087",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          },
+          {
+            "sampleIndex": 3,
+            "amountIn": "11148976136084",
+            "expectedOut": "5679882353074467",
+            "oracleOut": "5753986583832952",
+            "inputValue": "5753986583832952",
+            "outputValue": "5679882353074467",
+            "effectiveValueRateWad": "987121236784476247",
+            "priceImpactWad": "12878763215523752",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "575398658383",
+            "quoteLossValue": "74104230758485",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          },
+          {
+            "sampleIndex": 4,
+            "amountIn": "22297952272169",
+            "expectedOut": "11359704310269858",
+            "oracleOut": "11507973167666420",
+            "inputValue": "11507973167666420",
+            "outputValue": "11359704310269858",
+            "effectiveValueRateWad": "987115988607520548",
+            "priceImpactWad": "12884011392479451",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "1150797316766",
+            "quoteLossValue": "148268857396562",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          },
+          {
+            "sampleIndex": 5,
+            "amountIn": "44595904544338",
+            "expectedOut": "22719167040875088",
+            "oracleOut": "23015946335332841",
+            "inputValue": "23015946335332841",
+            "outputValue": "22719167040875088",
+            "effectiveValueRateWad": "987105492421045776",
+            "priceImpactWad": "12894507578954223",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "2301594633533",
+            "quoteLossValue": "296779294457753",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          },
+          {
+            "sampleIndex": 6,
+            "amountIn": "89191809088676",
+            "expectedOut": "45437367793914610",
+            "oracleOut": "46031892670665683",
+            "inputValue": "46031892670665683",
+            "outputValue": "45437367793914610",
+            "effectiveValueRateWad": "987084500717696095",
+            "priceImpactWad": "12915499282303904",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "4603189267066",
+            "quoteLossValue": "594524876751073",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          },
+          {
+            "sampleIndex": 7,
+            "amountIn": "133787713633014",
+            "expectedOut": "68154602320763225",
+            "oracleOut": "69047839005998525",
+            "inputValue": "69047839005998525",
+            "outputValue": "68154602320763225",
+            "effectiveValueRateWad": "987063509907128300",
+            "priceImpactWad": "12936490092871699",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "6904783900599",
+            "quoteLossValue": "893236685235300",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          },
+          {
+            "sampleIndex": 8,
+            "amountIn": "178383618177353",
+            "expectedOut": "90870870683062899",
+            "oracleOut": "92063785341331883",
+            "inputValue": "92063785341331883",
+            "outputValue": "90870870683062899",
+            "effectiveValueRateWad": "987042519989307598",
+            "priceImpactWad": "12957480010692401",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "9206378534133",
+            "quoteLossValue": "1192914658268984",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          },
+          {
+            "sampleIndex": 9,
+            "amountIn": "222979522721691",
+            "expectedOut": "113586172942446785",
+            "oracleOut": "115079731676664725",
+            "inputValue": "115079731676664725",
+            "outputValue": "113586172942446785",
+            "effectiveValueRateWad": "987021530964163725",
+            "priceImpactWad": "12978469035836274",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "11507973167666",
+            "quoteLossValue": "1493558734217940",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          },
+          {
+            "sampleIndex": 10,
+            "amountIn": "267575427266029",
+            "expectedOut": "136300509160546364",
+            "oracleOut": "138095678011997566",
+            "inputValue": "138095678011997566",
+            "outputValue": "136300509160546364",
+            "effectiveValueRateWad": "987000542831650095",
+            "priceImpactWad": "12999457168349904",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "13809567801199",
+            "quoteLossValue": "1795168851451202",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          },
+          {
+            "sampleIndex": 11,
+            "amountIn": "312171331810367",
+            "expectedOut": "159013879398985324",
+            "oracleOut": "161111624347330408",
+            "inputValue": "161111624347330408",
+            "outputValue": "159013879398985324",
+            "effectiveValueRateWad": "986979555591701516",
+            "priceImpactWad": "13020444408298483",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "16111162434733",
+            "quoteLossValue": "2097744948345084",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          },
+          {
+            "sampleIndex": 12,
+            "amountIn": "356767236354706",
+            "expectedOut": "181726283719384660",
+            "oracleOut": "184127570682663766",
+            "inputValue": "184127570682663766",
+            "outputValue": "181726283719384660",
+            "effectiveValueRateWad": "986958569244268016",
+            "priceImpactWad": "13041430755731983",
+            "feeRateWad": "100000000000000",
+            "estimatedFeeValue": "18412757068266",
+            "quoteLossValue": "2401286963279106",
+            "minOutCompatible": true,
+            "validity": {
+              "valid": true,
+              "stateId": "46630:124716136:0x972de340b4f47fc92c44fcb028e854011c34b7bff8104804a6f855304123d625",
+              "blockNumber": "124716136",
+              "observedAt": "1790441561",
+              "expiresAt": "1790441621"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

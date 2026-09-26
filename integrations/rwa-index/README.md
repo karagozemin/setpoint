@@ -155,3 +155,35 @@ Artifacts are split as follows:
 - `artifacts/m4-summary.json`: aggregate metrics and fairness declarations.
 
 The current artifacts contain negative results as well as successful steps. In particular, the baseline reaches target bands faster in the normal toy scenarios. For the large target change, Solver v2 executes two safe steps but then the NFLX pool has no sampled buy size compatible with the 98% oracle floor. No broad performance claim is supported.
+
+## M4.1 multi-leg batch planner
+
+Run:
+
+```bash
+pnpm m4:batch
+```
+
+M4.1 uses the same fork preparation, scenario definitions, M2 planner, target bands, guards, and terminal criteria as M4. The M2 source hash is checked against the versioned M4 summary before M4.1 artifacts are accepted.
+
+For a confirmed state, the planner:
+
+1. samples each materially relevant stock→USDC and USDC→stock direction through the deployed adapter's real `swap()` path;
+2. aims out-of-band weights toward their band midpoint while leaving already acceptable weights alone unless they must fund an outstanding one-sided correction;
+3. derives each leg's maximum min-out-compatible sampled size and constructs sells before buys;
+4. funds buys only from starting USDC plus conservative sell `minAmountOut`, preserving the required cash floor;
+5. evaluates a bounded set consisting of the maximal batch and one local reduction/removal per directional leg;
+6. orders those batches by expected target-band drift, quote loss, turnover, minimum safety margin, leg count, then deterministic ID;
+7. requires real vault simulation, and on `INSUFFICIENT_OUTPUT` reduces only the tightest safety-margin leg; and
+8. after execution, discards the plan, re-reads confirmed vault state, and rebuilds all curves and decisions.
+
+Every accepted leg records desired, selected, and maximum safe amounts, its binding constraint, curve/sample, expected output, `minAmountOut`, quote loss, and safety margin. Terminal no-trade records retain unavailable and removed legs rather than hiding them.
+
+Artifacts are isolated from M4:
+
+- `artifacts/liquidity-m4-1/`
+- `artifacts/solver-v2-batch/`
+- `artifacts/comparison-m4-1/`
+- `artifacts/m4-1-summary.json`
+
+The command validates scenario count, equivalent initial state/NAV, simulation approval for every executed batch, confirmed post-state presence, and the unchanged M2 planner hash.

@@ -2,7 +2,7 @@
 
 Setpoint is a non-custodial, policy-driven rebalance solver and orchestration layer for multi-asset onchain vaults. It reads authoritative vault accounting and constraints, proposes the safest useful next rebalance step, simulates that step against the target vault, and re-solves from confirmed state.
 
-The source of truth is [Setpoint PRD v1.1](./Setpoint_PRD_v1_1.pdf). This repository currently implements M0/M1 external-vault compatibility, the M2 truthful static baseline, M3 deterministic Solver v1, and M4 liquidity-aware Solver v2 for the RWA Index deployment on Robinhood Chain testnet. It does not contain UI, CoW/0x adapters, custody, a DEX, cross-vault netting, or new vault accounting.
+The source of truth is [Setpoint PRD v1.1](./Setpoint_PRD_v1_1.pdf). This repository currently implements M0/M1 external-vault compatibility, the M2 truthful static baseline, M3 deterministic Solver v1, M4 liquidity-aware Solver v2, and the M4.1 multi-leg batch planner for the RWA Index deployment on Robinhood Chain testnet. It does not contain UI, CoW/0x adapters, custody, a DEX, cross-vault netting, or new vault accounting.
 
 ## M1 status
 
@@ -52,6 +52,12 @@ The M4 comparison runner restores the baseline and Setpoint paths to the identic
 
 Current toy-pool evidence is mixed and is not a marketing claim: the static baseline reaches the target bands in the moderate, asymmetric, and defensive scenarios; Solver v2 remains outside the bands at the common cycle cap or runs out of safe liquidity. For the large target change, static sizing executes nothing, while Solver v2 makes two safe steps before the NFLX quote curve has no size compatible with the vault's 98% oracle floor. See the versioned M4 artifacts for exact values.
 
+## M4.1 status
+
+The batch planner evaluates every materially relevant USDC-hub sell and buy in one confirmed state. It uses each sell's oracle-floor `minAmountOut`—not optimistic quote output—to fund later buys, preserves cash requirements, and ranks a bounded candidate set lexicographically by target-band drift, quote loss, turnover, safety margin, leg count, and stable ID. A failed `INSUFFICIENT_OUTPUT` backs off only the tightest sampled leg before rebuilding.
+
+The final fork evidence is deliberately mixed. Deep and asymmetric scenarios now reach all target bands in three and two batches respectively, and defensive cash reaches them in one. Thin liquidity executes a five-leg safe subset but stops with the NFLX buy curve below the oracle floor. The large target case improves from 31.025554% to 19.113279% drift in one three-leg batch, then stops for the same real NFLX constraint. M2 remains faster in every normal scenario where it succeeds, and still has lower final drift in thin. These are testnet toy-pool observations, not production performance claims.
+
 ## Reproduce
 
 Prerequisites:
@@ -73,6 +79,7 @@ pnpm m1:rwa-index
 pnpm m2:baseline
 pnpm m3:solver
 pnpm m4:adaptive
+pnpm m4:batch
 ```
 
 No private key is needed. The command starts and cleans up Anvil itself. It uses fork-only account impersonation for the deployed oracle feeder/syncer owner and vault manager.
@@ -95,6 +102,7 @@ scripts/m1-rwa-index.sh           disposable Anvil lifecycle and M1 entry point
 scripts/m2-baseline.sh            scenario runner and static-baseline entry point
 scripts/m3-solver.sh              scenario runner and Solver v1 entry point
 scripts/m4-adaptive.sh            liquidity sampling and equivalent-state comparison
+scripts/m4-batch.sh               multi-leg comparison on a fresh disposable fork
 third_party/rwa-index/            pinned external project (git submodule)
 artifacts/                        versioned latest JSON evidence; local Anvil logs ignored
 BUILD_LOG.md                      implementation record, assumptions, and blockers

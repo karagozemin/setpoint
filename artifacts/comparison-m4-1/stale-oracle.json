@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "scenario": {
+    "id": "stale-oracle",
+    "title": "Stale oracle expected no-trade"
+  },
+  "fork": {
+    "sourceBlockNumber": "124716128",
+    "sourceBlockHash": "0xac02366b6bea0ae2f95508500f3a8d95e4c217aa7b35348d781c1d580f3d2025",
+    "sourceTimestamp": "1790441520"
+  },
+  "stalePrices": [
+    {
+      "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+      "priceWad": "435790000000000000000",
+      "updatedAt": "1780265370"
+    },
+    {
+      "token": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+      "priceWad": "270640000000000000000",
+      "updatedAt": "1780265370"
+    },
+    {
+      "token": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+      "priceWad": "156540000000000000000",
+      "updatedAt": "1780265370"
+    },
+    {
+      "token": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+      "priceWad": "86020000000000000000",
+      "updatedAt": "1780265370"
+    },
+    {
+      "token": "0x71178BAc73cBeb415514eB542a8995b82669778d",
+      "priceWad": "516100000000000000000",
+      "updatedAt": "1780265370"
+    }
+  ],
+  "baseline": {
+    "initialAuthoritativeDrift": null,
+    "finalAuthoritativeDrift": null,
+    "vaultTriggerSatisfied": false,
+    "targetBandsSatisfied": false,
+    "attemptedPlans": 0,
+    "attemptedBatches": 0,
+    "successfulExecutionSteps": 0,
+    "successfulBatches": 0,
+    "failedSimulations": 0,
+    "attemptedLegs": 0,
+    "executedLegs": 0,
+    "attemptedTurnover": "0",
+    "executedTurnover": "0",
+    "realizedNavDelta": null,
+    "cyclesOffTarget": 0,
+    "terminalReason": "STALE_PRICE",
+    "algorithm": "unchanged M2 baseline"
+  },
+  "setpoint": {
+    "initialAuthoritativeDrift": null,
+    "finalAuthoritativeDrift": null,
+    "vaultTriggerSatisfied": false,
+    "targetBandsSatisfied": false,
+    "attemptedPlans": 0,
+    "attemptedBatches": 0,
+    "successfulExecutionSteps": 0,
+    "successfulBatches": 0,
+    "failedSimulations": 0,
+    "attemptedLegs": 0,
+    "executedLegs": 0,
+    "attemptedTurnover": "0",
+    "executedTurnover": "0",
+    "realizedNavDelta": null,
+    "cyclesOffTarget": 0,
+    "terminalReason": "STALE_PRICE",
+    "algorithm": "Setpoint Solver v2 multi-leg adaptive batch planner",
+    "expectedExecutionCost": null
+  },
+  "fairness": "Both paths fail closed before liquidity sampling or trade construction because authoritative vault accounting rejects stale prices."
+}

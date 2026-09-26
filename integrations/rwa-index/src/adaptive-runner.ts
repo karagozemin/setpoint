@@ -3,6 +3,7 @@ import { mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 
 import { resolve } from "node:path";
 import { formatUnits, type Hash } from "viem";
 import { solveAdaptive, type AdaptiveSolveInput } from "../../../src/core/adaptive-solver.js";
+import { solveBatchAdaptive } from "../../../src/core/batch-solver.js";
 import { WAD, targetRegionReached } from "../../../src/core/policy.js";
 import type { PortfolioState, SolveInput, SolveResult, Trade } from "../../../src/core/types.js";
 import { buildStaticBaseline, grossTurnover } from "./baseline.js";
@@ -16,6 +17,8 @@ const config = loadConfig();
 const RANGE_TOLERANCE = 25n * 10n ** 14n;
 const QUOTE_MAX_AGE = 60n;
 const MAX_SIMULATION_ATTEMPTS = 6;
+const solverVariant = process.env.SETPOINT_SOLVER_VARIANT === "batch" ? "batch" : "adaptive";
+const isBatch = solverVariant === "batch";
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 
@@ -168,7 +171,9 @@ async function runCommonBaseline(
     finalState: summarizeState(final.state),
     ...status,
     attemptedPlans: cycles.length,
+    attemptedBatches: cycles.length,
     successfulExecutionSteps: cycles.filter(({ executionHash }) => executionHash !== undefined).length,
+    successfulBatches: cycles.filter(({ executionHash }) => executionHash !== undefined).length,
     failedSimulations: cycles.filter(({ simulation }) => !simulation.passed).length,
     rejectedAlternatives: [],
     attemptedLegs: cycles.reduce((sum, { trades }) => sum + trades.length, 0),
@@ -216,7 +221,10 @@ async function runAdaptive(
       ...confirmed,
       policy: { ...confirmed.policy, driftTrigger: 0n }
     };
-    const liquidity = await sampleRwaLiquidity(adapter, deployment, benchmarkInput, { quoteMaxAge: QUOTE_MAX_AGE });
+    const liquidity = await sampleRwaLiquidity(adapter, deployment, benchmarkInput, {
+      quoteMaxAge: QUOTE_MAX_AGE,
+      ...(isBatch ? { convergenceTarget: "midpoint" as const } : {})
+    });
     const liquidityName = `${definition.id}-cycle-${String(cycle).padStart(2, "0")}.json`;
     writeFileSync(resolve(liquidityDirectory, liquidityName), `${JSON.stringify(jsonValue({
       schemaVersion: 1,
@@ -234,11 +242,13 @@ async function runAdaptive(
         maxPriceImpact: guards.slippageTolerance
       }
     };
-    const result = await solveAdaptive(adaptiveInput, adapter);
+    const result = isBatch
+      ? await solveBatchAdaptive(adaptiveInput, adapter)
+      : await solveAdaptive(adaptiveInput, adapter);
     const record: AdaptiveCycle = {
       cycle,
       stateBefore: summarizeState(confirmed.state),
-      liquidityArtifact: `artifacts/liquidity/${liquidityName}`,
+      liquidityArtifact: `artifacts/${isBatch ? "liquidity-m4-1" : "liquidity"}/${liquidityName}`,
       result
     };
     cycles.push(record);
@@ -272,15 +282,24 @@ async function runAdaptive(
   const status = benchmarkStatus(final, guards);
   if (status.targetBandsSatisfied) terminalReason = "TARGET_BANDS_SATISFIED";
   const rejectedAlternatives = cycles.flatMap(({ result }) => result.rejectedAlternatives);
+  const excludedLiquidityLegs = cycles.flatMap(({ result }) => result.excludedLiquidityLegs ?? []);
   return {
-    algorithm: "Setpoint Solver v2 with fork-executed Synthra liquidity curves and lexicographic candidate scoring",
+    algorithm: isBatch
+      ? "Setpoint Solver v2 multi-leg adaptive batch planner with conservative USDC funding and selective binding-leg backoff"
+      : "Setpoint Solver v2 with fork-executed Synthra liquidity curves and lexicographic candidate scoring",
     initialState: summarizeState(initial.state),
     finalState: summarizeState(final.state),
     ...status,
     attemptedPlans: cycles.length,
+    solveCycles: cycles.length,
+    attemptedBatches: cycles.filter(({ result }) => result.kind === "plan").length
+      + rejectedAlternatives.filter(({ simulation }) => simulation !== undefined).length,
     successfulExecutionSteps: cycles.filter(({ executionHash }) => executionHash !== undefined).length,
+    successfulBatches: cycles.filter(({ executionHash }) => executionHash !== undefined).length,
     failedSimulations: rejectedAlternatives.filter(({ simulation }) => simulation?.passed === false).length,
     rejectedAlternatives,
+    excludedLiquidityLegs,
+    removedLegs: excludedLiquidityLegs.length,
     attemptedLegs,
     executedLegs,
     attemptedTurnover,
@@ -310,7 +329,9 @@ function staleComparison(originalPrices: RawOraclePoint[], guards: RwaGuardState
     vaultTriggerSatisfied: false,
     targetBandsSatisfied: false,
     attemptedPlans: 0,
+    attemptedBatches: 0,
     successfulExecutionSteps: 0,
+    successfulBatches: 0,
     failedSimulations: 0,
     attemptedLegs: 0,
     executedLegs: 0,
@@ -326,7 +347,7 @@ function staleComparison(originalPrices: RawOraclePoint[], guards: RwaGuardState
     fork: { sourceBlockNumber: sourceBlock.number, sourceBlockHash: sourceBlock.hash, sourceTimestamp: sourceBlock.timestamp },
     stalePrices: stale,
     baseline: { ...common, algorithm: "unchanged M2 baseline" },
-    setpoint: { ...common, algorithm: "Setpoint Solver v2", expectedExecutionCost: null },
+    setpoint: { ...common, algorithm: isBatch ? "Setpoint Solver v2 multi-leg adaptive batch planner" : "Setpoint Solver v2", expectedExecutionCost: null },
     fairness: "Both paths fail closed before liquidity sampling or trade construction because authoritative vault accounting rejects stale prices."
   };
 }
@@ -337,9 +358,9 @@ async function main(): Promise<void> {
   const sourceBlock = await adapter.sourceBlock();
   const { deployment, guards } = await adapter.validate();
   const originalPrices = await adapter.rawOraclePrices();
-  const liquidityDirectory = resolve(process.cwd(), "artifacts/liquidity");
-  const solverDirectory = resolve(process.cwd(), "artifacts/solver-v2");
-  const comparisonDirectory = resolve(process.cwd(), "artifacts/comparison");
+  const liquidityDirectory = resolve(process.cwd(), `artifacts/${isBatch ? "liquidity-m4-1" : "liquidity"}`);
+  const solverDirectory = resolve(process.cwd(), `artifacts/${isBatch ? "solver-v2-batch" : "solver-v2"}`);
+  const comparisonDirectory = resolve(process.cwd(), `artifacts/${isBatch ? "comparison-m4-1" : "comparison"}`);
   for (const directory of [liquidityDirectory, solverDirectory, comparisonDirectory]) {
     mkdirSync(directory, { recursive: true });
     for (const name of readdirSync(directory)) {
@@ -351,7 +372,7 @@ async function main(): Promise<void> {
   writeFileSync(resolve(comparisonDirectory, "stale-oracle.json"), `${JSON.stringify(jsonValue(stale), null, 2)}\n`);
   writeFileSync(resolve(solverDirectory, "stale-oracle.json"), `${JSON.stringify(jsonValue({
     schemaVersion: 1,
-    benchmark: "setpoint-solver-v2",
+    benchmark: isBatch ? "setpoint-solver-v2-batch" : "setpoint-solver-v2",
     scenario: stale.scenario,
     fork: stale.fork,
     setpoint: stale.setpoint
@@ -385,7 +406,7 @@ async function main(): Promise<void> {
     assert(baseline.initialState.drift === setpoint.initialState.drift, "comparison paths did not start from identical drift");
     const comparison = {
       schemaVersion: 1,
-      benchmark: "m4-equivalent-state-comparison",
+      benchmark: isBatch ? "m4-1-equivalent-state-comparison" : "m4-equivalent-state-comparison",
       scenario: definition,
       fork: { sourceBlockNumber: sourceBlock.number, sourceBlockHash: sourceBlock.hash, sourceTimestamp: sourceBlock.timestamp },
       setupTransaction,
@@ -403,7 +424,7 @@ async function main(): Promise<void> {
     writeFileSync(resolve(comparisonDirectory, `${definition.id}.json`), `${JSON.stringify(jsonValue(comparison), null, 2)}\n`);
     writeFileSync(resolve(solverDirectory, `${definition.id}.json`), `${JSON.stringify(jsonValue({
       schemaVersion: 1,
-      benchmark: "setpoint-solver-v2",
+      benchmark: isBatch ? "setpoint-solver-v2-batch" : "setpoint-solver-v2",
       scenario: definition,
       fork: comparison.fork,
       commonTerminalCriterion: comparison.commonTerminalCriterion,
@@ -419,7 +440,7 @@ async function main(): Promise<void> {
   const plannerPath = resolve(process.cwd(), "integrations/rwa-index/src/baseline.ts");
   const summary = {
     schemaVersion: 1,
-    milestone: "M4",
+    milestone: isBatch ? "M4.1" : "M4",
     startedAt,
     completedAt: new Date().toISOString(),
     upstream: config.upstream,
@@ -440,6 +461,7 @@ async function main(): Promise<void> {
       m2PlannerChanged: false,
       note: "The comparison harness explicitly allows both algorithms to continue below the informational drift trigger; the standalone M2 command and artifacts are unchanged."
     },
+    ...(isBatch ? { previousM4Results: readPreviousM4Results() ?? null } : {}),
     results: allComparisons.map((comparison) => ({
       id: comparison.scenario.id,
       baseline: summarizeComparisonSide(comparison.baseline),
@@ -450,9 +472,39 @@ async function main(): Promise<void> {
       note: "Artifacts report observations under a common criterion. Reviewers must not infer production performance from toy testnet pools."
     }
   };
-  const summaryPath = resolve(process.cwd(), "artifacts/m4-summary.json");
+  validateRunArtifacts(comparisons, summary.m2PlannerSourceSha256);
+  const summaryPath = resolve(process.cwd(), `artifacts/${isBatch ? "m4-1-summary.json" : "m4-summary.json"}`);
   writeFileSync(summaryPath, `${JSON.stringify(jsonValue(summary), null, 2)}\n`);
   console.log(`[summary] ${summaryPath}`);
+}
+
+function readPreviousM4Results(): Json | undefined {
+  const path = resolve(process.cwd(), "artifacts/m4-summary.json");
+  try {
+    const parsed = JSON.parse(readFileSync(path, "utf8")) as { results?: unknown };
+    return jsonValue(parsed.results);
+  } catch {
+    return undefined;
+  }
+}
+
+function validateRunArtifacts(comparisons: Array<{ baseline: ReturnType<typeof runCommonBaseline> extends Promise<infer T> ? T : never; setpoint: Awaited<ReturnType<typeof runAdaptive>> }>, plannerHash: string): void {
+  assert(comparisons.length === rwaScenarioDefinitions().length, "artifact validation: scenario count mismatch");
+  for (const comparison of comparisons) {
+    assert(comparison.baseline.initialState.stateId === comparison.setpoint.initialState.stateId, "artifact validation: unequal initial state");
+    assert(comparison.baseline.initialState.nav === comparison.setpoint.initialState.nav, "artifact validation: unequal initial NAV");
+    for (const cycle of comparison.setpoint.cycles) {
+      if (cycle.executionHash !== undefined) {
+        assert(cycle.result.kind === "plan" && cycle.result.simulation.passed, "artifact validation: executed batch lacks passing simulation");
+        assert(cycle.stateAfter !== undefined, "artifact validation: executed batch lacks confirmed post-state");
+      }
+    }
+  }
+  if (isBatch) {
+    const previousPath = resolve(process.cwd(), "artifacts/m4-summary.json");
+    const previous = JSON.parse(readFileSync(previousPath, "utf8")) as { m2PlannerSourceSha256?: string };
+    assert(previous.m2PlannerSourceSha256 === plannerHash, "artifact validation: M2 baseline source hash changed since M4");
+  }
 }
 
 function summarizeComparisonSide(side: Record<string, unknown>) {
@@ -463,7 +515,9 @@ function summarizeComparisonSide(side: Record<string, unknown>) {
     vaultTriggerSatisfied: side.vaultTriggerSatisfied,
     targetBandsSatisfied: side.targetBandsSatisfied,
     attemptedPlans: side.attemptedPlans,
+    attemptedBatches: side.attemptedBatches ?? null,
     successfulExecutionSteps: side.successfulExecutionSteps,
+    successfulBatches: side.successfulBatches ?? null,
     failedSimulations: side.failedSimulations,
     attemptedLegs: side.attemptedLegs,
     executedLegs: side.executedLegs,
@@ -472,6 +526,7 @@ function summarizeComparisonSide(side: Record<string, unknown>) {
     expectedExecutionCost: side.expectedExecutionCost ?? null,
     realizedNavDelta: side.realizedNavDelta,
     minimumSafetyMarginWad: side.minimumSafetyMarginWad ?? null,
+    removedLegs: side.removedLegs ?? 0,
     initialDrift: initialState?.drift ?? null,
     finalDrift: finalState?.drift ?? null
   };

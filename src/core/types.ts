@@ -91,10 +91,23 @@ export interface LiquidityDecisionRecord {
   tokenOut: TokenAddress;
   amountIn: bigint;
   expectedOut: bigint;
+  minAmountOut?: bigint;
   oracleOut: bigint;
   safetyMarginOut: bigint;
   safetyMarginWad: bigint;
   priceImpactWad: bigint;
+  desiredAmountIn?: bigint;
+  maximumSafeAmountIn?: bigint;
+  bindingConstraint?: string;
+  expectedQuoteLossValue?: bigint;
+}
+
+export interface ExcludedLiquidityLeg {
+  tokenIn: TokenAddress;
+  tokenOut: TokenAddress;
+  desiredAmountIn: bigint;
+  reason: string;
+  curveId?: string;
 }
 
 export interface RejectedAlternative {
@@ -104,6 +117,7 @@ export interface RejectedAlternative {
   trades?: Trade[];
   expectedTurnover?: bigint;
   liquidityDecisions?: LiquidityDecisionRecord[];
+  excludedLiquidityLegs?: ExcludedLiquidityLeg[];
 }
 
 export interface RebalancePlan {
@@ -121,6 +135,7 @@ export interface RebalancePlan {
   simulation: SimulationResult;
   reason: string;
   liquidityDecisions?: LiquidityDecisionRecord[];
+  excludedLiquidityLegs?: ExcludedLiquidityLeg[];
 }
 
 export type NoTradeReason =
@@ -144,6 +159,7 @@ export interface NoTradeResult {
   reason: NoTradeReason;
   details: string[];
   rejectedAlternatives: RejectedAlternative[];
+  excludedLiquidityLegs?: ExcludedLiquidityLeg[];
 }
 
 export type SolveResult = RebalancePlan | NoTradeResult;

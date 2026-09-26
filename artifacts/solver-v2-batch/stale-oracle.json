@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "benchmark": "setpoint-solver-v2-batch",
+  "scenario": {
+    "id": "stale-oracle",
+    "title": "Stale oracle expected no-trade"
+  },
+  "fork": {
+    "sourceBlockNumber": "124716128",
+    "sourceBlockHash": "0xac02366b6bea0ae2f95508500f3a8d95e4c217aa7b35348d781c1d580f3d2025",
+    "sourceTimestamp": "1790441520"
+  },
+  "setpoint": {
+    "initialAuthoritativeDrift": null,
+    "finalAuthoritativeDrift": null,
+    "vaultTriggerSatisfied": false,
+    "targetBandsSatisfied": false,
+    "attemptedPlans": 0,
+    "attemptedBatches": 0,
+    "successfulExecutionSteps": 0,
+    "successfulBatches": 0,
+    "failedSimulations": 0,
+    "attemptedLegs": 0,
+    "executedLegs": 0,
+    "attemptedTurnover": "0",
+    "executedTurnover": "0",
+    "realizedNavDelta": null,
+    "cyclesOffTarget": 0,
+    "terminalReason": "STALE_PRICE",
+    "algorithm": "Setpoint Solver v2 multi-leg adaptive batch planner",
+    "expectedExecutionCost": null
+  }
+}

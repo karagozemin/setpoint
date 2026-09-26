@@ -12,6 +12,7 @@ const SAMPLE_FRACTIONS: ReadonlyArray<readonly [bigint, bigint]> = [
 
 export interface SamplerOptions {
   quoteMaxAge: bigint;
+  convergenceTarget?: "band-edge" | "midpoint";
 }
 
 export async function sampleRwaLiquidity(
@@ -23,8 +24,13 @@ export async function sampleRwaLiquidity(
   const curves: LiquidityCurve[] = [];
   const cashMin = input.state.nav * input.policy.cashTarget.min / WAD;
   const cashMax = input.state.nav * input.policy.cashTarget.max / WAD;
-  const cashDeficit = input.state.baseAssetBalance < cashMin ? cashMin - input.state.baseAssetBalance : 0n;
-  const excessCash = input.state.baseAssetBalance > cashMax ? input.state.baseAssetBalance - cashMax : 0n;
+  const cashMid = input.state.nav * midpoint(input.policy.cashTarget.min, input.policy.cashTarget.max) / WAD;
+  const cashDeficit = input.state.baseAssetBalance < cashMin
+    ? (options.convergenceTarget === "midpoint" ? cashMid : cashMin) - input.state.baseAssetBalance
+    : 0n;
+  const excessCash = input.state.baseAssetBalance > cashMax
+    ? input.state.baseAssetBalance - (options.convergenceTarget === "midpoint" ? cashMid : cashMax)
+    : 0n;
   const hasOverweight = input.policy.assets.filter(({ enabled }) => enabled).some((asset) => {
     const position = input.state.positions.find(({ token }) => token.toLowerCase() === asset.token.toLowerCase());
     return position !== undefined && position.value > input.state.nav * asset.target.max / WAD;
@@ -39,12 +45,15 @@ export async function sampleRwaLiquidity(
     if (!position || !price || price.priceWad === 0n) continue;
     const minValue = input.state.nav * assetPolicy.target.min / WAD;
     const maxValue = input.state.nav * assetPolicy.target.max / WAD;
+    const targetValue = input.state.nav * midpoint(assetPolicy.target.min, assetPolicy.target.max) / WAD;
+    const sellDestination = options.convergenceTarget === "midpoint" ? targetValue : minValue;
+    const buyDestination = options.convergenceTarget === "midpoint" ? targetValue : maxValue;
     const directionalSellValue = position.value > maxValue
-      ? position.value - maxValue
-      : hasUnderweight && !hasOverweight && position.value > minValue
-        ? position.value - minValue
-      : cashDeficit > 0n && position.value > minValue
-        ? position.value - minValue
+      ? position.value - (options.convergenceTarget === "midpoint" ? targetValue : maxValue)
+      : hasUnderweight && !hasOverweight && position.value > sellDestination
+        ? position.value - sellDestination
+      : cashDeficit > 0n && position.value > sellDestination
+        ? position.value - sellDestination
         : 0n;
     if (directionalSellValue > 0n && position.balance > 0n) {
       const maximumValue = min(directionalSellValue, input.policy.maxLegValue, position.value);
@@ -66,11 +75,11 @@ export async function sampleRwaLiquidity(
       }
     }
     const directionalBuyValue = position.value < minValue
-      ? minValue - position.value
-      : hasOverweight && !hasUnderweight && position.value < maxValue
-        ? maxValue - position.value
-      : excessCash > 0n && position.value < maxValue
-        ? maxValue - position.value
+      ? (options.convergenceTarget === "midpoint" ? targetValue : minValue) - position.value
+      : hasOverweight && !hasUnderweight && position.value < buyDestination
+        ? buyDestination - position.value
+      : excessCash > 0n && position.value < buyDestination
+        ? buyDestination - position.value
         : 0n;
     if (directionalBuyValue > 0n) {
       const maximumAmount = min(directionalBuyValue, input.policy.maxLegValue);
@@ -198,4 +207,8 @@ function min(...values: bigint[]): bigint {
 
 function ceilDiv(numerator: bigint, denominator: bigint): bigint {
   return numerator === 0n ? 0n : (numerator - 1n) / denominator + 1n;
+}
+
+function midpoint(minimum: bigint, maximum: bigint): bigint {
+  return minimum + (maximum - minimum) / 2n;
 }
