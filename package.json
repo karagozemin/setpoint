@@ -1,0 +1,22 @@
+{
+  "name": "setpoint",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Policy-driven rebalance solver and orchestration layer for multi-asset onchain vaults.",
+  "packageManager": "pnpm@10.17.1",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "m1:rwa-index": "bash scripts/m1-rwa-index.sh",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "viem": "2.56.9"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "tsx": "4.23.15",
+    "typescript": "6.0.2"
+  }
+}

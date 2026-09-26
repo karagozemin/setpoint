@@ -1,0 +1,73 @@
+# Setpoint
+
+Setpoint is a non-custodial, policy-driven rebalance solver and orchestration layer for multi-asset onchain vaults. It reads authoritative vault accounting and constraints, proposes the safest useful next rebalance step, simulates that step against the target vault, and re-solves from confirmed state.
+
+The source of truth is [Setpoint PRD v1.1](./Setpoint_PRD_v1_1.pdf). This repository currently implements only M0/M1: a reproducible external-vault harness for the RWA Index deployment on Robinhood Chain testnet. It does not contain the Setpoint solver, UI, CoW/0x adapters, custody, a DEX, cross-vault netting, or new vault accounting.
+
+## M1 status
+
+The harness:
+
+1. starts a disposable Anvil fork of Robinhood Chain testnet (`chainId 46630`);
+2. verifies the pinned external contracts and real role holders;
+3. observes the deployed stale-oracle failure before changing state;
+4. impersonates the existing authorized feeder on the fork and re-timestamps the existing prices;
+5. calls the deployed testnet-only pool syncer as its real owner and checks all five real Synthra pools;
+6. reads the vault's authoritative NAV, balances, targets, drift, and guard parameters;
+7. constructs a small USDC-hub corrective `Trade[]` from the live over/underweights;
+8. requires `rebalance(Trade[])` to pass `eth_call` from the real manager address;
+9. executes the same call only on the disposable fork and verifies strict drift reduction and the NAV floor; and
+10. writes the complete evidence record to `artifacts/rwa-index-m1-latest.json`.
+
+The external source is included as the pinned git submodule `third_party/rwa-index` at commit `b2456ca5400ba9ec36d81691554b889fb9250513`.
+
+## Reproduce
+
+Prerequisites:
+
+- Node.js 20 or newer
+- Corepack/pnpm
+- Foundry tools (`anvil` and `cast`)
+- network access to the public Robinhood Chain testnet RPC
+
+From a fresh clone:
+
+```bash
+git submodule update --init --recursive
+corepack enable
+pnpm install --frozen-lockfile
+pnpm typecheck
+pnpm m1:rwa-index
+```
+
+No private key is needed. The command starts and cleans up Anvil itself. It uses fork-only account impersonation for the deployed oracle feeder/syncer owner and vault manager.
+
+The source RPC can be overridden:
+
+```bash
+RWA_SOURCE_RPC_URL=https://your-rpc.example pnpm m1:rwa-index
+```
+
+An explicit fork block is also supported with `RWA_FORK_BLOCK_NUMBER`, but the public RPC is documented upstream as non-archival and may not serve older state.
+
+## Repository layout
+
+```text
+config/rwa-index.json             chain, addresses, and pinned upstream revision
+integrations/rwa-index/src/       ABI, state reader, candidate builder, fork harness
+scripts/m1-rwa-index.sh           disposable Anvil lifecycle and M1 entry point
+third_party/rwa-index/            pinned external project (git submodule)
+artifacts/                        generated run evidence and Anvil log (ignored)
+BUILD_LOG.md                      implementation record, assumptions, and blockers
+```
+
+## Accuracy and limitations
+
+- The deployed base asset is an 18-decimal mintable mock USDC, not production USDC.
+- The stock tokens and Synthra contracts are external Robinhood Chain testnet deployments; their pool liquidity is toy-sized and is not evidence of production liquidity.
+- The oracle refresh deliberately preserves the deployed price values and updates only their timestamps on the fork. This proves stale-data recovery without claiming those old values are current market prices.
+- Pool synchronization uses the external project's testnet-only syncer. Mainnet markets would require real price discovery/arbitrage rather than this helper.
+- Every state-changing operation is confined to local Anvil. Setpoint does not custody or transfer live funds.
+- M1 proves compatibility and safe simulation against this external vault. It does not yet prove adaptive sizing outperforms the truthful static baseline; that belongs to later benchmark milestones.
+
+See [the integration notes](./integrations/rwa-index/README.md) and [BUILD_LOG.md](./BUILD_LOG.md) for exact behavior and the latest verified run.

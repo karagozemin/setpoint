@@ -1,0 +1,5 @@
+node_modules/
+.env
+artifacts/*.json
+artifacts/*.log
+!artifacts/.gitkeep

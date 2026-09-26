@@ -1,0 +1,24 @@
+{
+  "name": "RWA Index",
+  "network": "Robinhood Chain testnet",
+  "chainId": 46630,
+  "sourceRpcUrl": "https://rpc.testnet.chain.robinhood.com",
+  "upstream": {
+    "repository": "https://github.com/RaYYeR220/rwa-index",
+    "commit": "b2456ca5400ba9ec36d81691554b889fb9250513"
+  },
+  "contracts": {
+    "vault": "0x357CD10343829DBd5889c7b0B2fBc4388fC4875B",
+    "oracle": "0x2F2316d6D4a8952730a71BfCD9fa0Af5A0138AB9",
+    "manager": "0xbB91Fe38652991f0E9735dc139601bD637ae4d66",
+    "poolSyncer": "0x1f954000e202EBbB82Da88D53000b3eF0Cd34aeA",
+    "syncerOwner": "0x156aB5483E47eCd1aFb1260d1093c96F1b9596b7"
+  },
+  "symbols": {
+    "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E": "TSLA",
+    "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02": "AMZN",
+    "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0": "PLTR",
+    "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93": "NFLX",
+    "0x71178BAc73cBeb415514eB542a8995b82669778d": "AMD"
+  }
+}
