@@ -26,7 +26,9 @@ test("multi-vault registry keeps read compatibility separate from execution", ()
   assert.match(integrationCatalog, /PLANNING_AND_SIMULATION/);
   assert.match(integrationCatalog, /LIVE_COMPATIBILITY/);
   assert.match(integrationAdapters, /Setpoint will not fabricate|does not reconstruct an authoritative replacement/);
-  assert.match(liveApp, /Live compatibility/);
+  assert.match(liveApp, /Read-only vault report/);
+  assert.match(liveApp, /Why is there no rebalance button/);
+  assert.match(liveApp, /Open the RWA Index testnet workflow/);
 });
 
 test("live analysis invokes the adapter and shows explicit provenance", () => {

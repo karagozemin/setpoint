@@ -104,7 +104,7 @@ function VaultEntry({ onOpen, busy, error }: { onOpen: (address: string) => void
       <div className="entry-heading">
         <p className="product-kicker">Live integration registry</p>
         <h1>Choose a vault with evidence.</h1>
-        <p>Every active card resolves deployed bytecode and reads current chain state. Planning and execution remain integration-specific.</p>
+        <p>HISS, Fides, and Wield open read-only operator reports. RWA Index opens the complete testnet flow: set targets, analyze, simulate, and submit with an authorized wallet.</p>
       </div>
       {error && <ErrorNotice error={error} />}
       <section className="integration-registry" aria-label="Live vault integrations">
@@ -120,7 +120,7 @@ function VaultEntry({ onOpen, busy, error }: { onOpen: (address: string) => void
               <p className="integration-description">{integration.description}</p>
               <dl><div><dt>Adapter</dt><dd>{integration.capability === "PLANNING_AND_SIMULATION" ? "Plan + exact simulation" : "Live compatibility"}</dd></div><div><dt>Current state</dt><dd>{failed ? "Read failed" : livePreview?.primaryMetric ?? "Loading…"}</dd></div></dl>
               <p className="integration-live-detail">{failed ? "The card remains registered, but Setpoint will not present cached state as live." : livePreview?.detail ?? "Reading the public RPC…"}</p>
-              <button disabled={busy || failed} onClick={() => onOpen(integration.vault)} type="button">{busy ? "Reading…" : integration.capability === "PLANNING_AND_SIMULATION" ? "Open vault →" : "Inspect live state →"}</button>
+              <button disabled={busy || failed} onClick={() => onOpen(integration.vault)} type="button">{busy ? "Reading…" : integration.capability === "PLANNING_AND_SIMULATION" ? "Open execution workflow →" : "Open read-only report →"}</button>
               <details><summary>Why this integration?</summary><p>{integration.why}</p><p className="integration-boundary">{integration.executionBoundary}</p></details>
             </article>;
           })}
@@ -227,13 +227,40 @@ function AnalysisResult({ result, wallet, executing, execution, onExecute }: { r
   </section>;
 }
 
+function CompatibilityGuide({ snapshot, refreshing, onRefresh }: { snapshot: LiveIntegrationSnapshot; refreshing: boolean; onRefresh: () => void }) {
+  const integration = snapshot.integration;
+  const executableIntegration = liveIntegrations.find(({ capability }) => capability === "PLANNING_AND_SIMULATION");
+  return <section className="compatibility-guide" aria-labelledby="compatibility-guide-heading">
+    <div className="compatibility-guide-lead">
+      <p className="product-kicker">How to use this report</p>
+      <h2 id="compatibility-guide-heading">Decision support before a protocol-native rebalance.</h2>
+      <p>Setpoint is the live inspection layer here—not the signer. Use this page to understand the vault now, find blockers, and give the protocol operator evidence before they act through the protocol’s own execution path.</p>
+    </div>
+    <ol className="compatibility-guide-steps">
+      <li><span>01</span><div><strong>Observe</strong><p>Read the deployed vault’s portfolio, accounting, queue, and controls from the current chain block.</p></div></li>
+      <li><span>02</span><div><strong>Diagnose</strong><p>Identify stale feeds, inactive policy, missing capacity, or another condition that makes action unsafe.</p></div></li>
+      <li><span>03</span><div><strong>Hand off</strong><p>Use the evidence below in the keeper or protocol workflow that actually owns execution authority.</p></div></li>
+    </ol>
+    <aside className="compatibility-next-action">
+      <span>Why is there no rebalance button?</span>
+      <p>{snapshot.executionBoundary}</p>
+      <div>
+        <button disabled={refreshing} onClick={onRefresh} type="button">{refreshing ? "Refreshing…" : "Refresh this report"}</button>
+        <a href={integrationExplorerAddress(integration)} target="_blank" rel="noreferrer">View vault on explorer ↗</a>
+      </div>
+      {executableIntegration && <p className="execution-demo-link"><strong>Want the full Setpoint flow?</strong><a href={`/app?vault=${executableIntegration.vault}`}>Open the RWA Index testnet workflow →</a></p>}
+    </aside>
+  </section>;
+}
+
 function CompatibilityWorkspace({ snapshot, refreshing, error, onRefresh, onBack }: { snapshot: LiveIntegrationSnapshot; refreshing: boolean; error: AppError | null; onRefresh: () => void; onBack: () => void }) {
   const integration = snapshot.integration;
   return <main className="operator-workspace compatibility-workspace">
-    <div className="workspace-title"><div><button className="back-action" onClick={onBack} type="button">← All integrations</button><p className="product-kicker">External integration / {integration.shortName}</p><h1>Live compatibility</h1><p><a href={integrationExplorerAddress(integration)} target="_blank" rel="noreferrer">{integration.vault}</a></p></div><div className={`authority-state compatibility-${snapshot.status.toLowerCase()}`}><span>Adapter status</span><strong>{snapshot.statusLabel}</strong><small>Read-only · chain-native state</small></div></div>
+    <div className="workspace-title"><div><button className="back-action" onClick={onBack} type="button">← All integrations</button><p className="product-kicker">External integration / {integration.shortName}</p><h1>Read-only vault report</h1><p><a href={integrationExplorerAddress(integration)} target="_blank" rel="noreferrer">{integration.vault}</a></p></div><div className={`authority-state compatibility-${snapshot.status.toLowerCase()}`}><span>Adapter status</span><strong>{snapshot.statusLabel}</strong><small>Decision support · no wallet required</small></div></div>
     <div className="live-provenance"><span className="live-mark"><i /> LIVE RPC</span><span>{integration.network}</span><span>Block <strong>#{snapshot.blockNumber.toString()}</strong></span><span>Updated {new Date(snapshot.readAt).toLocaleTimeString()}</span><button onClick={onRefresh} disabled={refreshing} type="button">{refreshing ? "Refreshing…" : "Refresh state"}</button></div>
     {error && <ErrorNotice error={error} />}
     <div className={`compatibility-summary summary-${snapshot.status.toLowerCase()}`}><div><span>{snapshot.statusLabel}</span><h2>{integration.name}</h2><p>{snapshot.summary}</p></div><a href={integration.sourceRepository} target="_blank" rel="noreferrer">Verified source ↗</a></div>
+    <CompatibilityGuide snapshot={snapshot} refreshing={refreshing} onRefresh={onRefresh} />
     <dl className="compatibility-metrics">{snapshot.metrics.map((metric) => <div className={metric.tone ?? "neutral"} key={metric.label}><dt>{metric.label}</dt><dd>{metric.value}</dd>{metric.note && <small>{metric.note}</small>}</div>)}</dl>
     <div className="compatibility-grid">
       <section className="operator-section compatibility-holdings" aria-labelledby="compatibility-holdings-heading"><div className="section-heading"><div><p className="product-kicker">01 / Live inventory</p><h2 id="compatibility-holdings-heading">Holdings and registry</h2></div><span>{snapshot.holdings.length} rows</span></div><div className="compatibility-table"><div className="compatibility-table-head"><span>Asset</span><span>Live balance</span><span>Policy</span><span>Evidence</span></div>{snapshot.holdings.map((holding) => <div className="compatibility-table-row" key={holding.address}><span><strong>{holding.symbol}</strong><code>{compact(holding.address)}</code></span><span>{holding.balance}</span><span>{holding.policy}</span><span className={`compat-evidence evidence-${holding.status.toLowerCase()}`}><i />{holding.evidence}<small>{holding.status}</small></span></div>)}</div></section>

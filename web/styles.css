@@ -552,6 +552,28 @@ body {
 .compatibility-summary h2 { margin: 10px 0; font-size: 2rem; font-weight: 520; letter-spacing: -.04em; }
 .compatibility-summary p { max-width: 850px; margin: 0; color: var(--muted-strong); font-size: .72rem; line-height: 1.55; }
 .compatibility-summary a { color: var(--signal); font-size: .65rem; white-space: nowrap; }
+.compatibility-guide { display: grid; grid-template-columns: minmax(250px, .8fr) minmax(380px, 1.35fr) minmax(280px, .85fr); margin-top: 22px; border: 1px solid var(--border-strong); background: var(--surface); }
+.compatibility-guide-lead { padding: 28px; border-right: 1px solid var(--border-strong); }
+.compatibility-guide-lead .product-kicker { margin-bottom: 13px; color: var(--signal); }
+.compatibility-guide-lead h2 { max-width: 420px; margin: 0; font-size: 1.7rem; font-weight: 520; letter-spacing: -.04em; line-height: 1.08; }
+.compatibility-guide-lead > p:last-child { margin: 18px 0 0; color: var(--muted); font-size: .66rem; line-height: 1.6; }
+.compatibility-guide-steps { margin: 0; padding: 0; list-style: none; }
+.compatibility-guide-steps li { display: grid; grid-template-columns: 34px 1fr; gap: 14px; min-height: 94px; padding: 18px 22px; border-bottom: 1px solid var(--border); }
+.compatibility-guide-steps li:last-child { border-bottom: 0; }
+.compatibility-guide-steps li > span { display: grid; width: 28px; height: 28px; place-items: center; border: 1px solid var(--border-strong); color: var(--signal); font-family: var(--mono); font-size: .53rem; }
+.compatibility-guide-steps strong { font-size: .7rem; }
+.compatibility-guide-steps p { margin: 7px 0 0; color: var(--muted); font-size: .61rem; line-height: 1.5; }
+.compatibility-next-action { padding: 25px; border-left: 1px solid var(--border-strong); background: var(--surface-quiet); }
+.compatibility-next-action > span { color: var(--intervention); font-family: var(--mono); font-size: .55rem; letter-spacing: .06em; text-transform: uppercase; }
+.compatibility-next-action > p { margin: 15px 0 20px; color: var(--muted-strong); font-size: .63rem; line-height: 1.55; }
+.compatibility-next-action > div { display: grid; gap: 8px; }
+.compatibility-next-action button, .compatibility-next-action > div a { display: grid; min-height: 40px; place-items: center; border: 1px solid var(--border-strong); background: transparent; color: var(--foreground); cursor: pointer; font-size: .61rem; text-decoration: none; }
+.compatibility-next-action button:hover, .compatibility-next-action > div a:hover { border-color: var(--signal); color: var(--signal); }
+.compatibility-next-action button:disabled { color: var(--muted); cursor: wait; }
+.compatibility-next-action .execution-demo-link { margin: 24px 0 0; padding-top: 18px; border-top: 1px solid var(--border); }
+.execution-demo-link strong, .execution-demo-link a { display: block; }
+.execution-demo-link strong { margin-bottom: 8px; color: var(--foreground); font-size: .63rem; }
+.execution-demo-link a { color: var(--signal); font-size: .62rem; }
 .compatibility-metrics { display: grid; grid-template-columns: repeat(4, 1fr); margin: 0; border-right: 1px solid var(--border-strong); border-left: 1px solid var(--border-strong); }
 .compatibility-metrics > div { min-height: 100px; padding: 18px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border-strong); }
 .compatibility-metrics > div:last-child { border-right: 0; }
@@ -607,6 +629,9 @@ body {
   .vault-preset .live-mark, .vault-preset code { display: none; }
   .compatibility-grid { grid-template-columns: 1fr; }
   .compatibility-guards { border-top: 1px solid var(--border-strong) !important; border-left: 0 !important; }
+  .compatibility-guide { grid-template-columns: 1fr 1fr; }
+  .compatibility-guide-lead { grid-column: 1 / -1; border-right: 0; border-bottom: 1px solid var(--border-strong); }
+  .compatibility-next-action { border-left: 1px solid var(--border-strong); }
   .execution-boundary { grid-template-columns: 160px 1fr; }
   .execution-boundary p:last-child { grid-column: 2; }
 }
@@ -674,6 +699,9 @@ body {
   .integration-limit { display: block; }
   .integration-limit p { margin-top: 15px; }
   .compatibility-summary { grid-template-columns: 1fr; }
+  .compatibility-guide { display: block; }
+  .compatibility-guide-lead, .compatibility-next-action { border: 0; border-bottom: 1px solid var(--border-strong); }
+  .compatibility-guide-steps { border-bottom: 1px solid var(--border-strong); }
   .compatibility-metrics { grid-template-columns: repeat(2, 1fr); }
   .compatibility-table { min-width: 760px; }
   .compatibility-checks { grid-template-columns: 1fr; }
