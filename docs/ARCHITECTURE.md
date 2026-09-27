@@ -12,7 +12,7 @@ This document describes the M6 repository architecture, including a crucial impl
 
 - the **chain-independent hybrid core** contains all three decision modes and is demonstrated by deterministic and fork-backed evidence;
 - the **RWA Index planning adapter** can return `FAST_PATH` or `NO_TRADE`, but deliberately cannot invoke adaptive fallback because the deployed venue exposes no trustworthy public executable-quote interface; and
-- the **HISS V2, Fides Frontier, and Wield adapters** expose protocol-specific live state and Setpoint compatibility checks without fabricating targets, calldata, signer authority, or simulation support.
+- the **Vimen, HISS V2, Fides Frontier, MAG7, and Wield adapters** expose protocol-specific live state and Setpoint compatibility checks without fabricating targets, calldata, signer authority, or simulation support.
 
 That distinction is a safety property, not a missing UI state.
 
@@ -29,7 +29,7 @@ The system is organized around six invariants.
 
 ## 3. System context
 
-Setpoint is currently a browser-delivered static application. There is no Setpoint API server, database, relayer, signing service, or deployed Setpoint contract in the execution path.
+Setpoint is currently a browser-delivered static application. There is no Setpoint application API, database, relayer, signing service, or deployed Setpoint contract in the execution path. The deployment exposes two fixed same-origin RPC pass-through routes (`/rpc/mainnet` and `/rpc/testnet`) because the upstream public RPC intermittently returns invalid duplicate CORS headers; these routes do not cache, interpret, or mutate JSON-RPC payloads.
 
 ```mermaid
 flowchart LR
@@ -48,7 +48,7 @@ flowchart LR
     Wallet[Injected EIP-1193 wallet]
     MainnetRPC[Robinhood Chain mainnet RPC]
     TestnetRPC[Robinhood Chain testnet RPC]
-    MainnetVaults[HISS · Fides · Wield]
+    MainnetVaults[Vimen · HISS · Fides · MAG7 · Wield]
     Vault[External RWA Index vault]
     Oracle[External oracle]
     Swap[External swap adapter]
@@ -70,7 +70,7 @@ flowchart LR
     Evidence --> ArtifactAdapter --> Artifacts
 ```
 
-The browser communicates directly with public chain infrastructure. Transaction signing remains inside the injected wallet. Historical JSON is bundled as static application data and has no route to the live adapter.
+The browser communicates with public chain infrastructure through those fixed transport rewrites. Local Node smoke tests call the same upstream RPC origins directly. Transaction signing remains inside the injected wallet. Historical JSON is bundled as static application data and has no route to the live adapter.
 
 ## 4. Runtime surfaces and boundaries
 
@@ -151,14 +151,16 @@ The registry is an allowlist of exact chain/address pairs, not ERC-4626 interfac
 
 | Integration | Native model | Setpoint capability | Current execution boundary |
 |---|---|---|---|
+| Vimen Agentic MAG7 | Funded mutable seven-stock recipe with immutable asset-registry, maker, cooldown, turnover, slippage, and full-backing guards | Live balances, backing units, feed ages, policy, full-backing result, and oracle-gated NAV reads | Read-only; the agent key and a registered maker own execution |
 | HISS Vault V2 | Queue-routed USDG vault with keeper, liveness, capacity, and held-asset surfaces | Live accounting, portfolio, queue, guard, and compatibility reads | Read-only; keeper/rebalance lane is protocol-controlled and currently inactive by policy |
 | Fides Frontier | Unit-backed immutable basket with constrained rebalancer | Live balances, backing units, oracle ages, full-backing result, and guard reads | Read-only; external rebalancer and route construction are required |
+| MAG7 Index Vault | Equal-weight seven-stock index with vault-native NAV, freshness, drift band, notional cap, and leg cooldown | Live deployment, inventory, accounting, feed and bounded-rebalance policy reads | Read-only and secondary while the deployment has zero issued supply and inventory |
 | Wield RWA Vault | ERC-4626 USDG vault with agent-signed allocation intents | Live registry, balances, oracle metadata, nonce, signer, and guard reads | Read-only; a valid `agentDid` signature is required |
 | RWA Index | Target-weight vault with `rebalance(Trade[])` | Allocation validation, simple planning, exact simulation, export, and authorized submission | No adaptive live fallback without executable quote evidence |
 
-The three mainnet adapters produce a `LiveIntegrationSnapshot`: block provenance, readiness (`READY`, `DEGRADED`, or `EMPTY`), metrics, holdings, guards, compatibility checks, and a human-readable execution boundary. `READY` means the declared read surface is healthy; it does not silently upgrade a read adapter into a transaction adapter.
+The five mainnet adapters produce a `LiveIntegrationSnapshot`: block provenance, readiness (`READY`, `DEGRADED`, or `EMPTY`), metrics, holdings, guards, compatibility checks, and a human-readable execution boundary. `READY` means the declared read surface is healthy; it does not silently upgrade a read adapter into a transaction adapter.
 
-The catalog UI reads all four deployments concurrently. A failed RPC read is shown as unavailable rather than replaced with cached values. Selecting a mainnet integration opens a live compatibility workspace. Selecting RWA Index enters the planning pipeline below.
+The catalog UI reads all six deployments concurrently. Vimen, HISS, Fides, and RWA Index occupy the primary grid; the currently empty MAG7 and Wield deployments remain in a visible secondary watchlist. A failed RPC read is shown as unavailable rather than replaced with cached values. Selecting a mainnet integration opens a live compatibility workspace. Selecting RWA Index enters the planning pipeline below.
 
 ## 7. RWA Index live decision pipeline
 
@@ -384,7 +386,7 @@ Because `/app` is client-side, its RPC URL and registered contract addresses are
 | Product build | `pnpm build` | The browser application compiles and bundles |
 | Evidence UI | `pnpm demo:check` | Accepted artifact flows remain renderable and internally consistent |
 | Security cases | `pnpm security:demo` | Five scenarios and 11 fail-closed invariants regenerate deterministically |
-| Integration registry | `pnpm integrations:smoke` | All four addresses resolve to bytecode and their declared live read surfaces remain callable |
+| Integration registry | `pnpm integrations:smoke` | All six addresses resolve to bytecode and their declared live read surfaces remain callable |
 | External read path | `pnpm live:smoke` | Current chain, bytecode, addresses, guards, oracle reads, and `eth_call` capability |
 | Fork milestones | `pnpm m1:rwa-index` through `pnpm m4:hybrid` | Historical compatibility and planning evidence |
 

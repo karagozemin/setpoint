@@ -4,6 +4,8 @@
   "outputDirectory": "dist/operator-console",
   "framework": "vite",
   "rewrites": [
+    { "source": "/rpc/mainnet", "destination": "https://rpc.mainnet.chain.robinhood.com" },
+    { "source": "/rpc/testnet", "destination": "https://rpc.testnet.chain.robinhood.com" },
     { "source": "/app", "destination": "/index.html" },
     { "source": "/app/:path*", "destination": "/index.html" },
     { "source": "/evidence", "destination": "/index.html" }

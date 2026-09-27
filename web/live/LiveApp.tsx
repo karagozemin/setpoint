@@ -87,6 +87,20 @@ function Header({ wallet, readOnly, onConnect, onSwitch, onDisconnect }: { walle
 
 type PreviewState = IntegrationPreview | { error: string } | null;
 
+function IntegrationCard({ integration, index, preview, busy, onOpen }: { integration: LiveIntegrationDefinition; index: number; preview: PreviewState | undefined; busy: boolean; onOpen: (address: string) => void }) {
+  const failed = preview !== null && preview !== undefined && "error" in preview;
+  const livePreview = preview !== null && preview !== undefined && !("error" in preview) ? preview : null;
+  return <article className={`integration-card integration-${integration.id}`}>
+    <div className="integration-card-top"><span>{String(index + 1).padStart(2, "0")}</span><span className={failed ? "adapter-state failed" : `adapter-state ${livePreview?.status.toLowerCase() ?? "loading"}`}><i />{failed ? "RPC UNAVAILABLE" : livePreview?.statusLabel ?? "READING LIVE STATE"}</span></div>
+    <div><p>{integration.network} · {integration.chainId}</p><h2>{integration.name}</h2><code>{compact(integration.vault)}</code></div>
+    <p className="integration-description">{integration.description}</p>
+    <dl><div><dt>Adapter</dt><dd>{integration.capability === "PLANNING_AND_SIMULATION" ? "Plan + exact simulation" : "Live compatibility"}</dd></div><div><dt>Current state</dt><dd>{failed ? "Read failed" : livePreview?.primaryMetric ?? "Loading…"}</dd></div></dl>
+    <p className="integration-live-detail">{failed ? "The card remains registered, but Setpoint will not present cached state as live." : livePreview?.detail ?? "Reading the public RPC…"}</p>
+    <button disabled={busy || failed} onClick={() => onOpen(integration.vault)} type="button">{busy ? "Reading…" : integration.capability === "PLANNING_AND_SIMULATION" ? "Open execution workflow →" : "Open read-only report →"}</button>
+    <details><summary>Why this integration?</summary><p>{integration.why}</p><p className="integration-boundary">{integration.executionBoundary}</p></details>
+  </article>;
+}
+
 function VaultEntry({ onOpen, busy, error }: { onOpen: (address: string) => void; busy: boolean; error: AppError | null }) {
   const [address, setAddress] = useState("");
   const [previews, setPreviews] = useState<Record<string, PreviewState>>({});
@@ -99,31 +113,24 @@ function VaultEntry({ onOpen, busy, error }: { onOpen: (address: string) => void
     }
     return () => { active = false; };
   }, []);
+  const primaryIntegrations = liveIntegrations.filter(({ registryTier }) => registryTier === "PRIMARY");
+  const secondaryIntegrations = liveIntegrations.filter(({ registryTier }) => registryTier === "SECONDARY");
   return (
     <main className="vault-entry">
       <div className="entry-heading">
         <p className="product-kicker">Live integration registry</p>
         <h1>Choose a vault with evidence.</h1>
-        <p>HISS, Fides, and Wield open read-only operator reports. RWA Index opens the complete testnet flow: set targets, analyze, simulate, and submit with an authorized wallet.</p>
+        <p>Funded, meaningful state stays in the primary grid. Empty deployments remain visible in the watchlist. RWA Index is the complete testnet flow: set targets, analyze, simulate, and submit with an authorized wallet.</p>
       </div>
       {error && <ErrorNotice error={error} />}
       <section className="integration-registry" aria-label="Live vault integrations">
-        <div className="registry-heading"><span>LIVE VAULTS</span><small>4 external contracts · 2 networks</small></div>
+        <div className="registry-heading"><span>PRIMARY LIVE SURFACES</span><small>{primaryIntegrations.length} priority adapters · current RPC state</small></div>
         <div className="integration-cards">
-          {liveIntegrations.map((integration, index) => {
-            const preview = previews[integration.id];
-            const failed = preview !== null && preview !== undefined && "error" in preview;
-            const livePreview = preview !== null && preview !== undefined && !("error" in preview) ? preview : null;
-            return <article className={`integration-card integration-${integration.id}`} key={integration.id}>
-              <div className="integration-card-top"><span>{String(index + 1).padStart(2, "0")}</span><span className={failed ? "adapter-state failed" : `adapter-state ${livePreview?.status.toLowerCase() ?? "loading"}`}><i />{failed ? "RPC UNAVAILABLE" : livePreview?.statusLabel ?? "READING LIVE STATE"}</span></div>
-              <div><p>{integration.network} · {integration.chainId}</p><h2>{integration.name}</h2><code>{compact(integration.vault)}</code></div>
-              <p className="integration-description">{integration.description}</p>
-              <dl><div><dt>Adapter</dt><dd>{integration.capability === "PLANNING_AND_SIMULATION" ? "Plan + exact simulation" : "Live compatibility"}</dd></div><div><dt>Current state</dt><dd>{failed ? "Read failed" : livePreview?.primaryMetric ?? "Loading…"}</dd></div></dl>
-              <p className="integration-live-detail">{failed ? "The card remains registered, but Setpoint will not present cached state as live." : livePreview?.detail ?? "Reading the public RPC…"}</p>
-              <button disabled={busy || failed} onClick={() => onOpen(integration.vault)} type="button">{busy ? "Reading…" : integration.capability === "PLANNING_AND_SIMULATION" ? "Open execution workflow →" : "Open read-only report →"}</button>
-              <details><summary>Why this integration?</summary><p>{integration.why}</p><p className="integration-boundary">{integration.executionBoundary}</p></details>
-            </article>;
-          })}
+          {primaryIntegrations.map((integration, index) => <IntegrationCard busy={busy} index={index} integration={integration} key={integration.id} onOpen={onOpen} preview={previews[integration.id]} />)}
+        </div>
+        <div className="registry-heading registry-heading-secondary"><span>SECONDARY / WATCHLIST</span><small>Deployed and monitored · not promoted while empty</small></div>
+        <div className="integration-cards integration-cards-secondary">
+          {secondaryIntegrations.map((integration, index) => <IntegrationCard busy={busy} index={primaryIntegrations.length + index} integration={integration} key={integration.id} onOpen={onOpen} preview={previews[integration.id]} />)}
         </div>
       </section>
       <form className="address-entry" onSubmit={(event) => { event.preventDefault(); onOpen(address); }}>
@@ -259,7 +266,7 @@ function CompatibilityWorkspace({ snapshot, refreshing, error, onRefresh, onBack
     <div className="workspace-title"><div><button className="back-action" onClick={onBack} type="button">← All integrations</button><p className="product-kicker">External integration / {integration.shortName}</p><h1>Read-only vault report</h1><p><a href={integrationExplorerAddress(integration)} target="_blank" rel="noreferrer">{integration.vault}</a></p></div><div className={`authority-state compatibility-${snapshot.status.toLowerCase()}`}><span>Adapter status</span><strong>{snapshot.statusLabel}</strong><small>Decision support · no wallet required</small></div></div>
     <div className="live-provenance"><span className="live-mark"><i /> LIVE RPC</span><span>{integration.network}</span><span>Block <strong>#{snapshot.blockNumber.toString()}</strong></span><span>Updated {new Date(snapshot.readAt).toLocaleTimeString()}</span><button onClick={onRefresh} disabled={refreshing} type="button">{refreshing ? "Refreshing…" : "Refresh state"}</button></div>
     {error && <ErrorNotice error={error} />}
-    <div className={`compatibility-summary summary-${snapshot.status.toLowerCase()}`}><div><span>{snapshot.statusLabel}</span><h2>{integration.name}</h2><p>{snapshot.summary}</p></div><a href={integration.sourceRepository} target="_blank" rel="noreferrer">Verified source ↗</a></div>
+    <div className={`compatibility-summary summary-${snapshot.status.toLowerCase()}`}><div><span>{snapshot.statusLabel}</span><h2>{integration.name}</h2><p>{snapshot.summary}</p></div><a href={integration.sourceRepository} target="_blank" rel="noreferrer">Source &amp; protocol docs ↗</a></div>
     <CompatibilityGuide snapshot={snapshot} refreshing={refreshing} onRefresh={onRefresh} />
     <dl className="compatibility-metrics">{snapshot.metrics.map((metric) => <div className={metric.tone ?? "neutral"} key={metric.label}><dt>{metric.label}</dt><dd>{metric.value}</dd>{metric.note && <small>{metric.note}</small>}</div>)}</dl>
     <div className="compatibility-grid">
@@ -267,7 +274,7 @@ function CompatibilityWorkspace({ snapshot, refreshing, error, onRefresh, onBack
       <section className="operator-section compatibility-guards" aria-labelledby="compatibility-guards-heading"><div className="section-heading"><div><p className="product-kicker">02 / Onchain controls</p><h2 id="compatibility-guards-heading">Policy and guards</h2></div></div><dl>{snapshot.guards.map((guard) => <div key={guard.label}><dt>{guard.label}</dt><dd>{guard.value}</dd></div>)}</dl></section>
     </div>
     <section className="operator-section compatibility-analysis" aria-labelledby="compatibility-analysis-heading"><div className="section-heading"><div><p className="product-kicker">03 / Setpoint analysis</p><h2 id="compatibility-analysis-heading">Compatibility boundary</h2></div><span>LIVE READ ADAPTER</span></div><div className="compatibility-checks">{snapshot.checks.map((check) => <article className={`check-${check.status.toLowerCase()}`} key={check.label}><span>{check.status === "PASS" ? "✓" : check.status === "WARN" ? "!" : "i"}</span><div><strong>{check.label}</strong><p>{check.detail}</p></div></article>)}</div><div className="execution-boundary"><strong>Execution boundary</strong><p>{snapshot.executionBoundary}</p><p>Setpoint will not fabricate target weights, calldata, signer authority, or simulation support from an incompatible vault interface.</p></div></section>
-    <div className="integration-limit"><strong>External integration disclosure</strong><p>{integration.name} is an independently operated external protocol. This adapter establishes technical read compatibility only; it is not a partnership, customer, endorsement, audit, or Setpoint-managed deployment.</p><span>Source pinned at <code>{integration.sourceCommit.slice(0, 12)}</code></span></div>
+    <div className="integration-limit"><strong>External integration disclosure</strong><p>{integration.name} is an independently operated external protocol. This adapter establishes technical read compatibility only; it is not a partnership, customer, endorsement, audit, or Setpoint-managed deployment.</p><span>{integration.sourceKind === "RUNTIME_BYTECODE" ? "Runtime bytecode" : "Source commit"} pinned at <code>{integration.sourceCommit.slice(0, 12)}</code></span></div>
   </main>;
 }
 
@@ -288,7 +295,7 @@ export default function LiveApp() {
   const [allocation, setAllocation] = useState<ProposedAllocation | null>(null);
   const [analysis, setAnalysis] = useState<LiveAnalysisResult | null>(null);
   const [execution, setExecution] = useState<ExecutionResult | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(initialVault !== null);
   const [analyzing, setAnalyzing] = useState(false);
   const [executing, setExecuting] = useState(false);
   const [error, setError] = useState<AppError | null>(null);

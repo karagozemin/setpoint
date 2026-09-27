@@ -387,7 +387,10 @@ body {
 .integration-registry { border-top: 1px solid var(--border-strong); }
 .registry-heading { display: flex; justify-content: space-between; padding: 14px 0; color: var(--muted); font-family: var(--mono); font-size: .57rem; letter-spacing: .08em; }
 .registry-heading span { color: var(--foreground); }
+.registry-heading-secondary { margin-top: 42px; border-top: 1px solid var(--border-strong); }
+.registry-heading-secondary span { color: var(--muted-strong); }
 .integration-cards { display: grid; grid-template-columns: repeat(2, 1fr); border-top: 1px solid var(--border-strong); border-left: 1px solid var(--border-strong); }
+.integration-cards-secondary .integration-card { background: var(--surface-quiet); }
 .integration-card { display: flex; min-height: 390px; flex-direction: column; padding: 24px; border-right: 1px solid var(--border-strong); border-bottom: 1px solid var(--border-strong); background: var(--surface); }
 .integration-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 36px; color: var(--muted); font-family: var(--mono); font-size: .55rem; letter-spacing: .06em; }
 .adapter-state { display: inline-flex; align-items: center; gap: 7px; color: var(--signal); }

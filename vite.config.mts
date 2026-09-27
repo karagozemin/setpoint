@@ -74,6 +74,20 @@ function evidencePlugin() {
 export default defineConfig({
   plugins: [react(), evidencePlugin()],
   publicDir: "web/public",
+  server: {
+    proxy: {
+      "/rpc/mainnet": {
+        target: "https://rpc.mainnet.chain.robinhood.com",
+        changeOrigin: true,
+        rewrite: () => "/",
+      },
+      "/rpc/testnet": {
+        target: "https://rpc.testnet.chain.robinhood.com",
+        changeOrigin: true,
+        rewrite: () => "/",
+      },
+    },
+  },
   build: {
     outDir: "dist/operator-console",
     emptyOutDir: true,

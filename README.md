@@ -52,20 +52,22 @@ RPC failures, wallet rejection, unsupported integrations, and transaction revert
 
 ## Live integration registry
 
-The registry recognizes four explicitly versioned external deployments. Every card checks deployed bytecode and current RPC state; capability labels distinguish read compatibility from planning and execution.
+The registry recognizes six explicitly pinned external deployments. Four meaningful operator surfaces are prioritized; empty deployments remain visible in a secondary watchlist instead of occupying the primary grid. Every card checks deployed bytecode and current RPC state, and capability labels distinguish read compatibility from planning and execution.
 
 | Integration | Network | Address | Capability |
 |---|---|---|---|
+| Vimen Agentic MAG7 | Robinhood Chain · `4663` | `0x39b3B771D6fAbF4eFD775Ae090AfDdf14f82520F` | Live recipe, balances, full-backing proof, feed ages, and immutable rebalance-policy analysis |
 | HISS Vault V2 | Robinhood Chain · `4663` | `0x432e90b1B35995EBE46eD93B4Db369abfc230E69` | Live accounting, holdings, queue/liveness, and compatibility analysis |
 | Fides Frontier | Robinhood Chain · `4663` | `0x4504483Ea748e630A9368F44f0Ee5B4350462Db8` | Live backing, constituent, oracle, guard, and compatibility analysis |
-| Wield RWA Vault | Robinhood Chain · `4663` | `0x7769526f55cd6B0B8a9E0Bf9e124618A0fe084de` | Live underlying registry, signed-intent policy, and compatibility analysis |
 | RWA Index | Robinhood Chain testnet · `46630` | `0x357CD10343829DBd5889c7b0B2fBc4388fC4875B` | Target editing, simple-batch planning, exact simulation, and authorized submission |
+| MAG7 Index Vault · watchlist | Robinhood Chain · `4663` | `0xc6ff4bc6E90a624a20D5c06679965A951a5Ba2F4` | Seven fixed legs, NAV/share, feed freshness, drift band, per-leg cap, and cooldown reads |
+| Wield RWA Vault · watchlist | Robinhood Chain · `4663` | `0x7769526f55cd6B0B8a9E0Bf9e124618A0fe084de` | Live underlying registry, signed-intent policy, and compatibility analysis |
 
-The mainnet adapters normalize only facts their native contracts expose. HISS has queue and keeper semantics; Fides uses backing units and a constrained rebalancer; Wield requires an agent-signed allocation intent. Setpoint does not fabricate a common target-weight execution interface across them.
+The mainnet adapters normalize only facts their native contracts expose. Vimen exposes a rotating recipe plus hard agent/maker policy; HISS has queue and keeper semantics; Fides uses backing units and a constrained rebalancer; MAG7 exposes an equal-weight vault policy; Wield requires an agent-signed allocation intent. Setpoint does not fabricate a common target-weight execution interface across them.
 
-At the latest integration smoke test, HISS V2 exposed a funded live portfolio, Fides was funded and fully backed but its own `nav()` rejected stale oracle evidence, Wield's flagship contract exposed its complete policy surface but reported zero assets and share supply, and RWA Index remained oracle-stale. These labels are refreshed from RPC in `/app`; they are observations, not permanent claims.
+At the 2026-09-27 integration smoke test, Vimen Agentic MAG7 exposed 24 VMAG of fully backed seven-leg inventory but its 24-hour stock feeds were stale over the weekend; HISS V2 exposed a funded live portfolio; Fides was funded and fully backed but its own `nav()` rejected stale oracle evidence; RWA Index remained oracle-stale; and both MAG7 Index Vault and Wield reported zero issued supply and zero portfolio NAV. These labels are refreshed from RPC in `/app`; they are observations, not permanent claims.
 
-All four are independent external technical integrations. They are not Setpoint customers, partners, endorsements, audited by Setpoint, or sources of funds managed by Setpoint. Source repositories and pinned commits are recorded in `src/live/integration-catalog.ts`.
+All six are independent external technical integrations. They are not Setpoint customers, partners, endorsements, audited by Setpoint, or sources of funds managed by Setpoint. Source repositories and pinned commits are recorded in `src/live/integration-catalog.ts`; MAG7's currently unavailable source-repository link is replaced by its official protocol documentation plus a pinned runtime-bytecode hash.
 
 ### RWA Index planning boundary
 
@@ -163,7 +165,9 @@ pnpm integrations:smoke
 pnpm live:smoke
 ```
 
-Both smoke commands are read-only. `pnpm integrations:smoke` checks all four registered deployments and reports current readiness without upgrading degraded or empty state to “ready.” `pnpm live:smoke` performs the deeper RWA Index planning-path checks, including exact `eth_call` capability. Results depend on external RPC and contract state.
+Both smoke commands are read-only. `pnpm integrations:smoke` checks all six registered deployments and reports current readiness without upgrading degraded or empty state to “ready.” `pnpm live:smoke` performs the deeper RWA Index planning-path checks, including exact `eth_call` capability. Results depend on external RPC and contract state.
+
+Browser reads use the fixed same-origin `/rpc/mainnet` and `/rpc/testnet` pass-through routes configured in Vite and Vercel. This avoids the upstream public RPC's intermittent invalid duplicate CORS header without introducing caching or a Setpoint data API. CLI smoke tests continue to call the public RPC origins directly.
 
 Historical milestones remain reproducible independently:
 
@@ -203,7 +207,7 @@ integrations/rwa-index/         accepted planner, ABI, fork harness, and probes
 artifacts/                      versioned historical and security evidence
 security/                       deterministic security scenarios
 scripts/live-smoke.ts           non-mutating public-RPC validation
-scripts/integration-smoke.ts    four-integration bytecode/state validation
+scripts/integration-smoke.ts    six-integration bytecode/state validation
 config/rwa-index.json           verified external deployment configuration
 third_party/rwa-index/          pinned external source
 docs/                           architecture, security model, and decisions

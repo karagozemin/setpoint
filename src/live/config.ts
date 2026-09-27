@@ -1,8 +1,11 @@
 import { defineChain, type Address } from "viem";
 
-export const ROBINHOOD_RPC_URL = "https://rpc.testnet.chain.robinhood.com";
+const ROBINHOOD_TESTNET_RPC_ORIGIN = "https://rpc.testnet.chain.robinhood.com";
+const ROBINHOOD_MAINNET_RPC_ORIGIN = "https://rpc.mainnet.chain.robinhood.com";
+
+export const ROBINHOOD_RPC_URL = typeof window === "undefined" ? ROBINHOOD_TESTNET_RPC_ORIGIN : "/rpc/testnet";
 export const ROBINHOOD_EXPLORER_URL = "https://explorer.testnet.chain.robinhood.com";
-export const ROBINHOOD_MAINNET_RPC_URL = "https://rpc.mainnet.chain.robinhood.com";
+export const ROBINHOOD_MAINNET_RPC_URL = typeof window === "undefined" ? ROBINHOOD_MAINNET_RPC_ORIGIN : "/rpc/mainnet";
 export const ROBINHOOD_MAINNET_EXPLORER_URL = "https://robinhoodchain.blockscout.com";
 
 export const robinhoodTestnet = defineChain({

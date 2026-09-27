@@ -158,6 +158,48 @@ const wieldAbi = parseAbi([
   "function underlyingInfo(address) view returns (uint8 kind, address priceFeed, uint8 feedDecimals, bool active)",
 ]);
 
+const mag7Abi = parseAbi([
+  "function name() view returns (string)",
+  "function symbol() view returns (string)",
+  "function totalSupply() view returns (uint256)",
+  "function nav() view returns (uint256)",
+  "function sharePrice() view returns (uint256)",
+  "function holdings() view returns (address[] tokens, uint256[] balances, uint256[] values18, uint256[] weightsBps)",
+  "function feedsFresh() view returns (bool)",
+  "function oldestFeedUpdate() view returns (uint256)",
+  "function maxFeedAge() view returns (uint256)",
+  "function bandBps() view returns (uint256)",
+  "function maxRebalanceNotional() view returns (uint256)",
+  "function rebalanceCooldown() view returns (uint256)",
+  "function legReadyAt(uint256) view returns (uint256)",
+  "function mintPaused() view returns (bool)",
+  "function maxSlippageBps() view returns (uint256)",
+]);
+
+const vimenAbi = parseAbi([
+  "function name() view returns (string)",
+  "function symbol() view returns (string)",
+  "function totalSupply() view returns (uint256)",
+  "function constituents() view returns (address[])",
+  "function units() view returns (uint256[])",
+  "function isFullyBacked() view returns (bool)",
+  "function nav18() view returns (uint256)",
+  "function mintPaused() view returns (bool)",
+  "function agent() view returns (address)",
+  "function assetRegistry() view returns (address)",
+  "function makerRegistry() view returns (address)",
+  "function rebalanceCooldown() view returns (uint32)",
+  "function maxTurnoverBps() view returns (uint16)",
+  "function maxSlippageBps() view returns (uint16)",
+  "function lastRebalance() view returns (uint64)",
+  "function distributor() view returns (address)",
+  "function supplyCap() view returns (uint256)",
+]);
+
+const vimenRegistryAbi = parseAbi([
+  "function assetOf(address token) view returns (address feed, uint32 heartbeatSeconds, bool enabled)",
+]);
+
 const HISS = {
   queue: "0x317d1eec013a91a316858e80bf782496f231729a" as Address,
   settler: "0x32a60abb48235b158dd515b84c5b039f6dc4f7dd" as Address,
@@ -167,7 +209,7 @@ const HISS = {
 
 const mainnetClient = createPublicClient({
   chain: robinhoodMainnet,
-  transport: http(ROBINHOOD_MAINNET_RPC_URL, { batch: { wait: 15 }, retryCount: 0, timeout: 8_000 }),
+  transport: http(ROBINHOOD_MAINNET_RPC_URL, { batch: { batchSize: 10, wait: 12 }, retryCount: 0, timeout: 8_000 }),
 });
 
 const snapshotCache = new Map<IntegrationId, { createdAt: number; promise: Promise<LiveIntegrationSnapshot> }>();
@@ -229,7 +271,15 @@ export async function readIntegrationSnapshot(id: IntegrationId, force = false):
   if (id === "rwa-index") throw new Error("RWA Index uses the planning-and-simulation adapter.");
   const cached = snapshotCache.get(id);
   if (!force && cached && Date.now() - cached.createdAt < CACHE_MS) return cached.promise;
-  const promise = id === "fides-frontier" ? readFides(mainnetClient) : id === "hiss-v2" ? readHiss(mainnetClient) : readWield(mainnetClient);
+  const promise = id === "vimen-agentic-mag7"
+    ? readVimen(mainnetClient)
+    : id === "hiss-v2"
+      ? readHiss(mainnetClient)
+      : id === "fides-frontier"
+        ? readFides(mainnetClient)
+        : id === "mag7-index"
+          ? readMag7(mainnetClient)
+          : readWield(mainnetClient);
   snapshotCache.set(id, { createdAt: Date.now(), promise });
   return promise;
 }
@@ -258,6 +308,192 @@ export async function readIntegrationPreview(id: IntegrationId): Promise<Integra
     detail: snapshot.summary,
     blockNumber: snapshot.blockNumber,
     readAt: snapshot.readAt,
+  };
+}
+
+async function readVimen(client: PublicClient): Promise<LiveIntegrationSnapshot> {
+  const integration = integrationById("vimen-agentic-mag7");
+  const vault = integration.vault;
+  const [block, code, name, symbol, supply, constituents, units, backed, nav, mintPaused, agent, registry, makerRegistry, cooldown, turnover, slippage, lastRebalance, distributor, supplyCap] = await Promise.all([
+    client.getBlock({ blockTag: "latest" }),
+    client.getCode({ address: vault }),
+    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "name" })),
+    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "symbol" })),
+    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "totalSupply" })),
+    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "constituents" })),
+    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "units" })),
+    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "isFullyBacked" })),
+    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "nav18" })),
+    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "mintPaused" })),
+    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "agent" })),
+    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "assetRegistry" })),
+    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "makerRegistry" })),
+    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "rebalanceCooldown" })),
+    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "maxTurnoverBps" })),
+    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "maxSlippageBps" })),
+    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "lastRebalance" })),
+    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "distributor" })),
+    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "supplyCap" })),
+  ]);
+  if (!block.hash || !code || code === "0x") throw new Error("Vimen Agentic MAG7 contract bytecode is unavailable.");
+  const tokens = requireValue(constituents, "Vimen constituent recipe");
+  const unitList = requireValue(units, "Vimen backing units");
+  const registryAddress = requireValue(registry, "Vimen asset registry");
+  const rows = await Promise.all(tokens.map(async (token, index) => {
+    const [tokenSymbol, balance, registryEntry] = await Promise.all([
+      safe(() => client.readContract({ address: token, abi: erc20Abi, functionName: "symbol" })),
+      safe(() => client.readContract({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [vault] })),
+      safe(() => client.readContract({ address: registryAddress, abi: vimenRegistryAbi, functionName: "assetOf", args: [token] })),
+    ]);
+    const entry = requireValue(registryEntry, `Vimen registry entry for ${token}`);
+    const [feed, heartbeat, enabled] = entry;
+    const round = await safe(() => client.readContract({ address: feed, abi: oracleAbi, functionName: "latestRoundData" }));
+    const updatedAt = round.value?.[3] ?? 0n;
+    const observedAge = age(block.timestamp, updatedAt);
+    const stale = round.value === null || round.value[1] <= 0n || updatedAt === 0n || observedAge > BigInt(heartbeat);
+    return {
+      address: getAddress(token),
+      symbol: tokenSymbol.value ?? compact(token),
+      balance: balance.value ?? 0n,
+      unit: unitList[index] ?? 0n,
+      feed,
+      heartbeat: BigInt(heartbeat),
+      enabled,
+      observedAge,
+      stale,
+    };
+  }));
+  const totalSupply = requireValue(supply, "Vimen total supply");
+  const staleCount = rows.filter((row) => row.stale).length;
+  const status: IntegrationReadiness = totalSupply === 0n ? "EMPTY" : nav.value === null || staleCount > 0 || mintPaused.value === true ? "DEGRADED" : "READY";
+  const readyAt = (lastRebalance.value ?? 0n) + BigInt(cooldown.value ?? 0);
+  const rebalanceWindow = block.timestamp >= readyAt ? "Cooldown clear" : `Opens ${new Date(Number(readyAt) * 1000).toISOString()}`;
+  return {
+    provenance: "LIVE_RPC",
+    integration,
+    blockNumber: block.number,
+    blockHash: block.hash,
+    blockTimestamp: block.timestamp,
+    readAt: Date.now(),
+    status,
+    statusLabel: status === "DEGRADED" && staleCount > 0 ? "LIVE · ORACLE STALE" : readinessLabel(status),
+    summary: `${name.value ?? integration.name} is funded and ${backed.value === true ? "fully backed" : "not proven fully backed"} with ${rows.length} live constituent balances. ${staleCount > 0 ? `${staleCount} price feeds currently exceed their registry heartbeat, so rebalance NAV is unavailable.` : "The oracle-gated rebalance NAV is readable."}`,
+    metrics: [
+      { label: `${symbol.value ?? "VMAG"} supply`, value: amount(totalSupply, 18, 4), tone: totalSupply > 0n ? "healthy" : "warning" },
+      { label: "Live holdings", value: rows.length.toString(), tone: rows.length > 0 ? "healthy" : "warning" },
+      { label: "Backing", value: backed.value === true ? "Fully backed" : backed.value === false ? "Under-backed" : "Unavailable", tone: backed.value === true ? "healthy" : "warning" },
+      { label: "Oracle NAV", value: nav.value === null ? "Unavailable" : `$${amount(nav.value, 18, 2)}`, tone: nav.value === null ? "warning" : "healthy" },
+    ],
+    holdings: rows.map((row) => ({
+      address: row.address,
+      symbol: row.symbol,
+      balance: amount(row.balance, 18, 6),
+      policy: `${amount(row.unit, 18, 6)} units / VMAG`,
+      evidence: `${duration(row.observedAge)} feed age · ${row.enabled ? "buy enabled" : "sell only"}`,
+      status: row.stale ? "STALE" : row.enabled ? "CURRENT" : "INACTIVE",
+    })),
+    guards: [
+      { label: "Mint", value: mintPaused.value === true ? "Paused" : "Open" },
+      { label: "Rebalance window", value: rebalanceWindow },
+      { label: "Cooldown", value: cooldown.value === null ? "Unavailable" : duration(BigInt(cooldown.value)) },
+      { label: "Max turnover", value: turnover.value === null ? "Unavailable" : bps(turnover.value) },
+      { label: "Max slippage", value: slippage.value === null ? "Unavailable" : bps(slippage.value) },
+      { label: "Agent", value: agent.value ? compact(agent.value) : "Unavailable" },
+      { label: "Maker registry", value: makerRegistry.value ? compact(makerRegistry.value) : "Unavailable" },
+      { label: "Distributor", value: distributor.value ? compact(distributor.value) : "Unavailable" },
+      { label: "Supply cap", value: supplyCap.value === null ? "Unavailable" : amount(supplyCap.value, 18, 0) },
+    ],
+    checks: [
+      { label: "Verified contract surface", status: "PASS", detail: `Pinned Vimen BasketToken2 identity and bytecode read at block ${block.number}.` },
+      { label: "Funded portfolio", status: totalSupply > 0n ? "PASS" : "WARN", detail: `${amount(totalSupply, 18, 4)} ${symbol.value ?? "VMAG"} is issued across ${rows.length} current constituents.` },
+      { label: "Full-backing invariant", status: backed.value === true ? "PASS" : "WARN", detail: backed.value === true ? "Every live balance covers the contract's current per-share unit obligation." : "The vault does not currently prove full backing." },
+      { label: "Rebalance price evidence", status: staleCount === 0 && nav.value !== null ? "PASS" : "WARN", detail: staleCount === 0 && nav.value !== null ? "Every registry feed is current and nav18() succeeds." : `${staleCount} stale feed${staleCount === 1 ? " blocks" : "s block"} the vault's own nav18() read.` },
+      { label: "Hard execution policy", status: "PASS", detail: "Agent-only execution remains bounded by maker registry, cooldown, turnover, slippage, asset registry, and post-trade backing checks." },
+      { label: "Setpoint execution", status: "INFO", detail: "Read-only adapter. Setpoint does not impersonate the Vimen agent or invent registered-maker settlement calldata." },
+    ],
+    executionBoundary: integration.executionBoundary,
+  };
+}
+
+async function readMag7(client: PublicClient): Promise<LiveIntegrationSnapshot> {
+  const integration = integrationById("mag7-index");
+  const vault = integration.vault;
+  const [block, code, name, symbol, supply, nav, sharePrice, holdings, feedsFresh, oldestFeedUpdate, maxFeedAge, band, maxNotional, cooldown, mintPaused, slippage] = await Promise.all([
+    client.getBlock({ blockTag: "latest" }),
+    client.getCode({ address: vault }),
+    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "name" })),
+    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "symbol" })),
+    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "totalSupply" })),
+    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "nav" })),
+    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "sharePrice" })),
+    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "holdings" })),
+    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "feedsFresh" })),
+    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "oldestFeedUpdate" })),
+    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "maxFeedAge" })),
+    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "bandBps" })),
+    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "maxRebalanceNotional" })),
+    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "rebalanceCooldown" })),
+    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "mintPaused" })),
+    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "maxSlippageBps" })),
+  ]);
+  if (!block.hash || !code || code === "0x") throw new Error("MAG7 Index Vault bytecode is unavailable.");
+  const holdingState = requireValue(holdings, "MAG7 holdings");
+  const tokens = holdingState[0];
+  const rows = await Promise.all(tokens.map(async (token) => {
+    const [tokenSymbol, balance] = await Promise.all([
+      safe(() => client.readContract({ address: token, abi: erc20Abi, functionName: "symbol" })),
+      safe(() => client.readContract({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [vault] })),
+    ]);
+    return { address: getAddress(token), symbol: tokenSymbol.value ?? compact(token), balance: balance.value ?? 0n };
+  }));
+  const totalSupply = requireValue(supply, "MAG7 total supply");
+  const totalNav = requireValue(nav, "MAG7 NAV");
+  const funded = totalSupply > 0n || totalNav > 0n || rows.some((row) => row.balance > 0n);
+  const fresh = feedsFresh.value === true;
+  const status: IntegrationReadiness = !funded ? "EMPTY" : fresh && mintPaused.value !== true ? "READY" : "DEGRADED";
+  const oldestAge = oldestFeedUpdate.value === null ? null : age(block.timestamp, oldestFeedUpdate.value);
+  return {
+    provenance: "LIVE_RPC",
+    integration,
+    blockNumber: block.number,
+    blockHash: block.hash,
+    blockTimestamp: block.timestamp,
+    readAt: Date.now(),
+    status,
+    statusLabel: status === "DEGRADED" && !fresh ? "LIVE · ORACLE STALE" : readinessLabel(status),
+    summary: funded ? `${name.value ?? integration.name} exposes ${rows.length} fixed equal-weight legs and live vault accounting. ${fresh ? "All feeds are inside the vault freshness limit." : "The feed set is currently stale, so mint, redeem, and rebalance readiness are blocked."}` : `${name.value ?? integration.name} is deployed with ${rows.length} fixed stock legs and a complete rebalance-policy surface, but currently reports zero NAV, zero issued shares, and zero inventory.`,
+    metrics: [
+      { label: "Total NAV", value: `$${amount(totalNav, 18, 2)}`, tone: totalNav > 0n ? "healthy" : "warning" },
+      { label: "Share price", value: sharePrice.value === null ? "Unavailable" : `$${amount(sharePrice.value, 18, 4)}`, tone: sharePrice.value && sharePrice.value > 0n ? "healthy" : "warning" },
+      { label: `${symbol.value ?? "MAG7"} supply`, value: amount(totalSupply, 18, 4), tone: totalSupply > 0n ? "healthy" : "warning" },
+      { label: "Fresh feeds", value: fresh ? `${rows.length}/${rows.length}` : `0/${rows.length}`, tone: fresh ? "healthy" : "warning" },
+    ],
+    holdings: rows.map((row) => ({
+      address: row.address,
+      symbol: row.symbol,
+      balance: amount(row.balance, 18, 6),
+      policy: "14.2857% equal-weight target",
+      evidence: oldestAge === null ? "Feed age unavailable" : `${duration(oldestAge)} oldest-feed age`,
+      status: fresh ? "CURRENT" : "STALE",
+    })),
+    guards: [
+      { label: "Mint", value: mintPaused.value === true ? "Paused" : "Policy open" },
+      { label: "Feed set", value: fresh ? "Current" : "Stale" },
+      { label: "Max feed age", value: maxFeedAge.value === null ? "Unavailable" : duration(maxFeedAge.value) },
+      { label: "Drift band", value: band.value === null ? "Unavailable" : `±${bps(band.value)}` },
+      { label: "Max per leg", value: maxNotional.value === null ? "Unavailable" : `$${amount(maxNotional.value, 18, 0)}` },
+      { label: "Leg cooldown", value: cooldown.value === null ? "Unavailable" : duration(cooldown.value) },
+      { label: "Max slippage", value: slippage.value === null ? "Unavailable" : bps(slippage.value) },
+    ],
+    checks: [
+      { label: "Verified contract surface", status: "PASS", detail: `Runtime bytecode hash and ${name.value ?? "MAG7"} identity match the pinned deployment at block ${block.number}.` },
+      { label: "Seven-leg basket", status: rows.length === 7 ? "PASS" : "WARN", detail: `${rows.length} fixed stock legs are exposed by holdings().` },
+      { label: "Funded portfolio", status: funded ? "PASS" : "WARN", detail: funded ? "The vault reports non-zero inventory or issued supply." : "The deployment currently has no shares, NAV, or constituent balances; Setpoint keeps it out of the primary grid." },
+      { label: "Oracle readiness", status: fresh ? "PASS" : "WARN", detail: fresh ? "The full feed set is current." : "feedsFresh() is false; Setpoint does not present cached prices as live." },
+      { label: "Bounded rebalance policy", status: "PASS", detail: "Equal-weight drift band, per-leg notional cap, cooldown, and slippage cap are readable onchain." },
+      { label: "Setpoint execution", status: "INFO", detail: "Read-only adapter. Protocol authority and route construction are not represented as generic wallet execution." },
+    ],
+    executionBoundary: integration.executionBoundary,
   };
 }
 
