@@ -1,7 +1,7 @@
 # Setpoint
 
 <p align="center">
-  <img src="./web/public/brand/setpoint.jpg" alt="Setpoint" width="420" />
+  <img src="./web/public/brand/setpoint.png" alt="Setpoint" width="420" />
 </p>
 
 Setpoint is a non-custodial safety and execution orchestration layer for onchain vault rebalances.

@@ -97,7 +97,7 @@ body {
   width: 28px;
   height: 28px;
   flex: none;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .brand-mark-sm {

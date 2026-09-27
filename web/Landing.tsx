@@ -1,5 +1,5 @@
 function SiteHeader() {
-  return <header className="landing-header"><a className="landing-wordmark" href="/"><img alt="" className="brand-mark" height={28} src="/brand/mark.png" width={28} /><span>SETPOINT</span></a><nav aria-label="Primary navigation"><a href="/app">App</a><a href="/evidence">Evidence</a><a href="https://github.com/karagozemin/setpoint" target="_blank" rel="noreferrer">GitHub ↗</a></nav><a className="landing-open" href="/app">Open Setpoint <span>↗</span></a></header>;
+  return <header className="landing-header"><a className="landing-wordmark" href="/"><img alt="" className="brand-mark" height={28} src="/brand/setpoint.png" width={28} /><span>SETPOINT</span></a><nav aria-label="Primary navigation"><a href="/app">App</a><a href="/evidence">Evidence</a><a href="https://github.com/karagozemin/setpoint" target="_blank" rel="noreferrer">GitHub ↗</a></nav><a className="landing-open" href="/app">Open Setpoint <span>↗</span></a></header>;
 }
 
 export default function Landing() {
@@ -43,6 +43,6 @@ export default function Landing() {
 
       <section className="closing-cta"><p className="product-kicker">Live product</p><h2>See what the vault<br />can safely do now.</h2><a href="/app">Open Setpoint <span>→</span></a></section>
     </main>
-    <footer className="landing-footer"><span className="footer-brand"><img alt="" className="brand-mark brand-mark-sm" height={18} src="/brand/mark.png" width={18} />SETPOINT © 2026</span><p>Safety and execution orchestration for onchain vault rebalances.</p><nav><a href="/evidence">Evidence</a><a href="https://github.com/karagozemin/setpoint/blob/main/docs/SECURITY.md" target="_blank" rel="noreferrer">Security</a><a href="https://github.com/karagozemin/setpoint" target="_blank" rel="noreferrer">Source</a></nav></footer>
+    <footer className="landing-footer"><span className="footer-brand"><img alt="" className="brand-mark brand-mark-sm" height={18} src="/brand/setpoint.png" width={18} />SETPOINT © 2026</span><p>Safety and execution orchestration for onchain vault rebalances.</p><nav><a href="/evidence">Evidence</a><a href="https://github.com/karagozemin/setpoint/blob/main/docs/SECURITY.md" target="_blank" rel="noreferrer">Security</a><a href="https://github.com/karagozemin/setpoint" target="_blank" rel="noreferrer">Source</a></nav></footer>
   </div>;
 }
