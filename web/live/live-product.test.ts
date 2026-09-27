@@ -72,6 +72,13 @@ test("Setpoint Sandbox is the primary real execution surface", () => {
   assert.match(sandboxAdapter, /stateId !== analysis\.state\.stateId/);
 });
 
+test("safe sandbox no-trade decisions are not presented as simulation failures", () => {
+  assert.match(sandboxApp, /analysis\.result\.kind === "no-trade"\) return "NOT REQUIRED"/);
+  assert.match(sandboxApp, /analysis\.result\.reason === "TARGET_REGION_REACHED"/);
+  assert.match(sandboxApp, /return "satisfied"/);
+  assert.match(sandboxApp, /"NO REBALANCE NEEDED"/);
+});
+
 test("RPC failures are not represented as NO_TRADE", () => {
   assert.match(liveApp, /context === "read"\) return \{ kind: "RPC_ERROR"/);
   assert.match(liveAdapter, /if \(state\.staleAssets\.length > 0\)/);

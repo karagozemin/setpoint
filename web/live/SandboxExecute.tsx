@@ -15,6 +15,20 @@ function amount(value: bigint, digits = 2): string {
 function pct(value: bigint): string { return `${(Number(value) / 1e16).toFixed(2)}%`; }
 function compact(value: string): string { return `${value.slice(0, 6)}…${value.slice(-4)}`; }
 function toWad(value: string): bigint { return BigInt(Math.round(Number(value) * 100)) * 10n ** 14n; }
+function simulationStatus(analysis: SandboxAnalysis): "PASSED" | "REFUSED" | "NOT REQUIRED" {
+  if (analysis.result.kind === "no-trade") return "NOT REQUIRED";
+  return analysis.simulationPassed ? "PASSED" : "REFUSED";
+}
+function isSatisfiedNoTrade(analysis: SandboxAnalysis): boolean {
+  return analysis.result.kind === "no-trade" && (analysis.result.reason === "TARGET_REGION_REACHED" || analysis.result.reason === "DRIFT_BELOW_TRIGGER");
+}
+function resultTone(analysis: SandboxAnalysis): string {
+  if (isSatisfiedNoTrade(analysis)) return "satisfied";
+  return analysis.mode.toLowerCase();
+}
+function resultTitle(analysis: SandboxAnalysis): string {
+  return isSatisfiedNoTrade(analysis) ? "NO REBALANCE NEEDED" : analysis.mode.replaceAll("_", " ");
+}
 
 interface Props {
   wallet: WalletState;
@@ -137,7 +151,7 @@ export default function SandboxExecute({ wallet, onConnect, onSwitch }: Props) {
           </section>
         </div>
         <div className="sandbox-analyze"><div><span>03 / SETPOINT PREFLIGHT</span><strong>Re-read state → quote live pools → frozen hybrid solver → exact eth_call</strong><small>Plans are discarded after any confirmed state change.</small></div><button disabled={phase !== "IDLE" || !state.oracleFresh} onClick={analyze} type="button">{phase === "ANALYZING" ? "Sampling live liquidity…" : "Analyze rebalance →"}</button></div>
-        {analysis && <div className={`sandbox-result result-${analysis.mode.toLowerCase()}`}><div><p className="product-kicker">RUNTIME DECISION</p><h2>{analysis.mode.replaceAll("_", " ")}</h2><strong>{analysis.result.modeSelectionReason.replaceAll("_", " ")}</strong><p>{analysis.result.kind === "plan" ? `${analysis.trades.length} real trade leg${analysis.trades.length === 1 ? "" : "s"} passed exact vault simulation.` : analysis.result.details.join(" ")}</p></div><dl><div><dt>Exact simulation</dt><dd>{analysis.simulationPassed ? "PASSED" : "REFUSED"}</dd></div><div><dt>Liquidity curves</dt><dd>{analysis.liquidity.curves.length}</dd></div><div><dt>Fallback invoked</dt><dd>{analysis.result.fallbackInvoked ? "YES" : "NO"}</dd></div></dl>{analysis.simulationPassed && <button disabled={phase !== "IDLE"} onClick={execute} type="button">{phase === "SIGNING" ? "Confirm in wallet…" : phase === "CONFIRMING" ? "Waiting for confirmation…" : "Execute real rebalance →"}</button>}</div>}
+        {analysis && <div className={`sandbox-result result-${resultTone(analysis)}`}><div><p className="product-kicker">RUNTIME DECISION</p><h2>{resultTitle(analysis)}</h2><strong>{analysis.result.modeSelectionReason.replaceAll("_", " ")}</strong><p>{analysis.result.kind === "plan" ? `${analysis.trades.length} real trade leg${analysis.trades.length === 1 ? "" : "s"} passed exact vault simulation.` : analysis.result.details.join(" ")}</p></div><dl><div><dt>Exact simulation</dt><dd>{simulationStatus(analysis)}</dd></div><div><dt>Liquidity curves</dt><dd>{analysis.liquidity.curves.length}</dd></div><div><dt>Fallback invoked</dt><dd>{analysis.result.fallbackInvoked ? "YES" : "NO"}</dd></div></dl>{analysis.simulationPassed && <button disabled={phase !== "IDLE"} onClick={execute} type="button">{phase === "SIGNING" ? "Confirm in wallet…" : phase === "CONFIRMING" ? "Waiting for confirmation…" : "Execute real rebalance →"}</button>}</div>}
         {execution && <div className="sandbox-confirmed"><span>✓</span><div><p>TRANSACTION CONFIRMED</p><h2>Post-state re-read at block #{execution.blockNumber.toString()}</h2><p>Drift {pct(execution.before.drift)} → <strong>{pct(execution.after.drift)}</strong></p></div><a href={explorerTransaction(execution.hash)} target="_blank" rel="noreferrer">{compact(execution.hash)} ↗</a></div>}
         <section className="sandbox-activity"><div><p className="product-kicker">04 / RECENT ACTIVITY</p><h2>Onchain events</h2></div>{activity.length ? <ol>{activity.map((item) => <li key={`${item.hash}:${item.label}`}><span>{item.label}</span><a href={explorerTransaction(item.hash)} target="_blank" rel="noreferrer">{compact(item.hash)} ↗</a><small>{item.block ? `Block #${item.block}` : "Confirmed onchain"}</small></li>)}</ol> : <p>Factory, target, and rebalance events will appear here after confirmation.</p>}</section>
       </> : <div className="sandbox-onboarding"><span>•••</span><div><h2>Reading your confirmed vault state.</h2></div></div>}

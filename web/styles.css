@@ -328,6 +328,8 @@ body {
 .sandbox-analyze small { color: #758079; }
 .sandbox-result { display: grid; grid-template-columns: 1fr 300px auto; gap: 36px; align-items: center; margin-top: 18px; padding: 34px; border: 1px solid var(--signal, #baff16); }
 .sandbox-result.result-no_trade { border-color: #ff6969; }
+.sandbox-result.result-satisfied { border-color: var(--signal, #baff16); background: #0d140d; }
+.sandbox-result.result-satisfied h2, .sandbox-result.result-satisfied dd { color: var(--signal, #baff16); }
 .sandbox-result h2 { margin: 7px 0; font-size: 2.4rem; letter-spacing: -.04em; }
 .sandbox-result p { color: #9da5a0; }
 .sandbox-result dl { margin: 0; }
