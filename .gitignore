@@ -38,6 +38,4 @@ artifacts/**/*.log
 !artifacts/security/*.json
 .Setpoint_PRD_v0.1.pdf
 .vercel
-Setpoint_PRD_v1.1.pdf
-Setpoint_PRD_v1.2.md
-Setpoint_PRD_v1_1_to_v1_2_CHANGELOG.md
+Setpoint_PRD*
