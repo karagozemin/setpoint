@@ -10,6 +10,8 @@ const liveConfig = readFileSync("src/live/config.ts", "utf8");
 const router = readFileSync("web/Router.tsx", "utf8");
 const vercelConfig = readFileSync("vercel.json", "utf8");
 const viteConfig = readFileSync("vite.config.mts", "utf8");
+const sandboxApp = readFileSync("web/live/SandboxExecute.tsx", "utf8");
+const sandboxAdapter = readFileSync("src/sandbox/setpoint-sandbox-live-adapter.ts", "utf8");
 
 test("product exposes landing, app and evidence as distinct routes", () => {
   assert.match(router, /path === "\/"/);
@@ -52,10 +54,22 @@ test("wallet execution is authorization gated and re-simulated", () => {
   assert.match(liveAdapter, /const after = await this\.readVaultState/);
 });
 
-test("selected vault and proposed allocation survive refresh", () => {
-  assert.match(liveApp, /searchParams\.set\("vault"/);
+test("selected vault route and proposed allocation survive refresh", () => {
+  assert.match(liveApp, /`\/app\/vault\/\$\{integration\.id\}`/);
+  assert.match(liveApp, /match\(\/\^\\\/app\\\/vault/);
   assert.match(liveApp, /localStorage\.setItem\(`setpoint:allocation:/);
   assert.match(liveApp, /localStorage\.getItem\(`setpoint:allocation:/);
+});
+
+test("Setpoint Sandbox is the primary real execution surface", () => {
+  assert.match(liveApp, /SandboxExecute/);
+  assert.match(sandboxApp, /EXECUTE NOW \/ ROBINHOOD CHAIN TESTNET/);
+  assert.match(sandboxApp, /Create my vault/);
+  assert.match(sandboxAdapter, /solveHybrid/);
+  assert.match(sandboxAdapter, /sampleLiquidity/);
+  assert.match(sandboxAdapter, /simulateContract/);
+  assert.match(sandboxAdapter, /waitForTransactionReceipt/);
+  assert.match(sandboxAdapter, /stateId !== analysis\.state\.stateId/);
 });
 
 test("RPC failures are not represented as NO_TRADE", () => {

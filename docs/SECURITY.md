@@ -2,14 +2,14 @@
 
 This document describes the safety boundary demonstrated by the current Setpoint prototype. It is not an audit, a formal-verification report, or a claim about production readiness.
 
-Setpoint is a non-custodial rebalance orchestration layer. It reads authoritative vault state, validates a constrained target policy, preflights a candidate, requires exact-vault simulation, and returns either a simulation-approved plan or a typed no-trade result. Execution authorization and asset custody remain with the integrated vault.
+Setpoint is a non-custodial rebalance orchestration layer. It reads authoritative vault state, validates a constrained target policy, preflights a candidate, requires exact-vault simulation, and returns either a simulation-approved plan or a typed no-trade result. Sandbox custody belongs to each wallet-owned vault; external integrations retain their native authority.
 
 ## Trust assumptions
 
 - The integrated vault's accounting, NAV, balances, target storage, and hard guards are authoritative.
 - Setpoint receives a supported, constrained target policy. Invalid ranges, unsupported assets, and unsupported routes are rejected before execution.
 - Accounting prices must satisfy the configured freshness limit.
-- The external vault enforces execution authorization. Setpoint neither grants roles nor bypasses vault access control.
+- The sandbox vault enforces its immutable owner; external vaults enforce their native authorization. The browser neither grants roles nor bypasses access control.
 - Liquidity quotes are bound to the confirmed state identifier and expire; a plan is not reused after state changes.
 - The exact `rebalance(Trade[])` call must pass vault simulation before the corresponding plan can be returned for execution.
 - A successful execution is followed by a confirmed-state re-read and a new solve. Expected state is not treated as confirmed state.
@@ -26,7 +26,19 @@ The default path is a coherent simple batch. Adaptive fallback is available only
 
 Stale or invalid inputs, unsupported assets or routes, authorization failures, loose slippage construction, and unknown reverts are non-recoverable. They fail closed and cannot activate adaptive execution. An adaptive candidate must independently pass the same exact-vault simulation gate.
 
-The operator console is a read-only presentation of checked-in evidence. It imports neither the execution solvers nor policy mutation logic and cannot change the failure allowlist.
+The `/evidence` console is a read-only presentation of checked-in evidence. The `/app` surface can invoke the solver only through live adapters and cannot change the failure allowlist.
+
+## Sandbox-specific controls
+
+- One factory entry exists per wallet; duplicate vault creation reverts.
+- Only the vault's immutable owner may update targets or rebalance.
+- Targets must sum to exactly 100%; each risk asset is capped at 70%.
+- Trades are limited to registered sUSDG/risk pairs, capped at 30% of NAV per leg, and must satisfy the 3% oracle minimum-output floor.
+- Oracle observations older than 24 hours fail closed.
+- A batch must strictly improve drift and retain at least 98% of pre-batch NAV.
+- The route adapter has no arbitrary-call surface and each pool accepts execution only from that adapter.
+- Deployment and oracle writes require an explicit local environment key; no key is bundled, logged, committed, or accepted by the browser.
+- Analysis is tied to a digest-like ID over execution-relevant vault, target, oracle, and reserve state observed at a recorded block. Execution re-reads that state ID, exact-simulates again as the owner, waits for confirmation, and re-reads post-state.
 
 ## Reproducible demonstrations
 
@@ -86,6 +98,7 @@ pnpm security:demo
 pnpm typecheck
 pnpm test
 pnpm build
+pnpm sandbox:contracts
 ```
 
 `pnpm security:demo` deterministically regenerates and validates the five scenario artifacts plus the summary. It exits nonzero if a scenario invariant fails or if the M2 planner SHA-256 differs from `dcd079ed25ff6fd7683c947fbf46748abd70862fe2a85a368c919b26fe7cee92`.

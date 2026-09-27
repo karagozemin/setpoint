@@ -17,6 +17,7 @@ import {
 import { RWAIndexLiveAdapter, UnsupportedVaultError } from "../../src/live/rwa-index-live-adapter";
 import type { ExecutionResult, LiveAnalysisResult, LiveVaultState, ProposedAllocation } from "../../src/live/types";
 import { connectWallet, readWallet, switchToRobinhood, type WalletState } from "./wallet";
+import SandboxExecute from "./SandboxExecute";
 
 const adapter = new RWAIndexLiveAdapter();
 const WAD = 10n ** 18n;
@@ -116,11 +117,11 @@ function VaultEntry({ onOpen, busy, error }: { onOpen: (address: string) => void
   const primaryIntegrations = liveIntegrations.filter(({ registryTier }) => registryTier === "PRIMARY");
   const secondaryIntegrations = liveIntegrations.filter(({ registryTier }) => registryTier === "SECONDARY");
   return (
-    <main className="vault-entry">
+    <section className="vault-entry" id="live-monitoring">
       <div className="entry-heading">
-        <p className="product-kicker">Live integration registry</p>
-        <h1>Choose a vault with evidence.</h1>
-        <p>Funded, meaningful state stays in the primary grid. Empty deployments remain visible in the watchlist. RWA Index is the complete testnet flow: set targets, analyze, simulate, and submit with an authorized wallet.</p>
+        <p className="product-kicker">LIVE MONITORING / EXTERNAL PROTOCOLS</p>
+        <h1>Compatibility evidence, kept separate from execution.</h1>
+        <p>These independently operated vaults prove that Setpoint can inspect several architectures. They are monitoring surfaces—not the wallet-owned Setpoint Sandbox above.</p>
       </div>
       {error && <ErrorNotice error={error} />}
       <section className="integration-registry" aria-label="Live vault integrations">
@@ -138,7 +139,7 @@ function VaultEntry({ onOpen, busy, error }: { onOpen: (address: string) => void
         <div><input id="vault-address" placeholder="0x…" value={address} onChange={(event) => setAddress(event.target.value)} /><button disabled={busy || address.length < 42} type="submit">Detect integration</button></div>
         <p>Only registered adapters open. Setpoint never assumes an arbitrary ERC-4626 vault shares another protocol's accounting or execution semantics.</p>
       </form>
-    </main>
+    </section>
   );
 }
 
@@ -288,7 +289,11 @@ function classifyError(error: unknown, context: "read" | "wallet" | "transaction
 
 export default function LiveApp() {
   const [wallet, setWallet] = useState<WalletState>({ provider: null, account: null, chainId: null });
-  const initialVault = useMemo(() => new URL(window.location.href).searchParams.get("vault"), []);
+  const initialVault = useMemo(() => {
+    const routeId = window.location.pathname.match(/^\/app\/vault\/([^/]+)$/)?.[1];
+    if (routeId) return liveIntegrations.find(({ id }) => id === routeId)?.vault ?? null;
+    return new URL(window.location.href).searchParams.get("vault");
+  }, []);
   const [vault, setVault] = useState<string | null>(initialVault);
   const [state, setState] = useState<LiveVaultState | null>(null);
   const [snapshot, setSnapshot] = useState<LiveIntegrationSnapshot | null>(null);
@@ -338,7 +343,7 @@ export default function LiveApp() {
         setState(next); setAllocation(nextAllocation);
       }
       setVault(normalized);
-      const url = new URL(window.location.href); url.searchParams.set("vault", normalized); window.history.replaceState(null, "", url);
+      window.history.replaceState(null, "", `/app/vault/${integration.id}`);
     } catch (caught) { setError(classifyError(caught, "read")); }
     finally { setBusy(false); }
   }
@@ -375,7 +380,7 @@ export default function LiveApp() {
 
   function closeVault() {
     setState(null); setSnapshot(null); setVault(null); setAllocation(null); setAnalysis(null); setExecution(null); setError(null);
-    const url = new URL(window.location.href); url.searchParams.delete("vault"); window.history.replaceState(null, "", url);
+    window.history.replaceState(null, "", "/app");
   }
 
   const selectedIntegration = vault ? integrationForAddress(vault) : null;
@@ -384,7 +389,7 @@ export default function LiveApp() {
 
   return <div className="product-page">
     <Header wallet={wallet} readOnly={readOnlySurface} onConnect={connect} onSwitch={switchNetwork} onDisconnect={() => { void disconnect(); }} />
-    {openingIntegration ? <VaultOpening integration={openingIntegration} /> : !state && !snapshot ? <VaultEntry onOpen={openVault} busy={busy} error={error} /> : snapshot ? <CompatibilityWorkspace snapshot={snapshot} refreshing={busy} error={error} onRefresh={() => { void refresh(); }} onBack={closeVault} /> : state ? <main className="operator-workspace">
+    {openingIntegration ? <VaultOpening integration={openingIntegration} /> : !state && !snapshot ? <main className="product-home"><SandboxExecute wallet={wallet} onConnect={() => { void connect(); }} onSwitch={() => { void switchNetwork(); }} /><VaultEntry onOpen={openVault} busy={busy} error={error} /></main> : snapshot ? <CompatibilityWorkspace snapshot={snapshot} refreshing={busy} error={error} onRefresh={() => { void refresh(); }} onBack={closeVault} /> : state ? <main className="operator-workspace">
       <div className="workspace-title"><div><button className="back-action" onClick={closeVault} type="button">← All integrations</button><p className="product-kicker">External integration / RWA Index</p><h1>Rebalance control</h1><p><a href={explorerAddress(state.vault)} target="_blank" rel="noreferrer">{state.vault}</a></p></div><div className="authority-state"><span>Execution authority</span><strong>{state.authorization.canExecute ? "Authorized wallet" : wallet.account ? "Read only" : "Wallet disconnected"}</strong><small>{state.authorization.canExecute ? "Vault manager or active session" : "Analysis and export available"}</small></div></div>
       <Provenance state={state} refreshing={busy} onRefresh={refresh} />
       {error && <ErrorNotice error={error} />}

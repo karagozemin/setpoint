@@ -39,3 +39,6 @@ artifacts/**/*.log
 .Setpoint_PRD_v0.1.pdf
 .vercel
 Setpoint_PRD*
+contracts/out/
+contracts/cache/
+contracts/broadcast/

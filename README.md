@@ -18,7 +18,7 @@ The operating principle is deliberately conservative: **do not optimize what is 
 | `ADAPTIVE_FALLBACK` | The simple batch failed for an explicitly recoverable reason; a smaller liquidity-aware plan independently passed the same safety gate. |
 | `NO_TRADE` | State, policy, liquidity, or simulation evidence is insufficient. Setpoint fails closed. |
 
-Setpoint is non-custodial. It does not hold assets, grant execution authority, replace vault accounting, or bypass onchain guards. The integrated vault remains the authority for custody, roles, and final execution.
+Setpoint is non-custodial: the browser and team never hold a user's key. Sandbox assets live in a vault whose immutable owner is the creating wallet; external vaults keep their own custody, roles, accounting, and final execution authority. No path bypasses onchain guards.
 
 > **Architecture:** Read [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) for the system boundaries, decision pipeline, trust model, live execution sequence, and extension points.
 
@@ -29,28 +29,31 @@ The reviewed M6 application is available at [setpoint-neon.vercel.app](https://s
 | Route | Purpose | Data source | Can submit a transaction? |
 |---|---|---|---|
 | `/` | Product overview | Static product content | No |
-| `/app` | Live integration registry, compatibility analysis, and operator workflow | Robinhood Chain mainnet + testnet RPC | RWA Index only, and only for a vault-authorized wallet |
+| `/app`, `/app/sandbox` | Setpoint Sandbox execution first; external compatibility monitoring second | Robinhood Chain mainnet + testnet RPC | Yes—live wallet-owned sandbox vaults on testnet |
+| `/app/vault/:integration` | External protocol monitoring or the legacy RWA Index workflow | Protocol-specific mainnet/testnet contracts | Capability-dependent; external authority remains required |
 | `/evidence` | Historical M4.2/M5 decision evidence | Versioned repository artifacts | No |
 
 The separation between `/app` and `/evidence` is a safety boundary. Live decisions never substitute checked-in fork artifacts for current chain state, and the evidence console cannot invoke execution code.
 
-## What happens during a planning-capable rebalance
+## What happens during a Setpoint Sandbox rebalance
 
-The complete planning and submission path currently belongs to the RWA Index adapter. Mainnet compatibility adapters stop before calldata construction when their protocol-specific signer, keeper, target, or execution semantics are not represented.
+The first surface in `/app` is a Setpoint-managed testnet execution environment. It uses real Robinhood Chain Testnet contracts and test-only assets, while external mainnet integrations remain a separate monitoring proof.
 
-1. **Read current state.** Setpoint retrieves the vault's assets, balances, targets, oracle observations, guards, integration addresses, and operator authorization.
-2. **Validate the proposal.** Allocations must be complete, supported, non-negative, within the per-asset bound, and sum to exactly 100%.
+1. **Create or open the wallet vault.** `SetpointSandboxFactory.getVault(wallet)` resolves one owner-controlled vault per address; `createVault()` deploys and seeds a bounded 10,000 sUSDG sandbox portfolio.
+2. **Store the target onchain.** The connected owner sets cash plus four supported asset weights. They must sum to exactly 100%, and no risk asset may exceed 70%.
 3. **Honor hard stops.** A paused vault, stale authoritative prices, invalid NAV, unsupported integration, or invalid policy cannot produce an executable plan.
-4. **Build the simple batch.** The frozen RWA Index planner creates a coherent, sell-before-buy rebalance under the vault's trade and slippage limits.
-5. **Simulate exact calldata.** Setpoint calls the real vault's `rebalance(Trade[])` entry point with the configured manager identity.
-6. **Return a typed decision.** A passing call becomes `FAST_PATH`; an unprovable live path becomes `NO_TRADE`. Historical hybrid evidence demonstrates when `ADAPTIVE_FALLBACK` can safely rescue a recoverable failure.
-7. **Separate analysis from authority.** An unauthorized operator can inspect and export calldata. Only an externally authorized wallet receives the execution action.
-8. **Recheck before signing.** Setpoint reads authorization again and repeats exact simulation using the connected account immediately before submission.
+4. **Sample real liquidity.** The live adapter calls the route-restricted swap adapter at several sizes in both directions. Each quote comes from current constant-product reserves and is bound to the observed state ID.
+5. **Run the frozen hybrid core.** The unchanged M2 planner is the simple path; current quote curves feed the existing M4.1/M4.2 adaptive solver when a recoverable liquidity constraint requires it.
+6. **Simulate exact calldata.** Setpoint calls the real sandbox vault's `rebalance(Trade[])` entry point with the connected owner address.
+7. **Return a typed decision.** Runtime state determines `FAST_PATH`, `ADAPTIVE_FALLBACK`, or `NO_TRADE`; the UI does not choose the label.
+8. **Recheck before signing.** Setpoint re-reads the state ID and repeats account-specific exact simulation immediately before submission.
 9. **Confirm, discard, and re-read.** After a receipt, Setpoint reads fresh chain state. It never treats predicted state as confirmed state or reuses the old plan.
 
 RPC failures, wallet rejection, unsupported integrations, and transaction reverts are application errors—not `NO_TRADE` decisions. `NO_TRADE` is reserved for a completed Setpoint analysis that deliberately refuses execution.
 
 ## Live integration registry
+
+This registry now appears under **Live Monitoring** below the Setpoint-owned execution surface. It demonstrates adapter breadth; it is not the primary way to try the product.
 
 The registry recognizes six explicitly pinned external deployments. Four meaningful operator surfaces are prioritized; empty deployments remain visible in a secondary watchlist instead of occupying the primary grid. Every card checks deployed bytecode and current RPC state, and capability labels distinguish read compatibility from planning and execution.
 
@@ -90,9 +93,38 @@ Two integration constraints shape the current live boundary:
 
 Live `ADAPTIVE_FALLBACK` will remain unavailable until an integration can supply current, state-bound, executable quote evidence.
 
+## Setpoint Sandbox contracts
+
+The root [`contracts`](./contracts) Foundry workspace contains the Setpoint-owned testnet path:
+
+| Contract | Why it exists |
+|---|---|
+| `SetpointSandboxFactory` | Resolves one vault per wallet, deploys it, and seeds the documented bounded initial portfolio. |
+| `SetpointSandboxVault` | Holds real sandbox ERC-20 balances, stores owner-selected targets, and enforces route, size, oracle, slippage, drift, and NAV-loss guards. |
+| `SetpointSandboxOracle` | Stores WAD prices, update timestamps, updater authority, and update events; stale values stop execution. |
+| `SetpointSandboxPool` | Holds real token reserves and executes fee-bearing constant-product swaps. Four pools use intentionally different depths. |
+| `SetpointSandboxSwapAdapter` | Exposes quotes and swaps only for registered sUSDG/risk-asset routes; arbitrary external calls are impossible. |
+| `SetpointSandboxToken` | Clearly labeled, mint-restricted testnet assets with no production value or redemption claim. |
+
+The checked [`deployment record`](./deployments/setpoint-sandbox-rh-testnet.json) is live on Robinhood Chain Testnet from block `125344949`. The core addresses are:
+
+| Contract | Address |
+|---|---|
+| Factory | [`0xf760…6B63`](https://explorer.testnet.chain.robinhood.com/address/0xf76098E6f4060ba71fa2fd09b669DAA8a9C96B63) |
+| Oracle | [`0xb797…30Af`](https://explorer.testnet.chain.robinhood.com/address/0xb7971B154f464cB0e41B231409EF82df6dcb30Af) |
+| Swap adapter | [`0x0c07…B8e7`](https://explorer.testnet.chain.robinhood.com/address/0x0c073F7c29CE7074F3606405f3A606b1eBb6B8e7) |
+| Base asset | [`0x06B2…b519`](https://explorer.testnet.chain.robinhood.com/address/0x06B2b186b38F4aF2469bbf29506647973C7db519) |
+
+The first real wallet-owned vault is [`0x0F41…EC09`](https://explorer.testnet.chain.robinhood.com/address/0x0F413E705426271657905d30b9f99c635B57EC09). Its accepted four-leg `FAST_PATH` rebalance reduced confirmed drift from `45.0000%` to `0.2798%`; the [rebalance transaction](https://explorer.testnet.chain.robinhood.com/tx/0xad33dc4ffe2f980763626eba90dbff4a6d54be5ec28f9c382a0364a9c863471b) is public evidence. If the record is ever absent or explicitly reset to `UNDEPLOYED`, the UI fails closed instead of substituting zero addresses or local data.
+
 ## Wallet and execution model
 
-All live reads and compatibility analysis require no wallet. MetaMask, Rabby, and other EIP-1193 wallets are used only by the RWA Index planning adapter for network detection, authorization checks, and transaction submission.
+All external compatibility reads require no wallet. MetaMask, Rabby, and other EIP-1193 wallets are used for sandbox vault creation, target updates, and rebalances, plus the legacy RWA Index authorized path.
+
+- A sandbox vault's immutable `owner` is the wallet that called the factory; there is no Setpoint backend signer or relayer.
+- Only that owner can store targets or call `rebalance`.
+- Every submitted plan is current-state-bound and exact-simulated again before `writeContract`.
+- The wallet holds the private key. Setpoint neither receives nor persists it.
 
 - Setpoint checks the external vault's `MANAGER_ROLE` and active agent-session authorization.
 - Unauthorized wallets can analyze, copy calldata, and export an execution request.
@@ -100,7 +132,7 @@ All live reads and compatibility analysis require no wallet. MetaMask, Rabby, an
 - Wallet cancellation is reported as `WALLET_REJECTION`; a submitted transaction failure is `TRANSACTION_REVERT`.
 - A confirmed transaction is followed by a state re-read and explorer-linked receipt.
 
-There is no Setpoint-owned smart-contract deployment in this repository. The external vault already enforces the relevant execution authority and hard guards; adding an unused registry or forwarding contract would not strengthen the execution path.
+External integrations retain their own authority model and never inherit sandbox permissions.
 
 ## Safety model
 
@@ -121,11 +153,12 @@ See [docs/SECURITY.md](./docs/SECURITY.md) for trust assumptions, demonstrated i
 
 ## Architecture at a glance
 
-The repository has three deliberately separate planes:
+The repository has four deliberately separate planes:
 
 | Plane | Primary paths | Responsibility |
 |---|---|---|
 | Decision core | `src/core/` | Chain-independent policy, hybrid selection, adaptive sizing, and typed evidence. |
+| Setpoint execution | `contracts/`, `src/sandbox/`, `web/live/SandboxExecute.tsx` | Wallet-specific vaults, real pool quotes/swaps, onchain targets, exact simulation, signing, and confirmed-state reads. |
 | Live product | `src/live/`, `web/live/` | Multi-vault registry, protocol-specific RPC reads, compatibility analysis, plus RWA Index planning, simulation, authorization, and submission. |
 | Evidence | `artifacts/`, `web/data/`, `web/components/` | Read-only presentation of accepted fork and deterministic test results. |
 
@@ -163,7 +196,26 @@ pnpm demo:check
 pnpm security:demo
 pnpm integrations:smoke
 pnpm live:smoke
+pnpm sandbox:contracts
 ```
+
+Sandbox operations are explicit and credential-gated:
+
+```bash
+# Never commit or print this value.
+export SETPOINT_SANDBOX_DEPLOYER_KEY=0x...
+export RH_TESTNET_RPC=https://rpc.testnet.chain.robinhood.com # optional default
+
+pnpm sandbox:deploy          # dry-run/gas estimate, broadcast, record, smoke
+pnpm sandbox:oracle-status   # read-only freshness report
+pnpm sandbox:refresh-oracle  # updater transaction
+pnpm sandbox:smoke           # bytecode/topology/reserve/quote/oracle checks
+pnpm sandbox:e2e             # wallet vault, targets, exact simulation, rebalance, post-state
+```
+
+The deploy command also loads the ignored root `.env` file and accepts `PRIVATE_KEY` as a compatibility alias. A 64-character hex value without `0x` is normalized in process memory only; the secret file is not rewritten.
+
+If the oracle updater differs from the deployer, set `SETPOINT_SANDBOX_ORACLE_UPDATER` for deployment and keep its signing key in `SETPOINT_SANDBOX_ORACLE_UPDATER_KEY` only for the refresh command.
 
 Both smoke commands are read-only. `pnpm integrations:smoke` checks all six registered deployments and reports current readiness without upgrading degraded or empty state to “ready.” `pnpm live:smoke` performs the deeper RWA Index planning-path checks, including exact `eth_call` capability. Results depend on external RPC and contract state.
 
@@ -195,10 +247,13 @@ The large-target fork proof records 31.025554% initial drift, 10 attempted legs,
 
 ```text
 src/core/                       chain-independent solver and hybrid semantics
+src/sandbox/                    Setpoint Sandbox ABI, config, live reads, quote sampling, simulation, and execution
 src/live/integration-catalog.ts registered deployments and capability boundaries
 src/live/integration-read-adapters.ts mainnet protocol-specific read adapters
 src/live/rwa-index-live-adapter.ts planning, simulation, and execution adapter
 web/live/                       integration registry, compatibility UI, and wallet workflow
+contracts/                      Setpoint-owned Foundry contracts, tests, and deployment script
+deployments/                    recorded live testnet topology, block, and transaction hashes
 web/data/                       artifact-to-view-model adapters
 web/components/                 historical evidence presentation
 web/Landing.tsx                 product landing page
@@ -215,9 +270,9 @@ docs/                           architecture, security model, and decisions
 
 ## Project status and limits
 
-M1 established external-vault compatibility on a disposable fork. M2 froze the static control planner. M3 added deterministic simulation-gated planning. M4 and M4.1 introduced executable-liquidity sampling and adaptive multi-leg planning. M4.2 adopted simple-first hybrid orchestration. M5 turned accepted artifacts into an evidence console. M6 separated a real live operator product from historical evidence.
+M1 established external-vault compatibility on a disposable fork. M2 froze the static control planner. M3 added deterministic simulation-gated planning. M4 and M4.1 introduced executable-liquidity sampling and adaptive multi-leg planning. M4.2 adopted simple-first hybrid orchestration. M5 turned accepted artifacts into an evidence console. M6 separated a real live operator product from historical evidence. The current milestone adds the Setpoint-owned sandbox contract and product path without changing the frozen core.
 
-The mainnet surfaces are read-only technical integrations; they do not imply Setpoint-managed production execution. The planning-capable RWA Index integration uses mock testnet assets and toy Synthra liquidity. Setpoint has no custody, token, governance, private RPC credential, cross-venue routing, or deployed smart contract. A random visitor does not inherit execution authority from the UI.
+The mainnet surfaces remain read-only technical integrations; they do not imply Setpoint-managed production execution. The sandbox uses test-only assets and deliberately bounded liquidity. Setpoint has no production custody, token, governance, private RPC credential, cross-venue routing, relayer, or production capital. A random visitor owns only the sandbox vault their wallet creates and never inherits authority over an external vault.
 
 ## Documentation
 
@@ -225,4 +280,5 @@ The mainnet surfaces are read-only technical integrations; they do not imply Set
 - [Security model](./docs/SECURITY.md) — assumptions, invariants, threat coverage, and reproduction
 - [Decision 0001](./docs/decisions/0001-hybrid-rebalance-orchestration.md) — why Setpoint is simple-first and adaptive only when justified
 - [Decision 0002](./docs/decisions/0002-live-product-boundary.md) — why live state and historical evidence remain isolated
+- [Decision 0003](./docs/decisions/0003-wallet-owned-testnet-sandbox.md) — why the primary product path is a wallet-owned testnet protocol
 - [Build log](./BUILD_LOG.md) — milestone-by-milestone implementation record

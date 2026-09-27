@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "status": "DEPLOYED",
+  "network": "Robinhood Chain Testnet",
+  "chainId": 46630,
+  "rpc": "https://rpc.testnet.chain.robinhood.com",
+  "explorer": "https://explorer.testnet.chain.robinhood.com",
+  "deployedAt": "2026-09-27T20:21:04.736Z",
+  "deploymentBlock": 125344949,
+  "deployer": "0x9bc9c9e6d793fc2ed8a8cfc98d55e1f64d3bf6df",
+  "contracts": {
+    "factory": "0xf76098e6f4060ba71fa2fd09b669daa8a9c96b63",
+    "oracle": "0xb7971b154f464cb0e41b231409ef82df6dcb30af",
+    "swapAdapter": "0x0c073f7c29ce7074f3606405f3a606b1ebb6b8e7",
+    "baseAsset": "0x06b2b186b38f4af2469bbf29506647973c7db519",
+    "assets": [
+      "0x0169ccadc6f5a7de0d888dff4e2ffd7996e14abf",
+      "0xb2013259ee48eeab66c1866d69d15aecd21b758f",
+      "0xfe09058f35bb009872e4fa5182db09e44feeda1d",
+      "0xa5cfaf09ad5bdf846fd28c4ef99ebd6a16848bad"
+    ],
+    "pools": [
+      "0x17c16ca0f40934e81ec15b3140a7176b2fe83119",
+      "0x9bcc2b6ab732c01c7bb3c3e8a31302de5df27dec",
+      "0x7e7141fcd10efe97482f00d2e30cb7a813df317c",
+      "0x45d152ce173aba37fe5fffb18586dbdc71cff2e5"
+    ]
+  },
+  "deploymentTransactions": [
+    {
+      "hash": "0x3d10163f996d31f3ca8f384f66e53b0ae682d31ed5d3a3b18d999bc30feb85ff",
+      "contractName": "SetpointSandboxToken",
+      "contractAddress": "0x06b2b186b38f4af2469bbf29506647973c7db519"
+    },
+    {
+      "hash": "0x91e67839fe483676a528159d2611a9dcd4f0a36f0a887d2cf1627de1cc8dcc35",
+      "contractName": "SetpointSandboxToken",
+      "contractAddress": "0x0169ccadc6f5a7de0d888dff4e2ffd7996e14abf"
+    },
+    {
+      "hash": "0xbfb22a7788e33043b082aa10f231f2fcfdd8586280e238d02376086777e7b43d",
+      "contractName": "SetpointSandboxToken",
+      "contractAddress": "0xb2013259ee48eeab66c1866d69d15aecd21b758f"
+    },
+    {
+      "hash": "0x2f20217e421217a0335bb060966074cccf82342d7b32bffdd3477412fc17f9f6",
+      "contractName": "SetpointSandboxToken",
+      "contractAddress": "0xfe09058f35bb009872e4fa5182db09e44feeda1d"
+    },
+    {
+      "hash": "0x763e6bf48aaa2d67f4b72bf1342e14359b8b3fe46444204ef2b4c2e3d79b47da",
+      "contractName": "SetpointSandboxToken",
+      "contractAddress": "0xa5cfaf09ad5bdf846fd28c4ef99ebd6a16848bad"
+    },
+    {
+      "hash": "0xf3a1e567c6a27e256313f8d63ac596d1d7b194e4a84ac2b68759c8c126577fb9",
+      "contractName": "SetpointSandboxOracle",
+      "contractAddress": "0xb7971b154f464cb0e41b231409ef82df6dcb30af"
+    },
+    {
+      "hash": "0x83d114f1ad2129d6ea741e9747e2c96d876c77169cb67286bd45fb231fe65ea6",
+      "contractName": "SetpointSandboxSwapAdapter",
+      "contractAddress": "0x0c073f7c29ce7074f3606405f3a606b1ebb6b8e7"
+    },
+    {
+      "hash": "0x60f6c0ca9bdad9d0ff652cfdb9ad399b7b15537af91a204e52efb8069daa4152",
+      "contractName": "SetpointSandboxPool",
+      "contractAddress": "0x17c16ca0f40934e81ec15b3140a7176b2fe83119"
+    },
+    {
+      "hash": "0x68e9bb40576e9863ad3844551324681a14549a22a8fc781762325b6fdab13209",
+      "contractName": "SetpointSandboxPool",
+      "contractAddress": "0x9bcc2b6ab732c01c7bb3c3e8a31302de5df27dec"
+    },
+    {
+      "hash": "0x0ea2f011b04caba0003a07d09b6c492c0fc07842fc0f6616c608c418d6d2edf7",
+      "contractName": "SetpointSandboxPool",
+      "contractAddress": "0x7e7141fcd10efe97482f00d2e30cb7a813df317c"
+    },
+    {
+      "hash": "0x960e067a3e0ffa08c1b707689cbcafefb45fb284524ba9656908f4285cff9d57",
+      "contractName": "SetpointSandboxPool",
+      "contractAddress": "0x45d152ce173aba37fe5fffb18586dbdc71cff2e5"
+    },
+    {
+      "hash": "0xc9619df3cee7f67c73f97adcb9d259f7f59880f5f289492a34ac3abd360ddfd8",
+      "contractName": "SetpointSandboxFactory",
+      "contractAddress": "0xf76098e6f4060ba71fa2fd09b669daa8a9c96b63"
+    }
+  ]
+}

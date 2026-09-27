@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 
-const baseUrl = process.env.SETPOINT_VISUAL_BASE_URL ?? "http://127.0.0.1:5173";
-const vault = "0x357CD10343829DBd5889c7b0B2fBc4388fC4875B";
+const baseUrl = process.env.SETPOINT_VISUAL_BASE_URL ?? "http://localhost:5173";
 const browser = await chromium.launch({ headless: true });
 const bypass = process.env.VERCEL_PROTECTION_BYPASS;
 const pageOptions = (viewport, extra = {}) => ({
@@ -18,7 +17,12 @@ try {
   assert.equal(await desktop.getByRole("link", { name: /Open Setpoint/i }).first().getAttribute("href"), "/app");
   await desktop.screenshot({ path: "docs/images/m6-landing-desktop.png", fullPage: true });
 
-  await desktop.goto(`${baseUrl}/app?vault=${vault}`, { waitUntil: "networkidle" });
+  await desktop.goto(`${baseUrl}/app`, { waitUntil: "networkidle" });
+  await desktop.getByRole("heading", { name: /Your vault\. Your targets\. A real rebalance/i }).waitFor();
+  assert.equal(await desktop.locator("body").evaluate((body) => body.scrollWidth <= window.innerWidth), true, "sandbox home has horizontal overflow");
+  await desktop.screenshot({ path: "docs/images/sandbox-execute-desktop.png", fullPage: true });
+
+  await desktop.goto(`${baseUrl}/app/vault/rwa-index`, { waitUntil: "networkidle" });
   await desktop.locator(".operator-grid").waitFor();
   await desktop.getByText("LIVE RPC", { exact: true }).first().waitFor();
   await desktop.getByText("Wallet disconnected", { exact: true }).waitFor();
@@ -39,15 +43,19 @@ try {
   assert.equal(await mobile.locator("body").evaluate((body) => body.scrollWidth <= window.innerWidth), true, "landing has horizontal overflow");
   await mobile.screenshot({ path: "docs/images/m6-mobile.png", fullPage: true });
 
+  await mobile.goto(`${baseUrl}/app`, { waitUntil: "networkidle" });
+  await mobile.getByRole("heading", { name: /Your vault\. Your targets\. A real rebalance/i }).waitFor();
+  assert.equal(await mobile.locator("body").evaluate((body) => body.scrollWidth <= window.innerWidth), true, "sandbox mobile has horizontal overflow");
+  await mobile.screenshot({ path: "docs/images/sandbox-execute-mobile.png", fullPage: true });
+
   const failedRpc = await browser.newPage(pageOptions({ width: 1280, height: 800 }));
-  await failedRpc.route("https://rpc.testnet.chain.robinhood.com/**", (route) => route.abort("failed"));
-  await failedRpc.goto(`${baseUrl}/app`, { waitUntil: "networkidle" });
-  await failedRpc.getByRole("button", { name: /Open vault/i }).click();
+  await failedRpc.route("**/rpc/testnet", (route) => route.abort("failed"));
+  await failedRpc.goto(`${baseUrl}/app/vault/rwa-index`, { waitUntil: "networkidle" });
   await failedRpc.getByText("RPC ERROR", { exact: true }).waitFor();
   assert.equal(await failedRpc.getByText("NO_TRADE", { exact: true }).count(), 0, "RPC error rendered as NO_TRADE");
 
   console.log(`Visual routes passed at ${baseUrl}`);
-  console.log("Screenshots: landing desktop, live vault, analysis result, mobile, evidence");
+  console.log("Screenshots: landing desktop/mobile, sandbox desktop/mobile, live vault, analysis result, evidence");
   console.log("States: wallet disconnected, live stale-oracle NO_TRADE, forced RPC error");
 } finally {
   await browser.close();

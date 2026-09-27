@@ -1,3 +1,5 @@
+import { sandboxDeployment } from "../src/sandbox/config";
+
 function SiteHeader() {
   return <header className="landing-header"><a className="landing-wordmark" href="/"><img alt="" className="brand-mark" height={28} src="/brand/setpoint.png" width={28} /><span>SETPOINT</span></a><nav aria-label="Primary navigation"><a href="/app">App</a><a href="/evidence">Evidence</a><a href="https://github.com/karagozemin/setpoint" target="_blank" rel="noreferrer">GitHub ↗</a></nav><a className="landing-open" href="/app">Open Setpoint <span>↗</span></a></header>;
 }
@@ -10,6 +12,16 @@ export default function Landing() {
         <div className="hero-index"><span>Safety / execution</span><span>Robinhood Chain · 4663 / 46630</span></div>
         <div className="hero-copy"><p className="product-kicker">Vault rebalance orchestration</p><h1>Rebalance the vault.<br /><em>Not the risk.</em></h1></div>
         <div className="hero-support"><p>Setpoint preflights an intended rebalance against live vault state, liquidity evidence and onchain constraints.</p><p>Safe batches pass through. Broken batches get the largest provably safe progress—or no trade at all.</p><div><a className="primary-link" href="/app">Open Setpoint <span>→</span></a><a className="secondary-link" href="/evidence">Technical evidence</a></div></div>
+      </section>
+
+      <section className="landing-sandbox" aria-labelledby="landing-sandbox-title">
+        <div className="landing-sandbox-lead"><p className="product-kicker">Setpoint Sandbox / Chain 46630</p><h2 id="landing-sandbox-title">Own the vault.<br />Move the state.</h2><p>The first product path is a wallet-owned testnet vault with real token balances, stored targets, timestamped prices, constant-product liquidity, exact simulation, and a signed rebalance.</p><a href="/app">{sandboxDeployment.status === "DEPLOYED" ? "Execute a testnet rebalance →" : "Inspect the execution surface →"}</a></div>
+        <ol>
+          <li><span>01</span><div><strong>Create</strong><p>The factory deploys one owner-controlled vault and seeds a bounded sandbox portfolio.</p></div></li>
+          <li><span>02</span><div><strong>Analyze</strong><p>Live reserve quotes feed the unchanged hybrid solver; runtime evidence selects the mode.</p></div></li>
+          <li><span>03</span><div><strong>Execute</strong><p>Your wallet signs only after exact simulation. Confirmation triggers a fresh post-state read.</p></div></li>
+        </ol>
+        <aside className={sandboxDeployment.status.toLowerCase()}><i /><span>{sandboxDeployment.status === "DEPLOYED" ? "LIVE TESTNET" : "BROADCAST PENDING"}</span><strong>{sandboxDeployment.status === "DEPLOYED" ? "Real contracts recorded" : "No fake addresses shown"}</strong><small>Robinhood Chain Testnet · 46630</small></aside>
       </section>
 
       <section className="decision-visual" aria-labelledby="decision-title">

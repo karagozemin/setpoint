@@ -2,6 +2,7 @@ import { createPublicClient, encodeFunctionData, getAddress, http } from "viem";
 import { vaultAbi } from "../integrations/rwa-index/src/abi.js";
 import { ROBINHOOD_RPC_URL, robinhoodTestnet, rwaIndexLiveConfig } from "../src/live/config.js";
 import { RWAIndexLiveAdapter } from "../src/live/rwa-index-live-adapter.js";
+import { sandboxDeployment } from "../src/sandbox/config.js";
 
 const client = createPublicClient({ chain: robinhoodTestnet, transport: http(ROBINHOOD_RPC_URL, { timeout: 30_000 }) });
 const adapter = new RWAIndexLiveAdapter(client);
@@ -44,7 +45,7 @@ async function main(): Promise<void> {
   console.log(`RWA Index state: ${state.assets.length} assets, ${state.staleAssets.length} stale oracle prices`);
   console.log(`Authoritative NAV: ${state.nav === null ? "unavailable (stale-price guard)" : state.nav}`);
   console.log(`Exact vault simulation: ${simulationCapability}`);
-  console.log("Setpoint deployment: none configured; no vanity contract is claimed");
+  console.log(`Setpoint Sandbox deployment record: ${sandboxDeployment.status}${sandboxDeployment.status === "UNDEPLOYED" ? " (broadcast credential required)" : ""}`);
 }
 
 void main().catch((error: unknown) => {

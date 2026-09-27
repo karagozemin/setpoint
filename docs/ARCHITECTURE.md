@@ -8,9 +8,10 @@ Setpoint is a non-custodial decision and execution-safety layer for onchain vaul
 - `ADAPTIVE_FALLBACK`: an explicitly recoverable simple-batch failure was replaced by a smaller independently verified plan; or
 - `NO_TRADE`: Setpoint cannot prove a safe execution path.
 
-This document describes the M6 repository architecture, including a crucial implementation distinction:
+This document describes the current repository architecture, including a crucial implementation distinction:
 
 - the **chain-independent hybrid core** contains all three decision modes and is demonstrated by deterministic and fork-backed evidence;
+- the **Setpoint Sandbox live adapter** supplies current onchain pool quotes to that unchanged core, so its wallet-owned testnet path can select all three modes at runtime;
 - the **RWA Index planning adapter** can return `FAST_PATH` or `NO_TRADE`, but deliberately cannot invoke adaptive fallback because the deployed venue exposes no trustworthy public executable-quote interface; and
 - the **Vimen, HISS V2, Fides Frontier, MAG7, and Wield adapters** expose protocol-specific live state and Setpoint compatibility checks without fabricating targets, calldata, signer authority, or simulation support.
 
@@ -24,12 +25,12 @@ The system is organized around six invariants.
 2. **Fail closed.** Missing, stale, unsupported, or unclassified evidence cannot produce execution.
 3. **Simulation gates execution.** A plan is not executable merely because local math says it should work.
 4. **State is disposable.** A plan belongs to the state from which it was derived. After a confirmed transition, Setpoint discards it and reads again.
-5. **Authority stays external.** The vault owns assets, roles, sessions, accounting, and hard guards. Setpoint cannot elevate a wallet.
+5. **Authority stays onchain.** A sandbox vault is controlled only by its immutable wallet owner; external vaults retain their own roles and sessions. The UI cannot elevate a wallet.
 6. **Evidence never impersonates live data.** Fork artifacts are useful proofs, but they are never inputs to `/app`.
 
 ## 3. System context
 
-Setpoint is currently a browser-delivered static application. There is no Setpoint application API, database, relayer, signing service, or deployed Setpoint contract in the execution path. The deployment exposes two fixed same-origin RPC pass-through routes (`/rpc/mainnet` and `/rpc/testnet`) because the upstream public RPC intermittently returns invalid duplicate CORS headers; these routes do not cache, interpret, or mutate JSON-RPC payloads.
+Setpoint is a browser-delivered static application plus a small testnet contract system. There is no Setpoint application API, database, relayer, or signing service. The browser exposes two fixed same-origin RPC pass-through routes (`/rpc/mainnet` and `/rpc/testnet`) because the upstream public RPC intermittently returns invalid duplicate CORS headers; these routes do not cache, interpret, or mutate JSON-RPC payloads.
 
 ```mermaid
 flowchart LR
@@ -40,6 +41,7 @@ flowchart LR
         Live[Live operator UI<br/>/app]
         Evidence[Evidence console<br/>/evidence]
         Registry[Integration registry]
+        SandboxAdapter[Setpoint Sandbox live adapter]
         ReadAdapters[Mainnet read adapters]
         Planner[RWA Index planning adapter]
         ArtifactAdapter[Read-only artifact adapters]
@@ -48,6 +50,9 @@ flowchart LR
     Wallet[Injected EIP-1193 wallet]
     MainnetRPC[Robinhood Chain mainnet RPC]
     TestnetRPC[Robinhood Chain testnet RPC]
+    SandboxFactory[Setpoint Sandbox factory]
+    SandboxVault[Wallet-owned sandbox vault]
+    SandboxInfra[Oracle · route adapter · CPMM pools]
     MainnetVaults[Vimen · HISS · Fides · MAG7 · Wield]
     Vault[External RWA Index vault]
     Oracle[External oracle]
@@ -60,10 +65,13 @@ flowchart LR
     Live --> Registry
     Registry --> ReadAdapters
     Registry --> Planner
+    Live --> SandboxAdapter
     ReadAdapters --> MainnetRPC --> MainnetVaults
     Planner --> TestnetRPC
     Live <--> Wallet
     Wallet --> TestnetRPC
+    SandboxAdapter --> TestnetRPC
+    TestnetRPC --> SandboxFactory --> SandboxVault --> SandboxInfra
     TestnetRPC --> Vault
     Vault --> Oracle
     Vault --> Swap
@@ -78,6 +86,8 @@ The browser communicates with public chain infrastructure through those fixed tr
 |---|---|---|---|---|
 | Landing | `web/Landing.tsx` | Static content | Product explanation and navigation | Read chain state or submit transactions |
 | Live application | `web/live/` | Operator allocation and wallet events | Live state, typed analysis, calldata, execution status | Implement portfolio math or consume evidence artifacts |
+| Sandbox contracts | `contracts/src/` | Wallet calls, testnet token balances, stored targets | Wallet-specific vault state and guarded real swaps | Access production funds, arbitrary routes, or offchain keys |
+| Sandbox live adapter | `src/sandbox/` | Factory/vault/oracle/pool RPC state and optional provider | Current quote curves, hybrid decision, exact simulation, optional submission | Fabricate deployment state or bypass vault ownership |
 | Integration registry | `src/live/integration-catalog.ts` | Registered address | Protocol identity, capability, source provenance, disclosure | Treat an arbitrary ERC-4626 vault as compatible |
 | Mainnet read adapters | `src/live/integration-read-adapters.ts` | Protocol-specific RPC state | Normalized metrics, holdings, guards, and compatibility checks | Invent targets, calldata, authority, or execution support |
 | RWA Index planning adapter | `src/live/rwa-index-live-adapter.ts` | RPC state, allocation, optional account/provider | Validated state, simulation result, optional submission | Claim adaptive liquidity without a live quote source |
@@ -85,7 +95,7 @@ The browser communicates with public chain infrastructure through those fixed tr
 | Evidence presentation | `web/data/`, `web/components/` | Checked-in JSON artifacts | Read-only scenario view models | Import execution solvers or submit transactions |
 | Integration harness | `integrations/rwa-index/` | External ABI/source and fork state | Static plans, quotes, fork execution evidence | Represent fork observations as live state |
 
-The separation is enforced structurally and tested. Protocol adapters own live reads and semantics; React selects an adapter and presents normalized results. `RWAIndexLiveAdapter` alone owns the current planning/submission workflow. The evidence console maps artifacts into view models without importing the execution core.
+The separation is enforced structurally and tested. Protocol adapters own live reads and semantics; React selects an adapter and presents normalized results. `SetpointSandboxLiveAdapter` owns the primary Setpoint execution workflow, while `RWAIndexLiveAdapter` preserves its narrower external workflow. The evidence console maps artifacts into view models without importing the execution core.
 
 ## 5. Component architecture
 
@@ -95,16 +105,25 @@ flowchart TB
         Router[web/Router.tsx]
         Landing[web/Landing.tsx]
         LiveUI[web/live/LiveApp.tsx]
+        SandboxUI[web/live/SandboxExecute.tsx]
         EvidenceUI[web/App.tsx + components]
     end
 
     subgraph LiveBoundary[Live integration boundary]
+        SandboxAdapter[src/sandbox/setpoint-sandbox-live-adapter.ts]
         Catalog[src/live/integration-catalog.ts]
         ReadAdapters[src/live/integration-read-adapters.ts]
         LiveAdapter[src/live/rwa-index-live-adapter.ts]
         LiveTypes[src/live/types.ts]
         LiveConfig[src/live/config.ts]
         Wallet[web/live/wallet.ts]
+    end
+
+    subgraph Onchain[Setpoint Sandbox contracts]
+        Factory[Factory]
+        Vaults[Wallet vaults]
+        Oracle[Sandbox oracle]
+        Pools[Route adapter + CPMM pools]
     end
 
     subgraph Decision[Decision engines]
@@ -125,12 +144,17 @@ flowchart TB
     Router --> LiveUI
     Router --> EvidenceUI
     LiveUI --> LiveAdapter
+    LiveUI --> SandboxUI --> SandboxAdapter
     LiveUI --> Catalog
     LiveUI --> ReadAdapters
     LiveUI --> Wallet
     LiveAdapter --> LiveTypes
     LiveAdapter --> LiveConfig
     LiveAdapter --> Static
+    SandboxAdapter --> Static
+    SandboxAdapter --> Hybrid
+    SandboxAdapter --> Factory --> Vaults --> Pools
+    Vaults --> Oracle
     Hybrid --> Adaptive
     Hybrid --> Policy
     EvidenceUI --> DataAdapters --> Artifacts
@@ -145,7 +169,70 @@ The accepted hybrid core requires executable-liquidity curves bound to current s
 
 The live adapter therefore reuses only the accepted static planner, performs an exact `eth_call`, and returns `NO_TRADE / SIMULATION_REJECTED` if that batch fails. Its result type exposes `adaptiveFallbackAvailable: false` so this boundary is machine-visible as well as documented.
 
-## 6. Live integration registry
+The Setpoint Sandbox has the missing evidence source: every supported asset has a registered constant-product pool and the adapter exposes a deterministic `quote()` against current real reserves. Its live adapter samples multiple sizes in both directions, includes each exact simple-plan size, binds samples to the current state ID/block, and passes those curves to the existing `solveHybrid()` implementation. No solver fork or React-side planner exists.
+
+## 6. Setpoint Sandbox onchain architecture
+
+The sandbox exists to make the primary user action executable without pretending an external protocol granted public authority.
+
+```mermaid
+flowchart LR
+    Wallet[Connected wallet] -->|createVault| Factory[SetpointSandboxFactory]
+    Factory -->|deploy + bounded seed| Vault[Wallet-owned vault]
+    Wallet -->|setTargets| Vault
+    Adapter[Live adapter] -->|read state + exact eth_call| Vault
+    Adapter -->|quote sizes| Route[Route-restricted adapter]
+    Vault -->|approved Trade array| Route
+    Route --> PoolA[sUSDG / sALPHA]
+    Route --> PoolB[sUSDG / sBETA]
+    Route --> PoolC[sUSDG / sGAMMA]
+    Route --> PoolD[sUSDG / sDELTA]
+    Oracle[Timestamped sandbox oracle] --> Vault
+    Oracle --> Adapter
+```
+
+| Contract | State/authority | Guardrail |
+|---|---|---|
+| `SetpointSandboxFactory` | `getVault[wallet]`; one deployment per wallet | Rejects duplicates; seeds only the documented 10,000 sUSDG test allocation |
+| `SetpointSandboxVault` | Immutable owner, balances, targets, guard parameters | Owner-only targets/rebalance; allowlisted routes; 2% drift trigger; 30% NAV leg cap; 3% oracle slippage floor; fresh prices; strict drift improvement; 2% NAV-loss cap |
+| `SetpointSandboxOracle` | WAD price, `updatedAt`, owner/updater | Zero prices and unauthorized updates revert; vault enforces a 24-hour maximum age |
+| `SetpointSandboxPool` | Real ERC-20 reserves and 30 bps fee | Constant-product quote/swap; only the configured route adapter may execute |
+| `SetpointSandboxSwapAdapter` | Asset-to-pool allowlist | Only direct sUSDG/risk routes; no arbitrary target/calldata surface |
+| `SetpointSandboxToken` | Testnet-only balances and factory mint authority | No production claim; mint authority is transferred to the factory after pool seeding |
+
+The initial portfolio is intentionally actionable: 55% cash plus 25/10/7/3% risk value against a 20/20/20/20/20 target. It is large enough to demonstrate planning but bounded, deterministic, and isolated from production value.
+
+### Sandbox runtime sequence
+
+```mermaid
+sequenceDiagram
+    actor O as Wallet owner
+    participant UI as Sandbox UI
+    participant A as Sandbox live adapter
+    participant C as Hybrid core
+    participant RPC as Testnet RPC
+    participant V as Owner vault
+
+    O->>UI: Analyze rebalance
+    UI->>A: analyze(owner)
+    A->>RPC: Read factory, vault, prices, balances, targets, pools
+    A->>RPC: Quote both directions at bounded sizes
+    A->>C: solveHybrid(state, policy, curves, simulator)
+    C->>RPC: Exact eth_call through injected simulator
+    C-->>UI: FAST_PATH / ADAPTIVE_FALLBACK / NO_TRADE
+    O->>UI: Execute approved plan
+    UI->>A: execute(analysis, provider, owner)
+    A->>RPC: Re-read relevant-state ID + exact owner eth_call
+    A->>O: Request wallet signature
+    O->>V: rebalance(Trade[])
+    V-->>A: Confirmed receipt
+    A->>RPC: Re-read confirmed post-state
+    A-->>UI: Hash, block, before/after; discard plan
+```
+
+The checked deployment file is the source of browser configuration. The current record is `DEPLOYED` on chain `46630` from block `125344949`; the browser therefore resolves only the recorded factory, oracle, route adapter, tokens, and pools. If that record is absent or explicitly reset to `UNDEPLOYED`, the execution UI returns to the broadcast gate and sandbox RPC methods refuse to proceed.
+
+## 7. Live integration registry
 
 The registry is an allowlist of exact chain/address pairs, not ERC-4626 interface detection. Each entry records its network, capability level, external source repository, pinned source commit, and execution boundary.
 
@@ -162,7 +249,7 @@ The five mainnet adapters produce a `LiveIntegrationSnapshot`: block provenance,
 
 The catalog UI reads all six deployments concurrently. Vimen, HISS, Fides, and RWA Index occupy the primary grid; the currently empty MAG7 and Wield deployments remain in a visible secondary watchlist. A failed RPC read is shown as unavailable rather than replaced with cached values. Selecting a mainnet integration opens a live compatibility workspace. Selecting RWA Index enters the planning pipeline below.
 
-## 7. RWA Index live decision pipeline
+## 8. RWA Index live decision pipeline
 
 The live pipeline is intentionally narrower than the full hybrid engine.
 
@@ -186,7 +273,7 @@ flowchart TD
     Sim --> Passed{Simulation passed?}
     Passed -- Yes --> Fast[FAST_PATH]
     Passed -- No --> Quote{Truthful live executable<br/>quote source available?}
-    Quote -- No, current M6 --> Rejected[NO_TRADE<br/>SIMULATION_REJECTED]
+    Quote -- No --> Rejected[NO_TRADE<br/>SIMULATION_REJECTED]
     Quote -. Future integration .-> Hybrid[Hybrid adaptive pipeline]
 ```
 
@@ -226,7 +313,7 @@ The static planner constructs the RWA Index-style batch under the vault's `maxTr
 
 This simulation is evidence for a decision, not authority to execute. The connected wallet is checked independently.
 
-## 8. Full hybrid decision core
+## 9. Full hybrid decision core
 
 The chain-independent core accepts normalized state and injected adapters rather than importing chain clients. Its main contracts are:
 
@@ -267,7 +354,7 @@ Adaptive decisions require state-bound quote samples, not nominal pool balances.
 
 That evidence model is why the solver can explain not only what it selected, but also why apparently useful residual trades were refused.
 
-## 9. Transaction lifecycle
+## 10. External RWA Index transaction lifecycle
 
 This sequence describes the RWA Index planning adapter. Mainnet compatibility adapters terminate at a read-only snapshot and never enter this lifecycle. Analysis and execution are separate state transitions. An analysis can be exported without a wallet; execution requires current external authority.
 
@@ -313,22 +400,22 @@ The execution method accepts only a simulation-approved `FAST_PATH` result with 
 
 There is still an unavoidable interval between simulation and mining. The external vault's hard guards remain the final protection if state changes in that interval.
 
-## 10. Authority and custody boundary
+## 11. Authority and custody boundary
 
 | Capability | Setpoint | External vault / wallet |
 |---|---:|---:|
 | Read public state | Yes | Provides state |
 | Propose an allocation for analysis | Yes | No mutation implied |
-| Build and simulate calldata | Capability-dependent; RWA Index only today | Vault code determines success |
-| Hold portfolio assets | No | Vault |
-| Grant manager or session rights | No | Vault administration |
+| Build and simulate calldata | Yes for sandbox; capability-dependent externally | Vault code determines success |
+| Hold portfolio assets | No in the browser; sandbox vault contracts hold test assets | Vault contract |
+| Grant authority | Factory binds sandbox ownership; no role elevation | Wallet owner or external vault administration |
 | Hold or export a private key | No | Wallet |
 | Approve a signature | No | Operator in wallet |
 | Enforce final onchain guards | No | Vault |
 
-No Setpoint contract participates in execution. Adding a contract that the transaction path does not rely on would increase surface area without moving a trust boundary.
+The sandbox contracts participate directly and are therefore deliberately small. They do not proxy external vaults, hold production capital, accept arbitrary calls, or create a hidden signer. External integrations remain outside this contract system.
 
-## 11. Error and decision taxonomy
+## 12. Error and decision taxonomy
 
 Setpoint keeps product decisions distinct from infrastructure and user-interaction errors.
 
@@ -341,7 +428,7 @@ Setpoint keeps product decisions distinct from infrastructure and user-interacti
 
 Collapsing these into `NO_TRADE` would make safety decisions indistinguishable from outages, so the UI preserves them as different states.
 
-## 12. Evidence architecture and provenance
+## 13. Evidence architecture and provenance
 
 The evidence plane is immutable at runtime:
 
@@ -364,7 +451,7 @@ Evidence levels are explicit:
 
 The security generator also records source hashes, including the frozen M2 planner hash, so a regenerated proof fails if a protected implementation changes unexpectedly.
 
-## 13. Deployment architecture
+## 14. Deployment architecture
 
 The production build is a Vite static bundle deployed on Vercel.
 
@@ -373,11 +460,11 @@ The production build is a Vite static bundle deployed on Vercel.
 - Live and evidence bundles are lazy-loaded as separate route surfaces.
 - The Content Security Policy permits network connections only to the application origin and the official Robinhood Chain mainnet and testnet RPC endpoints.
 - Framing, objects, camera, microphone, geolocation, and payment APIs are disabled by response headers.
-- There is no server-side secret or environment-specific signing credential.
+- There is no server-side signing credential. Contract deployment and oracle refresh are explicit operator commands that read a local environment key; the browser bundle never receives it.
 
 Because `/app` is client-side, its RPC URL and registered contract addresses are public configuration, not secrets.
 
-## 14. Verification strategy
+## 15. Verification strategy
 
 | Layer | Primary command | What it establishes |
 |---|---|---|
@@ -388,11 +475,13 @@ Because `/app` is client-side, its RPC URL and registered contract addresses are
 | Security cases | `pnpm security:demo` | Five scenarios and 11 fail-closed invariants regenerate deterministically |
 | Integration registry | `pnpm integrations:smoke` | All six addresses resolve to bytecode and their declared live read surfaces remain callable |
 | External read path | `pnpm live:smoke` | Current chain, bytecode, addresses, guards, oracle reads, and `eth_call` capability |
+| Sandbox contracts | `pnpm sandbox:contracts` | Factory, ownership, targets, stale-price refusal, real swaps, product invariant, and fuzzed quotes |
+| Sandbox deployment | `pnpm sandbox:smoke` | Recorded bytecode, topology, reserves, routes, quotes, and oracle state on chain 46630 |
 | Fork milestones | `pnpm m1:rwa-index` through `pnpm m4:hybrid` | Historical compatibility and planning evidence |
 
 `integrations:smoke` and `live:smoke` depend on external networks and mutable contract state. A `DEGRADED` or `EMPTY` integration is a successful truthful observation; missing bytecode, invalid provenance, or an unreadable required surface fails the smoke test.
 
-## 15. Adding another live integration
+## 16. Adding another live integration
 
 A new integration should be a new adapter, not a conditional expansion of React portfolio logic. At minimum it must define and prove:
 
@@ -411,23 +500,24 @@ A new integration should be a new adapter, not a conditional expansion of React 
 
 An integration is not adaptive-capable merely because a pool has reserves or a quote can be estimated locally. It must provide evidence that matches the actual route, direction, size, state, and execution constraints.
 
-## 16. Known limitations and non-goals
+## 17. Known limitations and non-goals
 
 The current system deliberately does not provide:
 
-- Setpoint-managed production funds or a production execution integration;
+- Setpoint-managed production funds or a production execution integration (the owned path is explicitly a testnet sandbox);
 - custody, key management, role administration, or transaction relaying;
 - a private RPC, indexer, backend database, or atomic archival read service;
-- live adaptive fallback for the current Synthra deployment;
+- live adaptive fallback for the external Synthra deployment (the sandbox path does supply adaptive quote evidence);
 - cross-venue routing, cross-vault netting, or MEV protection;
 - protection from a malicious-but-fresh oracle, compromised RPC, compromised wallet, or bugs in external contracts; or
 - an audit or formal-verification claim.
 
 The mainnet integrations are read-only compatibility surfaces. The testnet planning integration uses mock assets and toy venue liquidity. These constraints are visible in the product because hiding them would weaken the meaning of every decision the product returns.
 
-## 17. Related decisions
+## 18. Related decisions
 
 - [Decision 0001: Hybrid rebalance orchestration](./decisions/0001-hybrid-rebalance-orchestration.md)
 - [Decision 0002: Live product and evidence boundary](./decisions/0002-live-product-boundary.md)
+- [Decision 0003: Wallet-owned testnet sandbox](./decisions/0003-wallet-owned-testnet-sandbox.md)
 - [Security model and failure evidence](./SECURITY.md)
 - [Repository overview](../README.md)

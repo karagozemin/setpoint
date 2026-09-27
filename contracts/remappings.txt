@@ -1,0 +1,2 @@
+forge-std/=../third_party/rwa-index/contracts/lib/forge-std/src/
+openzeppelin-contracts/=../third_party/rwa-index/contracts/lib/openzeppelin-contracts/

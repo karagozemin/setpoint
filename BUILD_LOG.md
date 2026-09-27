@@ -1,5 +1,26 @@
 # Build log
 
+## 2026-09-27 — Setpoint Sandbox execution milestone (live on testnet)
+
+The primary `/app` surface now begins with a Setpoint-owned Robinhood Chain Testnet execution workflow. A new Foundry workspace implements mint-restricted test assets, a timestamped operational oracle, four differently sized constant-product pools, a route-restricted swap adapter, one owner-controlled vault per wallet, and a factory that seeds a bounded, deliberately drifted portfolio.
+
+`SetpointSandboxLiveAdapter` reads confirmed vault/oracle/pool state, samples real `eth_call` quotes in both directions, feeds those state-bound curves to the unchanged hybrid solver, exact-simulates `rebalance(Trade[])`, checks the state ID again before signing, waits for confirmation, and re-reads post-state. The external registry remains under **Live Monitoring** and historical artifacts remain isolated under `/evidence`.
+
+Validation at implementation time:
+
+- Foundry: 10/10 tests, including 256 fuzz runs;
+- TypeScript: 93/93 tests;
+- security invariants: 11/11;
+- frozen M2 planner SHA-256: `dcd079ed25ff6fd7683c947fbf46748abd70862fe2a85a368c919b26fe7cee92`;
+- TypeScript typecheck and production build: passed;
+- desktop and 390px mobile visual QA: passed with no horizontal overflow.
+
+The topology was deployed to Robinhood Chain Testnet from block `125344949`. The 46-transaction deployment used `13,422,676` gas and paid `0.00013422676 ETH`. The checked record contains the deployer, factory, oracle, swap adapter, five token, four pool, and all deployment transaction hashes; bytecode/topology/reserve/quote/oracle smoke checks passed against the public RPC.
+
+The first real owner flow created vault `0x0F413E705426271657905d30b9f99c635B57EC09`, stored a new target allocation, read live reserves, selected a four-leg `FAST_PATH`, passed exact simulation, submitted rebalance transaction `0xad33dc4ffe2f980763626eba90dbff4a6d54be5ec28f9c382a0364a9c863471b`, and re-read the confirmed post-state. Drift moved from `45.0000%` to `0.2798%`; NAV moved from `9999.9999999999999994` to `9925.53859718776056529` sUSDG within the vault's configured loss bound.
+
+Preview `https://setpoint-e04dzzo81-karagozs-projects.vercel.app` was built from the live deployment record. Authenticated preview checks returned HTTP 200 for `/`, `/app`, and `/evidence`; its same-origin testnet RPC returned chain ID `0xb626`. Production promotion remains intentionally pending a manual injected-wallet pass on the preview.
+
 ## 2026-09-26 — M6 live product
 
 ### Implemented
