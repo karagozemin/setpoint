@@ -46,7 +46,7 @@ export class RWAIndexLiveAdapter {
   constructor(client?: PublicClient) {
     this.client = client ?? createPublicClient({
       chain: robinhoodTestnet,
-      transport: http(ROBINHOOD_RPC_URL, { batch: { wait: 12 } }),
+      transport: http(ROBINHOOD_RPC_URL, { batch: { wait: 12 }, retryCount: 0, timeout: 8_000 }),
     });
   }
 

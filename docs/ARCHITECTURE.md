@@ -11,7 +11,8 @@ Setpoint is a non-custodial decision and execution-safety layer for onchain vaul
 This document describes the M6 repository architecture, including a crucial implementation distinction:
 
 - the **chain-independent hybrid core** contains all three decision modes and is demonstrated by deterministic and fork-backed evidence;
-- the **current live RWA Index adapter** can return `FAST_PATH` or `NO_TRADE`, but deliberately cannot invoke adaptive fallback because the deployed venue exposes no trustworthy public executable-quote interface.
+- the **RWA Index planning adapter** can return `FAST_PATH` or `NO_TRADE`, but deliberately cannot invoke adaptive fallback because the deployed venue exposes no trustworthy public executable-quote interface; and
+- the **HISS V2, Fides Frontier, and Wield adapters** expose protocol-specific live state and Setpoint compatibility checks without fabricating targets, calldata, signer authority, or simulation support.
 
 That distinction is a safety property, not a missing UI state.
 
@@ -38,12 +39,16 @@ flowchart LR
         Landing[Product surface]
         Live[Live operator UI<br/>/app]
         Evidence[Evidence console<br/>/evidence]
-        Adapter[RWAIndexLiveAdapter]
+        Registry[Integration registry]
+        ReadAdapters[Mainnet read adapters]
+        Planner[RWA Index planning adapter]
         ArtifactAdapter[Read-only artifact adapters]
     end
 
     Wallet[Injected EIP-1193 wallet]
-    RPC[Robinhood Chain testnet RPC]
+    MainnetRPC[Robinhood Chain mainnet RPC]
+    TestnetRPC[Robinhood Chain testnet RPC]
+    MainnetVaults[HISS · Fides · Wield]
     Vault[External RWA Index vault]
     Oracle[External oracle]
     Swap[External swap adapter]
@@ -52,11 +57,14 @@ flowchart LR
     Operator --> Landing
     Operator --> Live
     Operator --> Evidence
-    Live --> Adapter
-    Adapter --> RPC
+    Live --> Registry
+    Registry --> ReadAdapters
+    Registry --> Planner
+    ReadAdapters --> MainnetRPC --> MainnetVaults
+    Planner --> TestnetRPC
     Live <--> Wallet
-    Wallet --> RPC
-    RPC --> Vault
+    Wallet --> TestnetRPC
+    TestnetRPC --> Vault
     Vault --> Oracle
     Vault --> Swap
     Evidence --> ArtifactAdapter --> Artifacts
@@ -70,12 +78,14 @@ The browser communicates directly with public chain infrastructure. Transaction 
 |---|---|---|---|---|
 | Landing | `web/Landing.tsx` | Static content | Product explanation and navigation | Read chain state or submit transactions |
 | Live application | `web/live/` | Operator allocation and wallet events | Live state, typed analysis, calldata, execution status | Implement portfolio math or consume evidence artifacts |
-| Live integration | `src/live/` | RPC state, allocation, optional account/provider | Validated state, simulation result, optional submission | Claim adaptive liquidity without a live quote source |
+| Integration registry | `src/live/integration-catalog.ts` | Registered address | Protocol identity, capability, source provenance, disclosure | Treat an arbitrary ERC-4626 vault as compatible |
+| Mainnet read adapters | `src/live/integration-read-adapters.ts` | Protocol-specific RPC state | Normalized metrics, holdings, guards, and compatibility checks | Invent targets, calldata, authority, or execution support |
+| RWA Index planning adapter | `src/live/rwa-index-live-adapter.ts` | RPC state, allocation, optional account/provider | Validated state, simulation result, optional submission | Claim adaptive liquidity without a live quote source |
 | Decision core | `src/core/` | Normalized state, policy, prices, liquidity, simulator | `FAST_PATH`, `ADAPTIVE_FALLBACK`, or `NO_TRADE` with evidence | Read an RPC, sign, submit, or mutate a vault |
 | Evidence presentation | `web/data/`, `web/components/` | Checked-in JSON artifacts | Read-only scenario view models | Import execution solvers or submit transactions |
 | Integration harness | `integrations/rwa-index/` | External ABI/source and fork state | Static plans, quotes, fork execution evidence | Represent fork observations as live state |
 
-The separation is enforced structurally and tested. `RWAIndexLiveAdapter` owns the live integration workflow; React owns interaction and presentation. The evidence console maps artifacts into view models without importing the execution core.
+The separation is enforced structurally and tested. Protocol adapters own live reads and semantics; React selects an adapter and presents normalized results. `RWAIndexLiveAdapter` alone owns the current planning/submission workflow. The evidence console maps artifacts into view models without importing the execution core.
 
 ## 5. Component architecture
 
@@ -89,6 +99,8 @@ flowchart TB
     end
 
     subgraph LiveBoundary[Live integration boundary]
+        Catalog[src/live/integration-catalog.ts]
+        ReadAdapters[src/live/integration-read-adapters.ts]
         LiveAdapter[src/live/rwa-index-live-adapter.ts]
         LiveTypes[src/live/types.ts]
         LiveConfig[src/live/config.ts]
@@ -113,6 +125,8 @@ flowchart TB
     Router --> LiveUI
     Router --> EvidenceUI
     LiveUI --> LiveAdapter
+    LiveUI --> Catalog
+    LiveUI --> ReadAdapters
     LiveUI --> Wallet
     LiveAdapter --> LiveTypes
     LiveAdapter --> LiveConfig
@@ -125,13 +139,28 @@ flowchart TB
     Harness --> Hybrid
 ```
 
-### Why the live adapter does not call the hybrid core
+### Why the RWA Index planning adapter does not call the hybrid core
 
 The accepted hybrid core requires executable-liquidity curves bound to current state. The current Synthra deployment does not expose a verified public quote method that can provide those curves without fork-only state mutation. Calling the hybrid core with historical curves would make the result look live while depending on old evidence.
 
 The live adapter therefore reuses only the accepted static planner, performs an exact `eth_call`, and returns `NO_TRADE / SIMULATION_REJECTED` if that batch fails. Its result type exposes `adaptiveFallbackAvailable: false` so this boundary is machine-visible as well as documented.
 
-## 6. Live decision pipeline
+## 6. Live integration registry
+
+The registry is an allowlist of exact chain/address pairs, not ERC-4626 interface detection. Each entry records its network, capability level, external source repository, pinned source commit, and execution boundary.
+
+| Integration | Native model | Setpoint capability | Current execution boundary |
+|---|---|---|---|
+| HISS Vault V2 | Queue-routed USDG vault with keeper, liveness, capacity, and held-asset surfaces | Live accounting, portfolio, queue, guard, and compatibility reads | Read-only; keeper/rebalance lane is protocol-controlled and currently inactive by policy |
+| Fides Frontier | Unit-backed immutable basket with constrained rebalancer | Live balances, backing units, oracle ages, full-backing result, and guard reads | Read-only; external rebalancer and route construction are required |
+| Wield RWA Vault | ERC-4626 USDG vault with agent-signed allocation intents | Live registry, balances, oracle metadata, nonce, signer, and guard reads | Read-only; a valid `agentDid` signature is required |
+| RWA Index | Target-weight vault with `rebalance(Trade[])` | Allocation validation, simple planning, exact simulation, export, and authorized submission | No adaptive live fallback without executable quote evidence |
+
+The three mainnet adapters produce a `LiveIntegrationSnapshot`: block provenance, readiness (`READY`, `DEGRADED`, or `EMPTY`), metrics, holdings, guards, compatibility checks, and a human-readable execution boundary. `READY` means the declared read surface is healthy; it does not silently upgrade a read adapter into a transaction adapter.
+
+The catalog UI reads all four deployments concurrently. A failed RPC read is shown as unavailable rather than replaced with cached values. Selecting a mainnet integration opens a live compatibility workspace. Selecting RWA Index enters the planning pipeline below.
+
+## 7. RWA Index live decision pipeline
 
 The live pipeline is intentionally narrower than the full hybrid engine.
 
@@ -195,7 +224,7 @@ The static planner constructs the RWA Index-style batch under the vault's `maxTr
 
 This simulation is evidence for a decision, not authority to execute. The connected wallet is checked independently.
 
-## 7. Full hybrid decision core
+## 8. Full hybrid decision core
 
 The chain-independent core accepts normalized state and injected adapters rather than importing chain clients. Its main contracts are:
 
@@ -236,9 +265,9 @@ Adaptive decisions require state-bound quote samples, not nominal pool balances.
 
 That evidence model is why the solver can explain not only what it selected, but also why apparently useful residual trades were refused.
 
-## 8. Transaction lifecycle
+## 9. Transaction lifecycle
 
-Analysis and execution are separate state transitions. An analysis can be exported without a wallet; execution requires current external authority.
+This sequence describes the RWA Index planning adapter. Mainnet compatibility adapters terminate at a read-only snapshot and never enter this lifecycle. Analysis and execution are separate state transitions. An analysis can be exported without a wallet; execution requires current external authority.
 
 ```mermaid
 sequenceDiagram
@@ -282,13 +311,13 @@ The execution method accepts only a simulation-approved `FAST_PATH` result with 
 
 There is still an unavoidable interval between simulation and mining. The external vault's hard guards remain the final protection if state changes in that interval.
 
-## 9. Authority and custody boundary
+## 10. Authority and custody boundary
 
 | Capability | Setpoint | External vault / wallet |
 |---|---:|---:|
 | Read public state | Yes | Provides state |
 | Propose an allocation for analysis | Yes | No mutation implied |
-| Build and simulate calldata | Yes | Vault code determines success |
+| Build and simulate calldata | Capability-dependent; RWA Index only today | Vault code determines success |
 | Hold portfolio assets | No | Vault |
 | Grant manager or session rights | No | Vault administration |
 | Hold or export a private key | No | Wallet |
@@ -297,7 +326,7 @@ There is still an unavoidable interval between simulation and mining. The extern
 
 No Setpoint contract participates in execution. Adding a contract that the transaction path does not rely on would increase surface area without moving a trust boundary.
 
-## 10. Error and decision taxonomy
+## 11. Error and decision taxonomy
 
 Setpoint keeps product decisions distinct from infrastructure and user-interaction errors.
 
@@ -310,7 +339,7 @@ Setpoint keeps product decisions distinct from infrastructure and user-interacti
 
 Collapsing these into `NO_TRADE` would make safety decisions indistinguishable from outages, so the UI preserves them as different states.
 
-## 11. Evidence architecture and provenance
+## 12. Evidence architecture and provenance
 
 The evidence plane is immutable at runtime:
 
@@ -333,20 +362,20 @@ Evidence levels are explicit:
 
 The security generator also records source hashes, including the frozen M2 planner hash, so a regenerated proof fails if a protected implementation changes unexpectedly.
 
-## 12. Deployment architecture
+## 13. Deployment architecture
 
 The production build is a Vite static bundle deployed on Vercel.
 
 - `web/Router.tsx` selects `/`, `/app`, or `/evidence` in the browser.
 - Vercel rewrites application routes to `index.html`.
 - Live and evidence bundles are lazy-loaded as separate route surfaces.
-- The Content Security Policy permits network connections only to the application origin and the Robinhood Chain testnet RPC.
+- The Content Security Policy permits network connections only to the application origin and the official Robinhood Chain mainnet and testnet RPC endpoints.
 - Framing, objects, camera, microphone, geolocation, and payment APIs are disabled by response headers.
 - There is no server-side secret or environment-specific signing credential.
 
 Because `/app` is client-side, its RPC URL and registered contract addresses are public configuration, not secrets.
 
-## 13. Verification strategy
+## 14. Verification strategy
 
 | Layer | Primary command | What it establishes |
 |---|---|---|
@@ -355,12 +384,13 @@ Because `/app` is client-side, its RPC URL and registered contract addresses are
 | Product build | `pnpm build` | The browser application compiles and bundles |
 | Evidence UI | `pnpm demo:check` | Accepted artifact flows remain renderable and internally consistent |
 | Security cases | `pnpm security:demo` | Five scenarios and 11 fail-closed invariants regenerate deterministically |
+| Integration registry | `pnpm integrations:smoke` | All four addresses resolve to bytecode and their declared live read surfaces remain callable |
 | External read path | `pnpm live:smoke` | Current chain, bytecode, addresses, guards, oracle reads, and `eth_call` capability |
 | Fork milestones | `pnpm m1:rwa-index` through `pnpm m4:hybrid` | Historical compatibility and planning evidence |
 
-`live:smoke` is the only normal gate above whose result is inherently dependent on an external network and mutable contract state.
+`integrations:smoke` and `live:smoke` depend on external networks and mutable contract state. A `DEGRADED` or `EMPTY` integration is a successful truthful observation; missing bytecode, invalid provenance, or an unreadable required surface fails the smoke test.
 
-## 14. Adding another live integration
+## 15. Adding another live integration
 
 A new integration should be a new adapter, not a conditional expansion of React portfolio logic. At minimum it must define and prove:
 
@@ -379,11 +409,11 @@ A new integration should be a new adapter, not a conditional expansion of React 
 
 An integration is not adaptive-capable merely because a pool has reserves or a quote can be estimated locally. It must provide evidence that matches the actual route, direction, size, state, and execution constraints.
 
-## 15. Known limitations and non-goals
+## 16. Known limitations and non-goals
 
 The current system deliberately does not provide:
 
-- production funds or a production vault integration;
+- Setpoint-managed production funds or a production execution integration;
 - custody, key management, role administration, or transaction relaying;
 - a private RPC, indexer, backend database, or atomic archival read service;
 - live adaptive fallback for the current Synthra deployment;
@@ -391,12 +421,11 @@ The current system deliberately does not provide:
 - protection from a malicious-but-fresh oracle, compromised RPC, compromised wallet, or bugs in external contracts; or
 - an audit or formal-verification claim.
 
-The testnet integration also uses mock assets and toy venue liquidity. These constraints are visible in the product because hiding them would weaken the meaning of every decision the product returns.
+The mainnet integrations are read-only compatibility surfaces. The testnet planning integration uses mock assets and toy venue liquidity. These constraints are visible in the product because hiding them would weaken the meaning of every decision the product returns.
 
-## 16. Related decisions
+## 17. Related decisions
 
 - [Decision 0001: Hybrid rebalance orchestration](./decisions/0001-hybrid-rebalance-orchestration.md)
 - [Decision 0002: Live product and evidence boundary](./decisions/0002-live-product-boundary.md)
 - [Security model and failure evidence](./SECURITY.md)
 - [Repository overview](../README.md)
-

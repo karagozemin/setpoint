@@ -4,6 +4,8 @@ import test from "node:test";
 
 const liveApp = readFileSync("web/live/LiveApp.tsx", "utf8");
 const liveAdapter = readFileSync("src/live/rwa-index-live-adapter.ts", "utf8");
+const integrationCatalog = readFileSync("src/live/integration-catalog.ts", "utf8");
+const integrationAdapters = readFileSync("src/live/integration-read-adapters.ts", "utf8");
 const router = readFileSync("web/Router.tsx", "utf8");
 
 test("product exposes landing, app and evidence as distinct routes", () => {
@@ -15,6 +17,16 @@ test("product exposes landing, app and evidence as distinct routes", () => {
 test("live product does not import historical scenarios or artifacts", () => {
   assert.doesNotMatch(liveApp, /data\/scenarios|artifacts\/|evidence\//);
   assert.doesNotMatch(liveAdapter, /data\/scenarios|artifacts\/|evidence\//);
+});
+
+test("multi-vault registry keeps read compatibility separate from execution", () => {
+  assert.match(integrationCatalog, /hiss-v2/);
+  assert.match(integrationCatalog, /fides-frontier/);
+  assert.match(integrationCatalog, /wield-rwa/);
+  assert.match(integrationCatalog, /PLANNING_AND_SIMULATION/);
+  assert.match(integrationCatalog, /LIVE_COMPATIBILITY/);
+  assert.match(integrationAdapters, /Setpoint will not fabricate|does not reconstruct an authoritative replacement/);
+  assert.match(liveApp, /Live compatibility/);
 });
 
 test("live analysis invokes the adapter and shows explicit provenance", () => {

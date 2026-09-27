@@ -29,12 +29,14 @@ The reviewed M6 application is available at [setpoint-neon.vercel.app](https://s
 | Route | Purpose | Data source | Can submit a transaction? |
 |---|---|---|---|
 | `/` | Product overview | Static product content | No |
-| `/app` | Live vault analysis and operator workflow | Robinhood Chain testnet RPC | Yes, only for a vault-authorized wallet |
+| `/app` | Live integration registry, compatibility analysis, and operator workflow | Robinhood Chain mainnet + testnet RPC | RWA Index only, and only for a vault-authorized wallet |
 | `/evidence` | Historical M4.2/M5 decision evidence | Versioned repository artifacts | No |
 
 The separation between `/app` and `/evidence` is a safety boundary. Live decisions never substitute checked-in fork artifacts for current chain state, and the evidence console cannot invoke execution code.
 
-## What happens during a rebalance
+## What happens during a planning-capable rebalance
+
+The complete planning and submission path currently belongs to the RWA Index adapter. Mainnet compatibility adapters stop before calldata construction when their protocol-specific signer, keeper, target, or execution semantics are not represented.
 
 1. **Read current state.** Setpoint retrieves the vault's assets, balances, targets, oracle observations, guards, integration addresses, and operator authorization.
 2. **Validate the proposal.** Allocations must be complete, supported, non-negative, within the per-asset bound, and sum to exactly 100%.
@@ -48,18 +50,34 @@ The separation between `/app` and `/evidence` is a safety boundary. Live decisio
 
 RPC failures, wallet rejection, unsupported integrations, and transaction reverts are application errors—not `NO_TRADE` decisions. `NO_TRADE` is reserved for a completed Setpoint analysis that deliberately refuses execution.
 
-## Live integration
+## Live integration registry
 
-The registered live adapter targets the external RWA Index deployment on Robinhood Chain testnet (`chainId 46630`).
+The registry recognizes four explicitly versioned external deployments. Every card checks deployed bytecode and current RPC state; capability labels distinguish read compatibility from planning and execution.
+
+| Integration | Network | Address | Capability |
+|---|---|---|---|
+| HISS Vault V2 | Robinhood Chain · `4663` | `0x432e90b1B35995EBE46eD93B4Db369abfc230E69` | Live accounting, holdings, queue/liveness, and compatibility analysis |
+| Fides Frontier | Robinhood Chain · `4663` | `0x4504483Ea748e630A9368F44f0Ee5B4350462Db8` | Live backing, constituent, oracle, guard, and compatibility analysis |
+| Wield RWA Vault | Robinhood Chain · `4663` | `0x7769526f55cd6B0B8a9E0Bf9e124618A0fe084de` | Live underlying registry, signed-intent policy, and compatibility analysis |
+| RWA Index | Robinhood Chain testnet · `46630` | `0x357CD10343829DBd5889c7b0B2fBc4388fC4875B` | Target editing, simple-batch planning, exact simulation, and authorized submission |
+
+The mainnet adapters normalize only facts their native contracts expose. HISS has queue and keeper semantics; Fides uses backing units and a constrained rebalancer; Wield requires an agent-signed allocation intent. Setpoint does not fabricate a common target-weight execution interface across them.
+
+At the latest integration smoke test, HISS V2 exposed a funded live portfolio, Fides was funded and fully backed but its own `nav()` rejected stale oracle evidence, Wield's flagship contract exposed its complete policy surface but reported zero assets and share supply, and RWA Index remained oracle-stale. These labels are refreshed from RPC in `/app`; they are observations, not permanent claims.
+
+All four are independent external technical integrations. They are not Setpoint customers, partners, endorsements, audited by Setpoint, or sources of funds managed by Setpoint. Source repositories and pinned commits are recorded in `src/live/integration-catalog.ts`.
+
+### RWA Index planning boundary
+
+RWA Index remains the only adapter that currently constructs and simulates rebalance calldata. Its external dependencies are:
 
 | Contract | Address |
 |---|---|
-| Vault | `0x357CD10343829DBd5889c7b0B2fBc4388fC4875B` |
 | Oracle | `0x2F2316d6D4a8952730a71BfCD9fa0Af5A0138AB9` |
 | Synthra swap adapter | `0x6E498DB59449aF170A9525a69456154F226a4E03` |
 | Mock USDC base asset | `0xFF00eA84190AeD0B1AbEF4fbC45E51258f2799BA` |
 
-RWA Index is an external technical integration target. It is not a Setpoint customer, partner, production deployment, or source of funds managed by Setpoint. Its pinned source is included at `third_party/rwa-index` at upstream commit `b2456ca5400ba9ec36d81691554b889fb9250513`.
+Its pinned source is included at `third_party/rwa-index` at upstream commit `b2456ca5400ba9ec36d81691554b889fb9250513`.
 
 At the recorded M6 verification, all five configured oracle observations exceeded the vault's 24-hour freshness limit. Setpoint therefore exposed live balances and targets while withholding authoritative NAV, weights, and drift, and returned `NO_TRADE / STALE_PRICE`. The application never reconstructs authoritative accounting from stale prices.
 
@@ -72,7 +90,7 @@ Live `ADAPTIVE_FALLBACK` will remain unavailable until an integration can supply
 
 ## Wallet and execution model
 
-Public analysis requires no wallet. MetaMask, Rabby, and other EIP-1193 wallets are used only for network detection, authorization checks, and transaction submission.
+All live reads and compatibility analysis require no wallet. MetaMask, Rabby, and other EIP-1193 wallets are used only by the RWA Index planning adapter for network detection, authorization checks, and transaction submission.
 
 - Setpoint checks the external vault's `MANAGER_ROLE` and active agent-session authorization.
 - Unauthorized wallets can analyze, copy calldata, and export an execution request.
@@ -106,7 +124,7 @@ The repository has three deliberately separate planes:
 | Plane | Primary paths | Responsibility |
 |---|---|---|
 | Decision core | `src/core/` | Chain-independent policy, hybrid selection, adaptive sizing, and typed evidence. |
-| Live product | `src/live/`, `web/live/` | Current RPC reads, integration validation, simple-batch construction, exact simulation, wallet authorization, and submission. |
+| Live product | `src/live/`, `web/live/` | Multi-vault registry, protocol-specific RPC reads, compatibility analysis, plus RWA Index planning, simulation, authorization, and submission. |
 | Evidence | `artifacts/`, `web/data/`, `web/components/` | Read-only presentation of accepted fork and deterministic test results. |
 
 React does not implement portfolio math, evidence artifacts do not enter live analysis, and the live adapter does not claim adaptive execution without a truthful quote source.
@@ -120,7 +138,7 @@ Prerequisites:
 - Node.js 20 or newer;
 - pnpm 10.17.1 via Corepack;
 - Foundry tools for historical fork runners; and
-- network access to the public Robinhood Chain testnet RPC for live checks.
+- network access to the public Robinhood Chain mainnet and testnet RPCs for live checks.
 
 ```bash
 git submodule update --init --recursive
@@ -141,10 +159,11 @@ pnpm test
 pnpm build
 pnpm demo:check
 pnpm security:demo
+pnpm integrations:smoke
 pnpm live:smoke
 ```
 
-`pnpm live:smoke` is read-only. It verifies the chain ID, latest block, deployed bytecode, state/oracle/guard reads, and exact `eth_call` capability. Live results depend on external RPC and contract state.
+Both smoke commands are read-only. `pnpm integrations:smoke` checks all four registered deployments and reports current readiness without upgrading degraded or empty state to “ready.” `pnpm live:smoke` performs the deeper RWA Index planning-path checks, including exact `eth_call` capability. Results depend on external RPC and contract state.
 
 Historical milestones remain reproducible independently:
 
@@ -172,8 +191,10 @@ The large-target fork proof records 31.025554% initial drift, 10 attempted legs,
 
 ```text
 src/core/                       chain-independent solver and hybrid semantics
-src/live/                       live RWA Index integration boundary and types
-web/live/                       operator UI and EIP-1193 wallet workflow
+src/live/integration-catalog.ts registered deployments and capability boundaries
+src/live/integration-read-adapters.ts mainnet protocol-specific read adapters
+src/live/rwa-index-live-adapter.ts planning, simulation, and execution adapter
+web/live/                       integration registry, compatibility UI, and wallet workflow
 web/data/                       artifact-to-view-model adapters
 web/components/                 historical evidence presentation
 web/Landing.tsx                 product landing page
@@ -182,6 +203,7 @@ integrations/rwa-index/         accepted planner, ABI, fork harness, and probes
 artifacts/                      versioned historical and security evidence
 security/                       deterministic security scenarios
 scripts/live-smoke.ts           non-mutating public-RPC validation
+scripts/integration-smoke.ts    four-integration bytecode/state validation
 config/rwa-index.json           verified external deployment configuration
 third_party/rwa-index/          pinned external source
 docs/                           architecture, security model, and decisions
@@ -191,7 +213,7 @@ docs/                           architecture, security model, and decisions
 
 M1 established external-vault compatibility on a disposable fork. M2 froze the static control planner. M3 added deterministic simulation-gated planning. M4 and M4.1 introduced executable-liquidity sampling and adaptive multi-leg planning. M4.2 adopted simple-first hybrid orchestration. M5 turned accepted artifacts into an evidence console. M6 separated a real live operator product from historical evidence.
 
-The current integration uses mock testnet assets and toy Synthra liquidity. It has no production funds, custody, token, governance, private RPC credential, cross-venue routing, or Setpoint smart-contract deployment. A random visitor does not inherit execution authority from the UI.
+The mainnet surfaces are read-only technical integrations; they do not imply Setpoint-managed production execution. The planning-capable RWA Index integration uses mock testnet assets and toy Synthra liquidity. Setpoint has no custody, token, governance, private RPC credential, cross-venue routing, or deployed smart contract. A random visitor does not inherit execution authority from the UI.
 
 ## Documentation
 

@@ -2,6 +2,8 @@ import { defineChain, type Address } from "viem";
 
 export const ROBINHOOD_RPC_URL = "https://rpc.testnet.chain.robinhood.com";
 export const ROBINHOOD_EXPLORER_URL = "https://explorer.testnet.chain.robinhood.com";
+export const ROBINHOOD_MAINNET_RPC_URL = "https://rpc.mainnet.chain.robinhood.com";
+export const ROBINHOOD_MAINNET_EXPLORER_URL = "https://robinhoodchain.blockscout.com";
 
 export const robinhoodTestnet = defineChain({
   id: 46_630,
@@ -10,6 +12,14 @@ export const robinhoodTestnet = defineChain({
   rpcUrls: { default: { http: [ROBINHOOD_RPC_URL] } },
   blockExplorers: { default: { name: "Blockscout", url: ROBINHOOD_EXPLORER_URL } },
   testnet: true,
+});
+
+export const robinhoodMainnet = defineChain({
+  id: 4_663,
+  name: "Robinhood Chain",
+  nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+  rpcUrls: { default: { http: [ROBINHOOD_MAINNET_RPC_URL] } },
+  blockExplorers: { default: { name: "Blockscout", url: ROBINHOOD_MAINNET_EXPLORER_URL } },
 });
 
 export const rwaIndexLiveConfig = {
