@@ -79,6 +79,12 @@ test("safe sandbox no-trade decisions are not presented as simulation failures",
   assert.match(sandboxApp, /"NO REBALANCE NEEDED"/);
 });
 
+test("sandbox offers an explicit one-click meaningful rebalance target", () => {
+  assert.match(sandboxApp, /DEMO_ASSET_TARGETS = \[25n, 15n, 20n, 20n\]/);
+  assert.match(sandboxApp, /Load 20 \/ 25 \/ 15 \/ 20 \/ 20/);
+  assert.match(sandboxApp, /Save targets onchain/);
+});
+
 test("RPC failures are not represented as NO_TRADE", () => {
   assert.match(liveApp, /context === "read"\) return \{ kind: "RPC_ERROR"/);
   assert.match(liveAdapter, /if \(state\.staleAssets\.length > 0\)/);

@@ -8,6 +8,8 @@ import type { WalletState } from "./wallet";
 
 const sandbox = new SetpointSandboxLiveAdapter();
 const WAD = 10n ** 18n;
+const DEMO_CASH_TARGET = 20n * 10n ** 16n;
+const DEMO_ASSET_TARGETS = [25n, 15n, 20n, 20n].map((weight) => weight * 10n ** 16n);
 
 function amount(value: bigint, digits = 2): string {
   return Number(formatUnits(value, 18)).toLocaleString(undefined, { maximumFractionDigits: digits });
@@ -106,6 +108,13 @@ export default function SandboxExecute({ wallet, onConnect, onSwitch }: Props) {
     finally { setPhase("IDLE"); }
   }
 
+  function loadDemoTargets() {
+    setCashTarget(DEMO_CASH_TARGET);
+    setTargets([...DEMO_ASSET_TARGETS]);
+    setAnalysis(null);
+    setExecution(null);
+  }
+
   async function analyze() {
     if (!wallet.account) return;
     setPhase("ANALYZING"); setError(null); setAnalysis(null); setExecution(null);
@@ -147,6 +156,7 @@ export default function SandboxExecute({ wallet, onConnect, onSwitch }: Props) {
           </section>
           <section><div className="sandbox-section-title"><div><p className="product-kicker">02 / ONCHAIN POLICY</p><h2>Target allocation</h2></div><strong className={targetTotal === WAD ? "valid" : "invalid"}>{pct(targetTotal)}</strong></div>
             <div className="sandbox-targets"><label><span>sUSDG cash</span><input min="0" max="100" step="0.5" type="number" value={(Number(cashTarget) / 1e16).toFixed(2)} onChange={(event) => setCashTarget(toWad(event.target.value))} /></label>{state.assets.map((asset, index) => <label key={asset.address}><span>{asset.symbol}</span><input min="0" max="70" step="0.5" type="number" value={(Number(targets[index] ?? 0n) / 1e16).toFixed(2)} onChange={(event) => setTargets((current) => current.map((value, item) => item === index ? toWad(event.target.value) : value))} /></label>)}</div>
+            <div className="sandbox-preset-row"><span>Meaningful rebalance demo</span><button disabled={phase !== "IDLE"} onClick={loadDemoTargets} type="button">Load 20 / 25 / 15 / 20 / 20</button></div>
             <button className="sandbox-secondary-action" disabled={phase !== "IDLE" || targetTotal !== WAD} onClick={saveTargets} type="button">{phase === "SAVING" ? "Confirming target tx…" : "Save targets onchain"}</button>
           </section>
         </div>
