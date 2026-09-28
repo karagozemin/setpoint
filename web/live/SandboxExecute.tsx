@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { formatUnits, type Address } from "viem";
+import { formatUnits, getAddress, type Address } from "viem";
 import { explorerAddress, explorerTransaction, rwaIndexLiveConfig } from "../../src/live/config";
 import { sandboxDeployment } from "../../src/sandbox/config";
 import { SetpointSandboxLiveAdapter } from "../../src/sandbox/setpoint-sandbox-live-adapter";
@@ -46,8 +46,9 @@ export default function SandboxExecute({ wallet, onConnect, onSwitch }: Props) {
   const [analysis, setAnalysis] = useState<SandboxAnalysis | null>(null);
   const [execution, setExecution] = useState<SandboxExecution | null>(null);
   const [activity, setActivity] = useState<Array<{ label: string; hash: `0x${string}`; block?: bigint }>>([]);
-  const [phase, setPhase] = useState<"IDLE" | "READING" | "CREATING" | "SAVING" | "ANALYZING" | "SIGNING" | "CONFIRMING">("IDLE");
+  const [phase, setPhase] = useState<"IDLE" | "READING" | "CREATING" | "REFRESHING" | "SAVING" | "ANALYZING" | "SIGNING" | "CONFIRMING">("IDLE");
   const [error, setError] = useState<string | null>(null);
+  const [readAttempt, setReadAttempt] = useState(0);
   const wrongNetwork = wallet.account !== null && wallet.chainId !== rwaIndexLiveConfig.chainId;
   const targetTotal = useMemo(() => targets.reduce((sum, value) => sum + value, cashTarget), [targets, cashTarget]);
 
@@ -67,7 +68,7 @@ export default function SandboxExecute({ wallet, onConnect, onSwitch }: Props) {
     }).catch((caught) => { if (active) setError(caught instanceof Error ? caught.message : "Sandbox read failed."); })
       .finally(() => { if (active) setPhase("IDLE"); });
     return () => { active = false; };
-  }, [wallet.account, wallet.chainId, wrongNetwork]);
+  }, [wallet.account, wallet.chainId, wrongNetwork, readAttempt]);
 
   function adopt(next: SandboxVaultState) {
     setVault(next.vault); setState(next); setTargets(next.assets.map(({ targetWeight }) => targetWeight)); setCashTarget(next.cashTarget);
@@ -94,6 +95,16 @@ export default function SandboxExecute({ wallet, onConnect, onSwitch }: Props) {
       setActivity((current) => [{ label: "Vault created", hash: created.hash }, ...current]);
       adopt(await sandbox.readState(wallet.account, created.vault)); await readActivity(wallet.account, created.vault);
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Vault creation failed."); }
+    finally { setPhase("IDLE"); }
+  }
+
+  async function refreshOracle() {
+    if (!wallet.provider || !wallet.account || !state) return;
+    setPhase("REFRESHING"); setError(null); setAnalysis(null); setExecution(null);
+    try {
+      await sandbox.refreshOracle(wallet.provider, wallet.account, state);
+      adopt(await sandbox.readState(wallet.account, state.vault));
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "Oracle refresh failed."); }
     finally { setPhase("IDLE"); }
   }
 
@@ -146,10 +157,13 @@ export default function SandboxExecute({ wallet, onConnect, onSwitch }: Props) {
       <span>01 / BROADCAST GATE</span><h2>Implementation ready; testnet deployment is credential-gated.</h2><p>No private key is present in this environment, so Setpoint refuses to invent addresses or present local state as live. Add <code>SETPOINT_SANDBOX_DEPLOYER_KEY</code> locally and run <code>pnpm sandbox:deploy</code>.</p>
     </div> : !wallet.account ? <div className="sandbox-onboarding"><span>01</span><div><h2>Connect the wallet that will own the vault.</h2><p>The factory binds one sandbox vault to this address. Only that wallet can store targets or execute a rebalance.</p></div><button onClick={onConnect} type="button">Connect wallet →</button></div>
       : wrongNetwork ? <div className="sandbox-onboarding"><span>01</span><div><h2>Switch to Robinhood Chain Testnet.</h2><p>Live reads and signatures must resolve against chain ID 46630.</p></div><button onClick={onSwitch} type="button">Switch network →</button></div>
+      : error && !state && phase === "IDLE" ? <div className="sandbox-onboarding sandbox-read-error"><span>!</span><div><h2>Vault state could not be read.</h2><p>{error}</p></div><button onClick={() => setReadAttempt((attempt) => attempt + 1)} type="button">Retry live read →</button></div>
+      : phase === "READING" && !state ? <div className="sandbox-onboarding"><span>•••</span><div><h2>Reading your confirmed vault state.</h2><p>Loading balances, targets, oracle timestamps, and pool reserves from Robinhood Chain Testnet.</p></div></div>
       : !vault ? <div className="sandbox-onboarding"><span>01</span><div><h2>Create your funded sandbox vault.</h2><p>The factory deploys a wallet-owned vault and seeds a bounded, deliberately drifted 10,000 sUSDG test portfolio.</p></div><button disabled={phase !== "IDLE"} onClick={createVault} type="button">{phase === "CREATING" ? "Confirm in wallet…" : "Create my vault →"}</button></div>
       : state ? <>
         <div className="sandbox-provenance"><span><i /> LIVE RPC</span><span>Block #{state.blockNumber.toString()}</span><span>Vault <a href={explorerAddress(state.vault)} target="_blank" rel="noreferrer">{compact(state.vault)} ↗</a></span><span>Owner {compact(state.owner)}</span><span className={state.oracleFresh ? "fresh" : "stale"}>{state.oracleFresh ? "Oracle fresh" : "Oracle stale"}</span></div>
         {error && <div className="sandbox-error" role="alert"><strong>ACTION STOPPED</strong><span>{error}</span></div>}
+        {!state.oracleFresh && <div className="sandbox-stale"><div><strong>ORACLE REFRESH REQUIRED</strong><span>The portfolio remains visible, but analysis and execution stay locked until the sandbox price timestamps are refreshed.</span></div>{wallet.account && getAddress(wallet.account) === getAddress(state.oracleUpdater) ? <button disabled={phase !== "IDLE"} onClick={refreshOracle} type="button">{phase === "REFRESHING" ? "Confirming refresh…" : "Refresh oracle onchain →"}</button> : <small>Waiting for updater {compact(state.oracleUpdater)}</small>}</div>}
         <div className="sandbox-state-grid">
           <section><p className="product-kicker">01 / CONFIRMED STATE</p><h2>Live portfolio</h2><dl className="sandbox-metrics"><div><dt>NAV</dt><dd>{amount(state.nav)} <small>sUSDG</small></dd></div><div><dt>Drift</dt><dd>{pct(state.drift)}</dd></div><div><dt>Cash</dt><dd>{pct(state.baseWeight)}</dd></div><div><dt>Assets</dt><dd>{state.assets.length}</dd></div></dl>
             <div className="sandbox-table"><div><span>Asset</span><span>Live</span><span>Target</span><span>Pool depth</span></div>{state.assets.map((asset) => <div key={asset.address}><span><strong>{asset.symbol}</strong><small>{compact(asset.address)}</small></span><span>{pct(asset.weight)}</span><span>{pct(asset.targetWeight)}</span><span>{amount(asset.reserveBase, 0)} sUSDG</span></div>)}</div>
@@ -164,6 +178,6 @@ export default function SandboxExecute({ wallet, onConnect, onSwitch }: Props) {
         {analysis && <div className={`sandbox-result result-${resultTone(analysis)}`}><div><p className="product-kicker">RUNTIME DECISION</p><h2>{resultTitle(analysis)}</h2><strong>{analysis.result.modeSelectionReason.replaceAll("_", " ")}</strong><p>{analysis.result.kind === "plan" ? `${analysis.trades.length} real trade leg${analysis.trades.length === 1 ? "" : "s"} passed exact vault simulation.` : analysis.result.details.join(" ")}</p></div><dl><div><dt>Exact simulation</dt><dd>{simulationStatus(analysis)}</dd></div><div><dt>Liquidity curves</dt><dd>{analysis.liquidity.curves.length}</dd></div><div><dt>Fallback invoked</dt><dd>{analysis.result.fallbackInvoked ? "YES" : "NO"}</dd></div></dl>{analysis.simulationPassed && <button disabled={phase !== "IDLE"} onClick={execute} type="button">{phase === "SIGNING" ? "Confirm in wallet…" : phase === "CONFIRMING" ? "Waiting for confirmation…" : "Execute real rebalance →"}</button>}</div>}
         {execution && <div className="sandbox-confirmed"><span>✓</span><div><p>TRANSACTION CONFIRMED</p><h2>Post-state re-read at block #{execution.blockNumber.toString()}</h2><p>Drift {pct(execution.before.drift)} → <strong>{pct(execution.after.drift)}</strong></p></div><a href={explorerTransaction(execution.hash)} target="_blank" rel="noreferrer">{compact(execution.hash)} ↗</a></div>}
         <section className="sandbox-activity"><div><p className="product-kicker">04 / RECENT ACTIVITY</p><h2>Onchain events</h2></div>{activity.length ? <ol>{activity.map((item) => <li key={`${item.hash}:${item.label}`}><span>{item.label}</span><a href={explorerTransaction(item.hash)} target="_blank" rel="noreferrer">{compact(item.hash)} ↗</a><small>{item.block ? `Block #${item.block}` : "Confirmed onchain"}</small></li>)}</ol> : <p>Factory, target, and rebalance events will appear here after confirmation.</p>}</section>
-      </> : <div className="sandbox-onboarding"><span>•••</span><div><h2>Reading your confirmed vault state.</h2></div></div>}
+      </> : null}
   </section>;
 }

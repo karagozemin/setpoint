@@ -32,6 +32,7 @@ export interface SandboxVaultState {
   factory: Address;
   baseAsset: Address;
   oracle: Address;
+  oracleUpdater: Address;
   swapAdapter: Address;
   baseBalance: bigint;
   baseWeight: bigint;

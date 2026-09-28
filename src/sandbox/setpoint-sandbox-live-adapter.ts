@@ -64,7 +64,7 @@ export class SetpointSandboxLiveAdapter {
     if (!vault) throw new Error("This wallet has not created a Setpoint Sandbox vault.");
     const block = await this.client.getBlock({ blockTag: "latest" });
     if (!block.hash) throw new Error("RPC returned a block without a hash.");
-    const [chainId, vaultOwner, baseAsset, oracle, swapAdapter, assets, cashTarget, nav, drift, driftThreshold, maxTradeFraction, slippageTolerance, maxPriceAge, maxRebalanceLoss] = await Promise.all([
+    const [chainId, vaultOwner, baseAsset, oracle, swapAdapter, assets, cashTarget, driftThreshold, maxTradeFraction, slippageTolerance, maxPriceAge, maxRebalanceLoss] = await Promise.all([
       this.client.getChainId(),
       this.client.readContract({ address: vault, abi: sandboxVaultAbi, functionName: "owner" }),
       this.client.readContract({ address: vault, abi: sandboxVaultAbi, functionName: "baseAsset" }),
@@ -72,8 +72,6 @@ export class SetpointSandboxLiveAdapter {
       this.client.readContract({ address: vault, abi: sandboxVaultAbi, functionName: "swapAdapter" }),
       this.client.readContract({ address: vault, abi: sandboxVaultAbi, functionName: "assets" }),
       this.client.readContract({ address: vault, abi: sandboxVaultAbi, functionName: "cashTarget" }),
-      this.client.readContract({ address: vault, abi: sandboxVaultAbi, functionName: "totalAssets" }),
-      this.client.readContract({ address: vault, abi: sandboxVaultAbi, functionName: "totalDrift" }),
       this.client.readContract({ address: vault, abi: sandboxVaultAbi, functionName: "driftThreshold" }),
       this.client.readContract({ address: vault, abi: sandboxVaultAbi, functionName: "maxTradeFraction" }),
       this.client.readContract({ address: vault, abi: sandboxVaultAbi, functionName: "slippageTolerance" }),
@@ -85,8 +83,11 @@ export class SetpointSandboxLiveAdapter {
     if (sandboxDeployment.oracle && getAddress(oracle) !== sandboxDeployment.oracle) throw new Error("Vault oracle does not match the deployment record.");
     if (sandboxDeployment.swapAdapter && getAddress(swapAdapter) !== sandboxDeployment.swapAdapter) throw new Error("Vault adapter does not match the deployment record.");
 
-    const baseBalance = await this.client.readContract({ address: baseAsset, abi: sandboxTokenAbi, functionName: "balanceOf", args: [vault] });
-    const rows = await Promise.all(assets.map(async (asset, index): Promise<SandboxAssetState> => {
+    const [baseBalance, oracleUpdater] = await Promise.all([
+      this.client.readContract({ address: baseAsset, abi: sandboxTokenAbi, functionName: "balanceOf", args: [vault] }),
+      this.client.readContract({ address: oracle, abi: sandboxOracleAbi, functionName: "updater" }),
+    ]);
+    const rawRows = await Promise.all(assets.map(async (asset, index): Promise<SandboxAssetState> => {
       const [balance, symbol, targetWeight, price, pool] = await Promise.all([
         this.client.readContract({ address: asset, abi: sandboxTokenAbi, functionName: "balanceOf", args: [vault] }),
         this.client.readContract({ address: asset, abi: sandboxTokenAbi, functionName: "symbol" }),
@@ -104,11 +105,22 @@ export class SetpointSandboxLiveAdapter {
       const baseIs0 = getAddress(token0) === getAddress(baseAsset);
       return {
         address: getAddress(asset), pool: getAddress(pool), symbol: sandboxSymbols[index] ?? symbol,
-        balance, value, weight: nav === 0n ? 0n : value * WAD / nav, targetWeight,
+        balance, value, weight: 0n, targetWeight,
         priceWad: price[0], updatedAt: price[1], priceAge: age,
         reserveBase: baseIs0 ? reserves[0] : reserves[1], reserveAsset: baseIs0 ? reserves[1] : reserves[0], feeBps,
       };
     }));
+    // Read accounting from raw balances and timestamped oracle observations so a
+    // stale feed remains diagnosable. The vault intentionally reverts its own
+    // totalAssets()/totalDrift() views when a price is stale.
+    const nav = rawRows.reduce((total, row) => total + row.value, baseBalance);
+    const rows = rawRows.map((row) => ({ ...row, weight: nav === 0n ? 0n : row.value * WAD / nav }));
+    const baseWeight = nav === 0n ? 0n : baseBalance * WAD / nav;
+    const absoluteDifference = (left: bigint, right: bigint) => left > right ? left - right : right - left;
+    const drift = nav === 0n ? 0n : rows.reduce(
+      (total, row) => total + absoluteDifference(row.weight, row.targetWeight),
+      absoluteDifference(baseWeight, cashTarget),
+    ) / 2n;
     const stateId = [
       "sandbox-v1", chainId, vault, baseBalance, cashTarget, nav, drift,
       ...rows.flatMap((row) => [row.address, row.balance, row.targetWeight, row.priceWad, row.updatedAt, row.reserveBase, row.reserveAsset]),
@@ -131,10 +143,29 @@ export class SetpointSandboxLiveAdapter {
     return {
       provenance: "LIVE_RPC", chainId, blockNumber: block.number, blockHash: block.hash,
       blockTimestamp: block.timestamp, stateId, readAt: Date.now(), owner: getAddress(vaultOwner), vault,
-      factory, baseAsset: getAddress(baseAsset), oracle: getAddress(oracle), swapAdapter: getAddress(swapAdapter),
+      factory, baseAsset: getAddress(baseAsset), oracle: getAddress(oracle), oracleUpdater: getAddress(oracleUpdater), swapAdapter: getAddress(swapAdapter),
       baseBalance, baseWeight: portfolio.baseAssetWeight, nav, drift, cashTarget, assets: rows, prices, policy, portfolio,
       oracleFresh: rows.every((row) => row.priceAge <= maxPriceAge),
     };
+  }
+
+  async refreshOracle(provider: EIP1193Provider, owner: Address, state: SandboxVaultState): Promise<`0x${string}`> {
+    if (getAddress(state.owner) !== getAddress(owner)) throw new Error("Connected wallet does not own this sandbox vault.");
+    if (getAddress(state.oracleUpdater) !== getAddress(owner)) throw new Error("Connected wallet is not the sandbox oracle updater.");
+    const tokens = [state.baseAsset, ...state.assets.map(({ address }) => address)];
+    const observations = await Promise.all(tokens.map((token) => this.client.readContract({
+      address: state.oracle,
+      abi: sandboxOracleAbi,
+      functionName: "getPrice",
+      args: [token],
+    })));
+    const prices = observations.map(([price]) => price);
+    const wallet = createWalletClient({ account: owner, chain: robinhoodTestnet, transport: custom(provider) });
+    await this.client.simulateContract({ account: owner, address: state.oracle, abi: sandboxOracleAbi, functionName: "setPrices", args: [tokens, prices] });
+    const hash = await wallet.writeContract({ account: owner, address: state.oracle, abi: sandboxOracleAbi, functionName: "setPrices", args: [tokens, prices], chain: robinhoodTestnet });
+    const receipt = await this.client.waitForTransactionReceipt({ hash });
+    if (receipt.status !== "success") throw new Error("Oracle refresh transaction reverted.");
+    return hash;
   }
 
   async setTargets(provider: EIP1193Provider, owner: Address, weights: bigint[], cashTarget: bigint): Promise<`0x${string}`> {

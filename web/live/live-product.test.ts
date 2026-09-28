@@ -70,6 +70,9 @@ test("Setpoint Sandbox is the primary real execution surface", () => {
   assert.match(sandboxAdapter, /simulateContract/);
   assert.match(sandboxAdapter, /waitForTransactionReceipt/);
   assert.match(sandboxAdapter, /stateId !== analysis\.state\.stateId/);
+  assert.match(sandboxAdapter, /stale feed remains diagnosable/);
+  assert.match(sandboxApp, /Refresh oracle onchain/);
+  assert.match(sandboxApp, /Retry live read/);
 });
 
 test("safe sandbox no-trade decisions are not presented as simulation failures", () => {

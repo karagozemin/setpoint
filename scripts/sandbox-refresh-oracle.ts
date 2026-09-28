@@ -9,8 +9,9 @@ interface RecordFile { status: string; contracts: null | { oracle: string; baseA
 async function main(): Promise<void> {
   const deployment = JSON.parse(readFileSync(resolve("deployments/setpoint-sandbox-rh-testnet.json"), "utf8")) as RecordFile;
   if (deployment.status !== "DEPLOYED" || !deployment.contracts) throw new Error("Sandbox deployment record is not live.");
-  const secret = process.env.SETPOINT_SANDBOX_ORACLE_UPDATER_KEY ?? process.env.SETPOINT_SANDBOX_DEPLOYER_KEY;
-  if (!secret) throw new Error("Missing SETPOINT_SANDBOX_ORACLE_UPDATER_KEY (or owner fallback SETPOINT_SANDBOX_DEPLOYER_KEY); oracle update was not attempted.");
+  const rawSecret = process.env.SETPOINT_SANDBOX_ORACLE_UPDATER_KEY ?? process.env.SETPOINT_SANDBOX_DEPLOYER_KEY ?? process.env.PRIVATE_KEY;
+  if (!rawSecret) throw new Error("Missing SETPOINT_SANDBOX_ORACLE_UPDATER_KEY, SETPOINT_SANDBOX_DEPLOYER_KEY, or PRIVATE_KEY; oracle update was not attempted.");
+  const secret = rawSecret.startsWith("0x") ? rawSecret : `0x${rawSecret}`;
   if (!/^0x[0-9a-fA-F]{64}$/.test(secret)) throw new Error("Sandbox oracle updater key has an invalid format.");
   const rpc = process.env.RH_TESTNET_RPC ?? "https://rpc.testnet.chain.robinhood.com";
   const account = privateKeyToAccount(secret as `0x${string}`);

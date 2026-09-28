@@ -15,7 +15,7 @@
     "integrations:smoke": "tsx scripts/integration-smoke.ts",
     "sandbox:deploy": "bash scripts/sandbox-deploy.sh",
     "sandbox:oracle-status": "tsx scripts/sandbox-oracle-status.ts",
-    "sandbox:refresh-oracle": "tsx scripts/sandbox-refresh-oracle.ts",
+    "sandbox:refresh-oracle": "node --env-file-if-exists=.env --import tsx scripts/sandbox-refresh-oracle.ts",
     "sandbox:smoke": "tsx scripts/sandbox-smoke.ts",
     "sandbox:e2e": "node --env-file-if-exists=.env --import tsx scripts/sandbox-e2e.ts",
     "sandbox:contracts": "forge test --root contracts -vv",
