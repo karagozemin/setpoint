@@ -43,16 +43,23 @@ export class SetpointSandboxLiveAdapter {
 
   async vaultFor(owner: Address): Promise<Address | null> {
     const factory = this.factory();
-    const vault = await this.client.readContract({ address: factory, abi: sandboxFactoryAbi, functionName: "getVault", args: [owner] });
+    const read = this.client.readContract;
+    const vault = await read({ address: factory, abi: sandboxFactoryAbi, functionName: "getVault", args: [owner] });
     return vault === zeroAddress ? null : getAddress(vault);
   }
 
-  async createVault(provider: EIP1193Provider, owner: Address): Promise<{ hash: `0x${string}`; vault: Address }> {
+  async createVault(
+    provider: EIP1193Provider,
+    owner: Address,
+    onSubmitted?: (hash: `0x${string}`) => void,
+  ): Promise<{ hash: `0x${string}`; vault: Address }> {
     const factory = this.factory();
     const wallet = createWalletClient({ account: owner, chain: robinhoodTestnet, transport: custom(provider) });
     await this.client.simulateContract({ account: owner, address: factory, abi: sandboxFactoryAbi, functionName: "createVault" });
     const hash = await wallet.writeContract({ account: owner, address: factory, abi: sandboxFactoryAbi, functionName: "createVault", chain: robinhoodTestnet });
-    await this.client.waitForTransactionReceipt({ hash });
+    onSubmitted?.(hash);
+    const receipt = await this.client.waitForTransactionReceipt({ hash });
+    if (receipt.status !== "success") throw new Error("Vault creation transaction reverted.");
     const vault = await this.vaultFor(owner);
     if (!vault) throw new Error("Factory transaction confirmed but no wallet vault was registered.");
     return { hash, vault };
@@ -64,19 +71,20 @@ export class SetpointSandboxLiveAdapter {
     if (!vault) throw new Error("This wallet has not created a Setpoint Sandbox vault.");
     const block = await this.client.getBlock({ blockTag: "latest" });
     if (!block.hash) throw new Error("RPC returned a block without a hash.");
+    const read = this.client.readContract;
     const [chainId, vaultOwner, baseAsset, oracle, swapAdapter, assets, cashTarget, driftThreshold, maxTradeFraction, slippageTolerance, maxPriceAge, maxRebalanceLoss] = await Promise.all([
       this.client.getChainId(),
-      this.client.readContract({ address: vault, abi: sandboxVaultAbi, functionName: "owner" }),
-      this.client.readContract({ address: vault, abi: sandboxVaultAbi, functionName: "baseAsset" }),
-      this.client.readContract({ address: vault, abi: sandboxVaultAbi, functionName: "oracle" }),
-      this.client.readContract({ address: vault, abi: sandboxVaultAbi, functionName: "swapAdapter" }),
-      this.client.readContract({ address: vault, abi: sandboxVaultAbi, functionName: "assets" }),
-      this.client.readContract({ address: vault, abi: sandboxVaultAbi, functionName: "cashTarget" }),
-      this.client.readContract({ address: vault, abi: sandboxVaultAbi, functionName: "driftThreshold" }),
-      this.client.readContract({ address: vault, abi: sandboxVaultAbi, functionName: "maxTradeFraction" }),
-      this.client.readContract({ address: vault, abi: sandboxVaultAbi, functionName: "slippageTolerance" }),
-      this.client.readContract({ address: vault, abi: sandboxVaultAbi, functionName: "maxPriceAge" }),
-      this.client.readContract({ address: vault, abi: sandboxVaultAbi, functionName: "maxRebalanceLoss" }),
+      read({ address: vault, abi: sandboxVaultAbi, functionName: "owner", blockNumber: block.number }),
+      read({ address: vault, abi: sandboxVaultAbi, functionName: "baseAsset", blockNumber: block.number }),
+      read({ address: vault, abi: sandboxVaultAbi, functionName: "oracle", blockNumber: block.number }),
+      read({ address: vault, abi: sandboxVaultAbi, functionName: "swapAdapter", blockNumber: block.number }),
+      read({ address: vault, abi: sandboxVaultAbi, functionName: "assets", blockNumber: block.number }),
+      read({ address: vault, abi: sandboxVaultAbi, functionName: "cashTarget", blockNumber: block.number }),
+      read({ address: vault, abi: sandboxVaultAbi, functionName: "driftThreshold", blockNumber: block.number }),
+      read({ address: vault, abi: sandboxVaultAbi, functionName: "maxTradeFraction", blockNumber: block.number }),
+      read({ address: vault, abi: sandboxVaultAbi, functionName: "slippageTolerance", blockNumber: block.number }),
+      read({ address: vault, abi: sandboxVaultAbi, functionName: "maxPriceAge", blockNumber: block.number }),
+      read({ address: vault, abi: sandboxVaultAbi, functionName: "maxRebalanceLoss", blockNumber: block.number }),
     ]);
     if (chainId !== sandboxDeployment.chainId) throw new Error(`RPC chain mismatch: expected ${sandboxDeployment.chainId}, received ${chainId}.`);
     if (getAddress(vaultOwner) !== getAddress(owner)) throw new Error("Connected wallet does not own this sandbox vault.");
@@ -84,21 +92,21 @@ export class SetpointSandboxLiveAdapter {
     if (sandboxDeployment.swapAdapter && getAddress(swapAdapter) !== sandboxDeployment.swapAdapter) throw new Error("Vault adapter does not match the deployment record.");
 
     const [baseBalance, oracleUpdater] = await Promise.all([
-      this.client.readContract({ address: baseAsset, abi: sandboxTokenAbi, functionName: "balanceOf", args: [vault] }),
-      this.client.readContract({ address: oracle, abi: sandboxOracleAbi, functionName: "updater" }),
+      read({ address: baseAsset, abi: sandboxTokenAbi, functionName: "balanceOf", args: [vault], blockNumber: block.number }),
+      read({ address: oracle, abi: sandboxOracleAbi, functionName: "updater", blockNumber: block.number }),
     ]);
     const rawRows = await Promise.all(assets.map(async (asset, index): Promise<SandboxAssetState> => {
       const [balance, symbol, targetWeight, price, pool] = await Promise.all([
-        this.client.readContract({ address: asset, abi: sandboxTokenAbi, functionName: "balanceOf", args: [vault] }),
-        this.client.readContract({ address: asset, abi: sandboxTokenAbi, functionName: "symbol" }),
-        this.client.readContract({ address: vault, abi: sandboxVaultAbi, functionName: "targetWeight", args: [asset] }),
-        this.client.readContract({ address: oracle, abi: sandboxOracleAbi, functionName: "getPrice", args: [asset] }),
-        this.client.readContract({ address: swapAdapter, abi: sandboxAdapterAbi, functionName: "poolFor", args: [asset] }),
+        read({ address: asset, abi: sandboxTokenAbi, functionName: "balanceOf", args: [vault], blockNumber: block.number }),
+        read({ address: asset, abi: sandboxTokenAbi, functionName: "symbol", blockNumber: block.number }),
+        read({ address: vault, abi: sandboxVaultAbi, functionName: "targetWeight", args: [asset], blockNumber: block.number }),
+        read({ address: oracle, abi: sandboxOracleAbi, functionName: "getPrice", args: [asset], blockNumber: block.number }),
+        read({ address: swapAdapter, abi: sandboxAdapterAbi, functionName: "poolFor", args: [asset], blockNumber: block.number }),
       ]);
       const [token0, reserves, feeBps] = await Promise.all([
-        this.client.readContract({ address: pool, abi: sandboxPoolAbi, functionName: "token0" }),
-        this.client.readContract({ address: pool, abi: sandboxPoolAbi, functionName: "reserves" }),
-        this.client.readContract({ address: pool, abi: sandboxPoolAbi, functionName: "feeBps" }),
+        read({ address: pool, abi: sandboxPoolAbi, functionName: "token0", blockNumber: block.number }),
+        read({ address: pool, abi: sandboxPoolAbi, functionName: "reserves", blockNumber: block.number }),
+        read({ address: pool, abi: sandboxPoolAbi, functionName: "feeBps", blockNumber: block.number }),
       ]);
       const value = balance * price[0] / WAD;
       const age = block.timestamp > price[1] ? block.timestamp - price[1] : 0n;
@@ -149,11 +157,17 @@ export class SetpointSandboxLiveAdapter {
     };
   }
 
-  async refreshOracle(provider: EIP1193Provider, owner: Address, state: SandboxVaultState): Promise<`0x${string}`> {
+  async refreshOracle(
+    provider: EIP1193Provider,
+    owner: Address,
+    state: SandboxVaultState,
+    onSubmitted?: (hash: `0x${string}`) => void,
+  ): Promise<`0x${string}`> {
+    const read = this.client.readContract;
     if (getAddress(state.owner) !== getAddress(owner)) throw new Error("Connected wallet does not own this sandbox vault.");
     if (getAddress(state.oracleUpdater) !== getAddress(owner)) throw new Error("Connected wallet is not the sandbox oracle updater.");
     const tokens = [state.baseAsset, ...state.assets.map(({ address }) => address)];
-    const observations = await Promise.all(tokens.map((token) => this.client.readContract({
+    const observations = await Promise.all(tokens.map((token) => read({
       address: state.oracle,
       abi: sandboxOracleAbi,
       functionName: "getPrice",
@@ -163,17 +177,26 @@ export class SetpointSandboxLiveAdapter {
     const wallet = createWalletClient({ account: owner, chain: robinhoodTestnet, transport: custom(provider) });
     await this.client.simulateContract({ account: owner, address: state.oracle, abi: sandboxOracleAbi, functionName: "setPrices", args: [tokens, prices] });
     const hash = await wallet.writeContract({ account: owner, address: state.oracle, abi: sandboxOracleAbi, functionName: "setPrices", args: [tokens, prices], chain: robinhoodTestnet });
+    onSubmitted?.(hash);
     const receipt = await this.client.waitForTransactionReceipt({ hash });
     if (receipt.status !== "success") throw new Error("Oracle refresh transaction reverted.");
     return hash;
   }
 
-  async setTargets(provider: EIP1193Provider, owner: Address, weights: bigint[], cashTarget: bigint): Promise<`0x${string}`> {
+  async setTargets(
+    provider: EIP1193Provider,
+    owner: Address,
+    weights: bigint[],
+    cashTarget: bigint,
+    onSubmitted?: (hash: `0x${string}`) => void,
+  ): Promise<`0x${string}`> {
     const vault = await this.requireVault(owner);
     const wallet = createWalletClient({ account: owner, chain: robinhoodTestnet, transport: custom(provider) });
     await this.client.simulateContract({ account: owner, address: vault, abi: sandboxVaultAbi, functionName: "setTargets", args: [weights, cashTarget] });
     const hash = await wallet.writeContract({ account: owner, address: vault, abi: sandboxVaultAbi, functionName: "setTargets", args: [weights, cashTarget], chain: robinhoodTestnet });
-    await this.client.waitForTransactionReceipt({ hash });
+    onSubmitted?.(hash);
+    const receipt = await this.client.waitForTransactionReceipt({ hash });
+    if (receipt.status !== "success") throw new Error("Target update transaction reverted.");
     return hash;
   }
 
@@ -205,7 +228,12 @@ export class SetpointSandboxLiveAdapter {
     return { mode: result.mode, result, state, liquidity, trades, simulationPassed: result.kind === "plan" && result.simulation.passed, calldata: trades.length ? encodeFunctionData({ abi: sandboxVaultAbi, functionName: "rebalance", args: [trades] }) : null };
   }
 
-  async execute(analysis: SandboxAnalysis, provider: EIP1193Provider, owner: Address): Promise<SandboxExecution> {
+  async execute(
+    analysis: SandboxAnalysis,
+    provider: EIP1193Provider,
+    owner: Address,
+    onSubmitted?: (hash: `0x${string}`) => void,
+  ): Promise<SandboxExecution> {
     if (analysis.result.kind !== "plan" || !analysis.simulationPassed || analysis.trades.length === 0) throw new Error("Only a current simulation-approved plan can execute.");
     const before = await this.readState(owner);
     if (before.stateId !== analysis.state.stateId) throw new Error("Chain state changed after analysis. Analyze again.");
@@ -213,6 +241,7 @@ export class SetpointSandboxLiveAdapter {
     if (!simulation.passed) throw new Error(simulation.reason ?? "Final exact simulation rejected the plan.");
     const wallet = createWalletClient({ account: owner, chain: robinhoodTestnet, transport: custom(provider) });
     const hash = await wallet.writeContract({ account: owner, address: before.vault, abi: sandboxVaultAbi, functionName: "rebalance", args: [analysis.trades], chain: robinhoodTestnet });
+    onSubmitted?.(hash);
     const receipt = await this.client.waitForTransactionReceipt({ hash });
     if (receipt.status !== "success") throw new Error("Rebalance transaction reverted.");
     const after = await this.readState(owner);
@@ -220,6 +249,7 @@ export class SetpointSandboxLiveAdapter {
   }
 
   private async sampleLiquidity(state: SandboxVaultState, fastPath: Trade[]): Promise<LiquiditySnapshot> {
+    const read = this.client.readContract;
     const curves: LiquidityCurve[] = [];
     for (const asset of state.assets) {
       for (const [tokenIn, tokenOut] of [[state.baseAsset, asset.address], [asset.address, state.baseAsset]] as const) {
@@ -229,7 +259,7 @@ export class SetpointSandboxLiveAdapter {
         const amounts = [...new Set([...SAMPLE_FRACTIONS.map((fraction) => desiredAmount * fraction / 100n), ...fastAmounts].filter((value) => value > 0n).map(String))].map(BigInt).sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
         const samples: LiquiditySample[] = [];
         for (const [index, amountIn] of amounts.entries()) {
-          const expectedOut = await this.client.readContract({ address: state.swapAdapter, abi: sandboxAdapterAbi, functionName: "quote", args: [tokenIn, tokenOut, amountIn] });
+          const expectedOut = await read({ address: state.swapAdapter, abi: sandboxAdapterAbi, functionName: "quote", args: [tokenIn, tokenOut, amountIn], blockNumber: state.blockNumber });
           const oracleOut = tokenIn === state.baseAsset ? amountIn * WAD / asset.priceWad : amountIn * asset.priceWad / WAD;
           const inputValue = tokenIn === state.baseAsset ? amountIn : amountIn * asset.priceWad / WAD;
           const outputValue = tokenOut === state.baseAsset ? expectedOut : expectedOut * asset.priceWad / WAD;

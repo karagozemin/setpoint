@@ -314,26 +314,28 @@ export async function readIntegrationPreview(id: IntegrationId): Promise<Integra
 async function readVimen(client: PublicClient): Promise<LiveIntegrationSnapshot> {
   const integration = integrationById("vimen-agentic-mag7");
   const vault = integration.vault;
-  const [block, code, name, symbol, supply, constituents, units, backed, nav, mintPaused, agent, registry, makerRegistry, cooldown, turnover, slippage, lastRebalance, distributor, supplyCap] = await Promise.all([
-    client.getBlock({ blockTag: "latest" }),
-    client.getCode({ address: vault }),
-    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "name" })),
-    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "symbol" })),
-    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "totalSupply" })),
-    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "constituents" })),
-    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "units" })),
-    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "isFullyBacked" })),
-    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "nav18" })),
-    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "mintPaused" })),
-    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "agent" })),
-    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "assetRegistry" })),
-    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "makerRegistry" })),
-    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "rebalanceCooldown" })),
-    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "maxTurnoverBps" })),
-    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "maxSlippageBps" })),
-    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "lastRebalance" })),
-    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "distributor" })),
-    safe(() => client.readContract({ address: vault, abi: vimenAbi, functionName: "supplyCap" })),
+  const block = await client.getBlock({ blockTag: "latest" });
+  const blockNumber = block.number;
+  const read = client.readContract;
+  const [code, name, symbol, supply, constituents, units, backed, nav, mintPaused, agent, registry, makerRegistry, cooldown, turnover, slippage, lastRebalance, distributor, supplyCap] = await Promise.all([
+    client.getCode({ address: vault, blockNumber }),
+    safe(() => read({ address: vault, abi: vimenAbi, functionName: "name", blockNumber })),
+    safe(() => read({ address: vault, abi: vimenAbi, functionName: "symbol", blockNumber })),
+    safe(() => read({ address: vault, abi: vimenAbi, functionName: "totalSupply", blockNumber })),
+    safe(() => read({ address: vault, abi: vimenAbi, functionName: "constituents", blockNumber })),
+    safe(() => read({ address: vault, abi: vimenAbi, functionName: "units", blockNumber })),
+    safe(() => read({ address: vault, abi: vimenAbi, functionName: "isFullyBacked", blockNumber })),
+    safe(() => read({ address: vault, abi: vimenAbi, functionName: "nav18", blockNumber })),
+    safe(() => read({ address: vault, abi: vimenAbi, functionName: "mintPaused", blockNumber })),
+    safe(() => read({ address: vault, abi: vimenAbi, functionName: "agent", blockNumber })),
+    safe(() => read({ address: vault, abi: vimenAbi, functionName: "assetRegistry", blockNumber })),
+    safe(() => read({ address: vault, abi: vimenAbi, functionName: "makerRegistry", blockNumber })),
+    safe(() => read({ address: vault, abi: vimenAbi, functionName: "rebalanceCooldown", blockNumber })),
+    safe(() => read({ address: vault, abi: vimenAbi, functionName: "maxTurnoverBps", blockNumber })),
+    safe(() => read({ address: vault, abi: vimenAbi, functionName: "maxSlippageBps", blockNumber })),
+    safe(() => read({ address: vault, abi: vimenAbi, functionName: "lastRebalance", blockNumber })),
+    safe(() => read({ address: vault, abi: vimenAbi, functionName: "distributor", blockNumber })),
+    safe(() => read({ address: vault, abi: vimenAbi, functionName: "supplyCap", blockNumber })),
   ]);
   if (!block.hash || !code || code === "0x") throw new Error("Vimen Agentic MAG7 contract bytecode is unavailable.");
   const tokens = requireValue(constituents, "Vimen constituent recipe");
@@ -341,13 +343,13 @@ async function readVimen(client: PublicClient): Promise<LiveIntegrationSnapshot>
   const registryAddress = requireValue(registry, "Vimen asset registry");
   const rows = await Promise.all(tokens.map(async (token, index) => {
     const [tokenSymbol, balance, registryEntry] = await Promise.all([
-      safe(() => client.readContract({ address: token, abi: erc20Abi, functionName: "symbol" })),
-      safe(() => client.readContract({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [vault] })),
-      safe(() => client.readContract({ address: registryAddress, abi: vimenRegistryAbi, functionName: "assetOf", args: [token] })),
+      safe(() => read({ address: token, abi: erc20Abi, functionName: "symbol", blockNumber })),
+      safe(() => read({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [vault], blockNumber })),
+      safe(() => read({ address: registryAddress, abi: vimenRegistryAbi, functionName: "assetOf", args: [token], blockNumber })),
     ]);
     const entry = requireValue(registryEntry, `Vimen registry entry for ${token}`);
     const [feed, heartbeat, enabled] = entry;
-    const round = await safe(() => client.readContract({ address: feed, abi: oracleAbi, functionName: "latestRoundData" }));
+    const round = await safe(() => read({ address: feed, abi: oracleAbi, functionName: "latestRoundData", blockNumber }));
     const updatedAt = round.value?.[3] ?? 0n;
     const observedAge = age(block.timestamp, updatedAt);
     const stale = round.value === null || round.value[1] <= 0n || updatedAt === 0n || observedAge > BigInt(heartbeat);
@@ -418,31 +420,33 @@ async function readVimen(client: PublicClient): Promise<LiveIntegrationSnapshot>
 async function readMag7(client: PublicClient): Promise<LiveIntegrationSnapshot> {
   const integration = integrationById("mag7-index");
   const vault = integration.vault;
-  const [block, code, name, symbol, supply, nav, sharePrice, holdings, feedsFresh, oldestFeedUpdate, maxFeedAge, band, maxNotional, cooldown, mintPaused, slippage] = await Promise.all([
-    client.getBlock({ blockTag: "latest" }),
-    client.getCode({ address: vault }),
-    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "name" })),
-    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "symbol" })),
-    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "totalSupply" })),
-    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "nav" })),
-    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "sharePrice" })),
-    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "holdings" })),
-    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "feedsFresh" })),
-    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "oldestFeedUpdate" })),
-    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "maxFeedAge" })),
-    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "bandBps" })),
-    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "maxRebalanceNotional" })),
-    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "rebalanceCooldown" })),
-    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "mintPaused" })),
-    safe(() => client.readContract({ address: vault, abi: mag7Abi, functionName: "maxSlippageBps" })),
+  const block = await client.getBlock({ blockTag: "latest" });
+  const blockNumber = block.number;
+  const read = client.readContract;
+  const [code, name, symbol, supply, nav, sharePrice, holdings, feedsFresh, oldestFeedUpdate, maxFeedAge, band, maxNotional, cooldown, mintPaused, slippage] = await Promise.all([
+    client.getCode({ address: vault, blockNumber }),
+    safe(() => read({ address: vault, abi: mag7Abi, functionName: "name", blockNumber })),
+    safe(() => read({ address: vault, abi: mag7Abi, functionName: "symbol", blockNumber })),
+    safe(() => read({ address: vault, abi: mag7Abi, functionName: "totalSupply", blockNumber })),
+    safe(() => read({ address: vault, abi: mag7Abi, functionName: "nav", blockNumber })),
+    safe(() => read({ address: vault, abi: mag7Abi, functionName: "sharePrice", blockNumber })),
+    safe(() => read({ address: vault, abi: mag7Abi, functionName: "holdings", blockNumber })),
+    safe(() => read({ address: vault, abi: mag7Abi, functionName: "feedsFresh", blockNumber })),
+    safe(() => read({ address: vault, abi: mag7Abi, functionName: "oldestFeedUpdate", blockNumber })),
+    safe(() => read({ address: vault, abi: mag7Abi, functionName: "maxFeedAge", blockNumber })),
+    safe(() => read({ address: vault, abi: mag7Abi, functionName: "bandBps", blockNumber })),
+    safe(() => read({ address: vault, abi: mag7Abi, functionName: "maxRebalanceNotional", blockNumber })),
+    safe(() => read({ address: vault, abi: mag7Abi, functionName: "rebalanceCooldown", blockNumber })),
+    safe(() => read({ address: vault, abi: mag7Abi, functionName: "mintPaused", blockNumber })),
+    safe(() => read({ address: vault, abi: mag7Abi, functionName: "maxSlippageBps", blockNumber })),
   ]);
   if (!block.hash || !code || code === "0x") throw new Error("MAG7 Index Vault bytecode is unavailable.");
   const holdingState = requireValue(holdings, "MAG7 holdings");
   const tokens = holdingState[0];
   const rows = await Promise.all(tokens.map(async (token) => {
     const [tokenSymbol, balance] = await Promise.all([
-      safe(() => client.readContract({ address: token, abi: erc20Abi, functionName: "symbol" })),
-      safe(() => client.readContract({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [vault] })),
+      safe(() => read({ address: token, abi: erc20Abi, functionName: "symbol", blockNumber })),
+      safe(() => read({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [vault], blockNumber })),
     ]);
     return { address: getAddress(token), symbol: tokenSymbol.value ?? compact(token), balance: balance.value ?? 0n };
   }));
@@ -500,23 +504,25 @@ async function readMag7(client: PublicClient): Promise<LiveIntegrationSnapshot> 
 async function readFides(client: PublicClient): Promise<LiveIntegrationSnapshot> {
   const integration = integrationById("fides-frontier");
   const vault = integration.vault;
-  const [block, code, name, symbol, supply, assets, units, nav, backed, maxSlippage, maxTurnover, cooldown, maxOracleAge, lastRebalance, mintPaused, rebalancer] = await Promise.all([
-    client.getBlock({ blockTag: "latest" }),
-    client.getCode({ address: vault }),
-    safe(() => client.readContract({ address: vault, abi: fidesAbi, functionName: "name" })),
-    safe(() => client.readContract({ address: vault, abi: fidesAbi, functionName: "symbol" })),
-    safe(() => client.readContract({ address: vault, abi: fidesAbi, functionName: "totalSupply" })),
-    safe(() => client.readContract({ address: vault, abi: fidesAbi, functionName: "assets" })),
-    safe(() => client.readContract({ address: vault, abi: fidesAbi, functionName: "units" })),
-    safe(() => client.readContract({ address: vault, abi: fidesAbi, functionName: "nav" })),
-    safe(() => client.readContract({ address: vault, abi: fidesAbi, functionName: "isFullyBacked" })),
-    safe(() => client.readContract({ address: vault, abi: fidesAbi, functionName: "maxSlippageBps" })),
-    safe(() => client.readContract({ address: vault, abi: fidesAbi, functionName: "maxTurnoverBps" })),
-    safe(() => client.readContract({ address: vault, abi: fidesAbi, functionName: "rebalanceCooldown" })),
-    safe(() => client.readContract({ address: vault, abi: fidesAbi, functionName: "maxOracleAge" })),
-    safe(() => client.readContract({ address: vault, abi: fidesAbi, functionName: "lastRebalance" })),
-    safe(() => client.readContract({ address: vault, abi: fidesAbi, functionName: "mintPaused" })),
-    safe(() => client.readContract({ address: vault, abi: fidesAbi, functionName: "rebalancer" })),
+  const block = await client.getBlock({ blockTag: "latest" });
+  const blockNumber = block.number;
+  const read = client.readContract;
+  const [code, name, symbol, supply, assets, units, nav, backed, maxSlippage, maxTurnover, cooldown, maxOracleAge, lastRebalance, mintPaused, rebalancer] = await Promise.all([
+    client.getCode({ address: vault, blockNumber }),
+    safe(() => read({ address: vault, abi: fidesAbi, functionName: "name", blockNumber })),
+    safe(() => read({ address: vault, abi: fidesAbi, functionName: "symbol", blockNumber })),
+    safe(() => read({ address: vault, abi: fidesAbi, functionName: "totalSupply", blockNumber })),
+    safe(() => read({ address: vault, abi: fidesAbi, functionName: "assets", blockNumber })),
+    safe(() => read({ address: vault, abi: fidesAbi, functionName: "units", blockNumber })),
+    safe(() => read({ address: vault, abi: fidesAbi, functionName: "nav", blockNumber })),
+    safe(() => read({ address: vault, abi: fidesAbi, functionName: "isFullyBacked", blockNumber })),
+    safe(() => read({ address: vault, abi: fidesAbi, functionName: "maxSlippageBps", blockNumber })),
+    safe(() => read({ address: vault, abi: fidesAbi, functionName: "maxTurnoverBps", blockNumber })),
+    safe(() => read({ address: vault, abi: fidesAbi, functionName: "rebalanceCooldown", blockNumber })),
+    safe(() => read({ address: vault, abi: fidesAbi, functionName: "maxOracleAge", blockNumber })),
+    safe(() => read({ address: vault, abi: fidesAbi, functionName: "lastRebalance", blockNumber })),
+    safe(() => read({ address: vault, abi: fidesAbi, functionName: "mintPaused", blockNumber })),
+    safe(() => read({ address: vault, abi: fidesAbi, functionName: "rebalancer", blockNumber })),
   ]);
   if (!block.hash || !code || code === "0x") throw new Error("Fides Frontier contract bytecode is unavailable.");
   const assetList = requireValue(assets, "Fides asset list");
@@ -524,15 +530,15 @@ async function readFides(client: PublicClient): Promise<LiveIntegrationSnapshot>
   const oracleLimit = requireValue(maxOracleAge, "Fides max oracle age");
   const rows = await Promise.all(assetList.map(async (token, index) => {
     const [tokenSymbol, decimals, balance, oracleAddress] = await Promise.all([
-      safe(() => client.readContract({ address: token, abi: erc20Abi, functionName: "symbol" })),
-      safe(() => client.readContract({ address: token, abi: erc20Abi, functionName: "decimals" })),
-      safe(() => client.readContract({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [vault] })),
-      safe(() => client.readContract({ address: vault, abi: fidesAbi, functionName: "oracleOf", args: [token] })),
+      safe(() => read({ address: token, abi: erc20Abi, functionName: "symbol", blockNumber })),
+      safe(() => read({ address: token, abi: erc20Abi, functionName: "decimals", blockNumber })),
+      safe(() => read({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [vault], blockNumber })),
+      safe(() => read({ address: vault, abi: fidesAbi, functionName: "oracleOf", args: [token], blockNumber })),
     ]);
     const oracle = requireValue(oracleAddress, `Fides oracle for ${token}`);
     const [round, oracleDecimals] = await Promise.all([
-      safe(() => client.readContract({ address: oracle, abi: oracleAbi, functionName: "latestRoundData" })),
-      safe(() => client.readContract({ address: oracle, abi: oracleAbi, functionName: "decimals" })),
+      safe(() => read({ address: oracle, abi: oracleAbi, functionName: "latestRoundData", blockNumber })),
+      safe(() => read({ address: oracle, abi: oracleAbi, functionName: "decimals", blockNumber })),
     ]);
     const latest = round.value;
     const updatedAt = latest?.[3] ?? 0n;
@@ -603,40 +609,42 @@ async function readFides(client: PublicClient): Promise<LiveIntegrationSnapshot>
 async function readHiss(client: PublicClient): Promise<LiveIntegrationSnapshot> {
   const integration = integrationById("hiss-v2");
   const vault = integration.vault;
-  const [block, code, name, symbol, asset, nav, supply, cash, paused, queueActive, heldCount, pps, pendingRedeems, queuePaused, queuePending, pendingDeposits, pendingRedemptions, settlementActive, keeperActive, rebalanceActive, liveness] = await Promise.all([
-    client.getBlock({ blockTag: "latest" }),
-    client.getCode({ address: vault }),
-    safe(() => client.readContract({ address: vault, abi: hissVaultAbi, functionName: "name" })),
-    safe(() => client.readContract({ address: vault, abi: hissVaultAbi, functionName: "symbol" })),
-    safe(() => client.readContract({ address: vault, abi: hissVaultAbi, functionName: "asset" })),
-    safe(() => client.readContract({ address: vault, abi: hissVaultAbi, functionName: "totalAssets" })),
-    safe(() => client.readContract({ address: vault, abi: hissVaultAbi, functionName: "totalSupply" })),
-    safe(() => client.readContract({ address: vault, abi: hissVaultAbi, functionName: "usdgCash" })),
-    safe(() => client.readContract({ address: vault, abi: hissVaultAbi, functionName: "paused" })),
-    safe(() => client.readContract({ address: vault, abi: hissVaultAbi, functionName: "queueActive" })),
-    safe(() => client.readContract({ address: vault, abi: hissVaultAbi, functionName: "heldAssetCount" })),
-    safe(() => client.readContract({ address: vault, abi: hissVaultAbi, functionName: "pricePerShare" })),
-    safe(() => client.readContract({ address: vault, abi: hissVaultAbi, functionName: "pendingRedeemCount" })),
-    safe(() => client.readContract({ address: HISS.queue, abi: hissQueueAbi, functionName: "paused" })),
-    safe(() => client.readContract({ address: HISS.queue, abi: hissQueueAbi, functionName: "pendingCount" })),
-    safe(() => client.readContract({ address: HISS.queue, abi: hissQueueAbi, functionName: "pendingDepositUsdg" })),
-    safe(() => client.readContract({ address: HISS.queue, abi: hissQueueAbi, functionName: "pendingRedemptionShares" })),
-    safe(() => client.readContract({ address: HISS.settler, abi: hissSettlerAbi, functionName: "settlementActive" })),
-    safe(() => client.readContract({ address: HISS.settler, abi: hissSettlerAbi, functionName: "keeperActive" })),
-    safe(() => client.readContract({ address: HISS.settler, abi: hissSettlerAbi, functionName: "rebalanceActive" })),
-    safe(() => client.readContract({ address: HISS.liveness, abi: hissLivenessAbi, functionName: "liveness" })),
+  const block = await client.getBlock({ blockTag: "latest" });
+  const blockNumber = block.number;
+  const read = client.readContract;
+  const [code, name, symbol, asset, nav, supply, cash, paused, queueActive, heldCount, pps, pendingRedeems, queuePaused, queuePending, pendingDeposits, pendingRedemptions, settlementActive, keeperActive, rebalanceActive, liveness] = await Promise.all([
+    client.getCode({ address: vault, blockNumber }),
+    safe(() => read({ address: vault, abi: hissVaultAbi, functionName: "name", blockNumber })),
+    safe(() => read({ address: vault, abi: hissVaultAbi, functionName: "symbol", blockNumber })),
+    safe(() => read({ address: vault, abi: hissVaultAbi, functionName: "asset", blockNumber })),
+    safe(() => read({ address: vault, abi: hissVaultAbi, functionName: "totalAssets", blockNumber })),
+    safe(() => read({ address: vault, abi: hissVaultAbi, functionName: "totalSupply", blockNumber })),
+    safe(() => read({ address: vault, abi: hissVaultAbi, functionName: "usdgCash", blockNumber })),
+    safe(() => read({ address: vault, abi: hissVaultAbi, functionName: "paused", blockNumber })),
+    safe(() => read({ address: vault, abi: hissVaultAbi, functionName: "queueActive", blockNumber })),
+    safe(() => read({ address: vault, abi: hissVaultAbi, functionName: "heldAssetCount", blockNumber })),
+    safe(() => read({ address: vault, abi: hissVaultAbi, functionName: "pricePerShare", blockNumber })),
+    safe(() => read({ address: vault, abi: hissVaultAbi, functionName: "pendingRedeemCount", blockNumber })),
+    safe(() => read({ address: HISS.queue, abi: hissQueueAbi, functionName: "paused", blockNumber })),
+    safe(() => read({ address: HISS.queue, abi: hissQueueAbi, functionName: "pendingCount", blockNumber })),
+    safe(() => read({ address: HISS.queue, abi: hissQueueAbi, functionName: "pendingDepositUsdg", blockNumber })),
+    safe(() => read({ address: HISS.queue, abi: hissQueueAbi, functionName: "pendingRedemptionShares", blockNumber })),
+    safe(() => read({ address: HISS.settler, abi: hissSettlerAbi, functionName: "settlementActive", blockNumber })),
+    safe(() => read({ address: HISS.settler, abi: hissSettlerAbi, functionName: "keeperActive", blockNumber })),
+    safe(() => read({ address: HISS.settler, abi: hissSettlerAbi, functionName: "rebalanceActive", blockNumber })),
+    safe(() => read({ address: HISS.liveness, abi: hissLivenessAbi, functionName: "liveness", blockNumber })),
   ]);
   if (!block.hash || !code || code === "0x") throw new Error("HISS V2 contract bytecode is unavailable.");
   const count = Number(requireValue(heldCount, "HISS held asset count"));
   const baseAsset = requireValue(asset, "HISS base asset");
-  const heldAddresses = await Promise.all(Array.from({ length: count }, (_, index) => client.readContract({ address: vault, abi: hissVaultAbi, functionName: "heldAssets", args: [BigInt(index)] })));
+  const heldAddresses = await Promise.all(Array.from({ length: count }, (_, index) => read({ address: vault, abi: hissVaultAbi, functionName: "heldAssets", args: [BigInt(index)], blockNumber })));
   const rows = await Promise.all(heldAddresses.map(async (token) => {
     const [tokenSymbol, decimals, balance, buy, sell] = await Promise.all([
-      safe(() => client.readContract({ address: token, abi: erc20Abi, functionName: "symbol" })),
-      safe(() => client.readContract({ address: token, abi: erc20Abi, functionName: "decimals" })),
-      safe(() => client.readContract({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [vault] })),
-      safe(() => client.readContract({ address: HISS.priceMesh, abi: hissPriceMeshAbi, functionName: "maxSafeBuyNotionalUsdg", args: [token] })),
-      safe(() => client.readContract({ address: HISS.priceMesh, abi: hissPriceMeshAbi, functionName: "maxSafeSellNotionalUsdg", args: [token] })),
+      safe(() => read({ address: token, abi: erc20Abi, functionName: "symbol", blockNumber })),
+      safe(() => read({ address: token, abi: erc20Abi, functionName: "decimals", blockNumber })),
+      safe(() => read({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [vault], blockNumber })),
+      safe(() => read({ address: HISS.priceMesh, abi: hissPriceMeshAbi, functionName: "maxSafeBuyNotionalUsdg", args: [token], blockNumber })),
+      safe(() => read({ address: HISS.priceMesh, abi: hissPriceMeshAbi, functionName: "maxSafeSellNotionalUsdg", args: [token], blockNumber })),
     ]);
     const buyKnown = buy.value?.[0] === true;
     const sellKnown = sell.value?.[0] === true;
@@ -726,32 +734,34 @@ async function readHiss(client: PublicClient): Promise<LiveIntegrationSnapshot> 
 async function readWield(client: PublicClient): Promise<LiveIntegrationSnapshot> {
   const integration = integrationById("wield-rwa");
   const vault = integration.vault;
-  const [block, code, name, symbol, asset, nav, supply, paused, agent, nonce, maxSlippage, oracleAge, router, poolFee, underlyings] = await Promise.all([
-    client.getBlock({ blockTag: "latest" }),
-    client.getCode({ address: vault }),
-    safe(() => client.readContract({ address: vault, abi: wieldAbi, functionName: "name" })),
-    safe(() => client.readContract({ address: vault, abi: wieldAbi, functionName: "symbol" })),
-    safe(() => client.readContract({ address: vault, abi: wieldAbi, functionName: "asset" })),
-    safe(() => client.readContract({ address: vault, abi: wieldAbi, functionName: "totalAssets" })),
-    safe(() => client.readContract({ address: vault, abi: wieldAbi, functionName: "totalSupply" })),
-    safe(() => client.readContract({ address: vault, abi: wieldAbi, functionName: "paused" })),
-    safe(() => client.readContract({ address: vault, abi: wieldAbi, functionName: "agentDid" })),
-    safe(() => client.readContract({ address: vault, abi: wieldAbi, functionName: "nextNonce" })),
-    safe(() => client.readContract({ address: vault, abi: wieldAbi, functionName: "maxSlippageBps" })),
-    safe(() => client.readContract({ address: vault, abi: wieldAbi, functionName: "oracleStaleAfter" })),
-    safe(() => client.readContract({ address: vault, abi: wieldAbi, functionName: "dexRouter" })),
-    safe(() => client.readContract({ address: vault, abi: wieldAbi, functionName: "dexPoolFee" })),
-    safe(() => client.readContract({ address: vault, abi: wieldAbi, functionName: "getUnderlyings" })),
+  const block = await client.getBlock({ blockTag: "latest" });
+  const blockNumber = block.number;
+  const read = client.readContract;
+  const [code, name, symbol, asset, nav, supply, paused, agent, nonce, maxSlippage, oracleAge, router, poolFee, underlyings] = await Promise.all([
+    client.getCode({ address: vault, blockNumber }),
+    safe(() => read({ address: vault, abi: wieldAbi, functionName: "name", blockNumber })),
+    safe(() => read({ address: vault, abi: wieldAbi, functionName: "symbol", blockNumber })),
+    safe(() => read({ address: vault, abi: wieldAbi, functionName: "asset", blockNumber })),
+    safe(() => read({ address: vault, abi: wieldAbi, functionName: "totalAssets", blockNumber })),
+    safe(() => read({ address: vault, abi: wieldAbi, functionName: "totalSupply", blockNumber })),
+    safe(() => read({ address: vault, abi: wieldAbi, functionName: "paused", blockNumber })),
+    safe(() => read({ address: vault, abi: wieldAbi, functionName: "agentDid", blockNumber })),
+    safe(() => read({ address: vault, abi: wieldAbi, functionName: "nextNonce", blockNumber })),
+    safe(() => read({ address: vault, abi: wieldAbi, functionName: "maxSlippageBps", blockNumber })),
+    safe(() => read({ address: vault, abi: wieldAbi, functionName: "oracleStaleAfter", blockNumber })),
+    safe(() => read({ address: vault, abi: wieldAbi, functionName: "dexRouter", blockNumber })),
+    safe(() => read({ address: vault, abi: wieldAbi, functionName: "dexPoolFee", blockNumber })),
+    safe(() => read({ address: vault, abi: wieldAbi, functionName: "getUnderlyings", blockNumber })),
   ]);
   if (!block.hash || !code || code === "0x") throw new Error("Wield contract bytecode is unavailable.");
   const baseAsset = requireValue(asset, "Wield base asset");
   const list = requireValue(underlyings, "Wield underlying registry");
   const rows = await Promise.all(list.map(async (token) => {
     const [tokenSymbol, decimals, balance, info] = await Promise.all([
-      safe(() => client.readContract({ address: token, abi: erc20Abi, functionName: "symbol" })),
-      safe(() => client.readContract({ address: token, abi: erc20Abi, functionName: "decimals" })),
-      safe(() => client.readContract({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [vault] })),
-      safe(() => client.readContract({ address: vault, abi: wieldAbi, functionName: "underlyingInfo", args: [token] })),
+      safe(() => read({ address: token, abi: erc20Abi, functionName: "symbol", blockNumber })),
+      safe(() => read({ address: token, abi: erc20Abi, functionName: "decimals", blockNumber })),
+      safe(() => read({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [vault], blockNumber })),
+      safe(() => read({ address: vault, abi: wieldAbi, functionName: "underlyingInfo", args: [token], blockNumber })),
     ]);
     const kind = info.value?.[0] ?? 0;
     const feed = info.value?.[1] ?? null;
@@ -759,7 +769,7 @@ async function readWield(client: PublicClient): Promise<LiveIntegrationSnapshot>
     let feedStatus: SnapshotHolding["status"] = active ? "CURRENT" : "INACTIVE";
     let feedEvidence = kind === 1 ? "Stock oracle unavailable" : "ERC-4626 preview accounting";
     if (kind === 1 && feed) {
-      const round = await safe(() => client.readContract({ address: feed, abi: oracleAbi, functionName: "latestRoundData" }));
+      const round = await safe(() => read({ address: feed, abi: oracleAbi, functionName: "latestRoundData", blockNumber }));
       const updatedAt = round.value?.[3] ?? 0n;
       const observedAge = age(block.timestamp, updatedAt);
       const limit = oracleAge.value ?? 0n;
@@ -778,8 +788,8 @@ async function readWield(client: PublicClient): Promise<LiveIntegrationSnapshot>
     };
   }));
   const [baseBalance, baseDecimals] = await Promise.all([
-    safe(() => client.readContract({ address: baseAsset, abi: erc20Abi, functionName: "balanceOf", args: [vault] })),
-    safe(() => client.readContract({ address: baseAsset, abi: erc20Abi, functionName: "decimals" })),
+    safe(() => read({ address: baseAsset, abi: erc20Abi, functionName: "balanceOf", args: [vault], blockNumber })),
+    safe(() => read({ address: baseAsset, abi: erc20Abi, functionName: "decimals", blockNumber })),
   ]);
   const totalAssets = requireValue(nav, "Wield total assets");
   const totalSupply = requireValue(supply, "Wield total supply");

@@ -17,11 +17,16 @@ async function main(): Promise<void> {
   const account = privateKeyToAccount(secret as `0x${string}`);
   const publicClient = createPublicClient({ chain: robinhoodTestnet, transport: http(rpc) });
   const wallet = createWalletClient({ account, chain: robinhoodTestnet, transport: http(rpc) });
+  const chainId = await publicClient.getChainId();
+  if (chainId !== robinhoodTestnet.id) {
+    throw new Error(`Refusing oracle update: expected chain ${robinhoodTestnet.id}, received ${chainId}.`);
+  }
   const tokens = [deployment.contracts.baseAsset, ...deployment.contracts.assets].map((address) => getAddress(address));
   const prices = [1n, 180n, 240n, 420n, 150n].map((value) => value * 10n ** 18n);
   await publicClient.simulateContract({ account, address: getAddress(deployment.contracts.oracle), abi: sandboxOracleAbi, functionName: "setPrices", args: [tokens, prices] });
   const hash = await wallet.writeContract({ account, address: getAddress(deployment.contracts.oracle), abi: sandboxOracleAbi, functionName: "setPrices", args: [tokens, prices], chain: robinhoodTestnet });
   const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  if (receipt.status !== "success") throw new Error(`Oracle refresh transaction reverted: ${hash}`);
   console.log(`Oracle refresh confirmed: ${hash} at block #${receipt.blockNumber}`);
 }
 void main().catch((error: unknown) => {

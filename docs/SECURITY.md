@@ -40,6 +40,14 @@ The `/evidence` console is a read-only presentation of checked-in evidence. The 
 - Deployment and oracle writes require an explicit local environment key; no key is bundled, logged, committed, or accepted by the browser.
 - Analysis is tied to a digest-like ID over execution-relevant vault, target, oracle, and reserve state observed at a recorded block. Execution re-reads that state ID, exact-simulates again as the owner, waits for confirmation, and re-reads post-state.
 
+## Sandbox operational risks
+
+- The factory limit is one vault per address, not one vault per human. It has no allowlist, rate limit, global vault cap, or proof-of-personhood control.
+- Every vault receives newly minted test assets and trades against the same four pools. Per-transaction guards prevent an unsafe individual call, but repeated Sybil vaults can move shared reserves and deny later users a useful route. This is a public-demo availability and griefing risk, not a custody loss for real assets.
+- The sandbox oracle expires after 24 hours and has no scheduler or decentralized feeder. The configured updater must run `pnpm sandbox:refresh-oracle` before the heartbeat expires. If it stops, the correct outcome is a visible stale-oracle lock; the public execution demo is unavailable until an authorized refresh confirms.
+- The oracle owner/updater, token owners, swap-adapter owner, and pool owners are the deployment account in the recorded topology. Compromise of that key can change prices, replace registered routes, or change token mint authority. The sandbox contains test-only assets, but this remains a trusted-admin assumption.
+- Pool routes and oracle values are shared infrastructure. A contract revision and redeployment—not a UI change—is required to add Sybil resistance, isolated liquidity, a faucet budget, route immutability, or autonomous oracle upkeep.
+
 ## Reproducible demonstrations
 
 | Scenario | Evidence level | Demonstrated result |

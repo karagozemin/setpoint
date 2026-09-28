@@ -12,11 +12,14 @@ const vercelConfig = readFileSync("vercel.json", "utf8");
 const viteConfig = readFileSync("vite.config.mts", "utf8");
 const sandboxApp = readFileSync("web/live/SandboxExecute.tsx", "utf8");
 const sandboxAdapter = readFileSync("src/sandbox/setpoint-sandbox-live-adapter.ts", "utf8");
+const wallet = readFileSync("web/live/wallet.ts", "utf8");
 
 test("product exposes landing, app and evidence as distinct routes", () => {
   assert.match(router, /path === "\/"/);
   assert.match(router, /path === "\/app"/);
   assert.match(router, /path === "\/evidence"/);
+  assert.doesNotMatch(router, /path\.startsWith\("\/app\/"\)/);
+  assert.match(router, /vaultRoute/);
 });
 
 test("live product does not import historical scenarios or artifacts", () => {
@@ -44,7 +47,7 @@ test("live analysis invokes the adapter and shows explicit provenance", () => {
   assert.match(liveApp, /adapter\.analyzeRebalance/);
   assert.match(liveApp, /LIVE RPC/);
   assert.match(liveAdapter, /simulateContract/);
-  assert.match(liveAdapter, /this\.client\.getBlock\(\{ blockTag: "latest" \}\)/);
+  assert.match(liveAdapter, /blockNumber/);
 });
 
 test("wallet execution is authorization gated and re-simulated", () => {
@@ -89,9 +92,19 @@ test("sandbox offers an explicit one-click meaningful rebalance target", () => {
 });
 
 test("RPC failures are not represented as NO_TRADE", () => {
-  assert.match(liveApp, /context === "read"\) return \{ kind: "RPC_ERROR"/);
+  assert.match(liveApp, /classifyInteractionError/);
+  assert.match(wallet, /context === "read"/);
+  assert.match(wallet, /kind: "RPC_ERROR"/);
   assert.match(liveAdapter, /if \(state\.staleAssets\.length > 0\)/);
   assert.match(liveAdapter, /return noTrade\(state, "STALE_PRICE"/);
+});
+
+test("sandbox wallet and receipt states are explicit", () => {
+  assert.match(sandboxApp, /WALLET_REJECTION|classifyInteractionError/);
+  assert.match(sandboxApp, /Confirm target in wallet/);
+  assert.match(sandboxApp, /Waiting for target confirmation/);
+  assert.match(sandboxAdapter, /receipt\.status !== "success"/);
+  assert.match(sandboxAdapter, /onSubmitted/);
 });
 
 test("browser RPC reads use fixed same-origin pass-through routes", () => {

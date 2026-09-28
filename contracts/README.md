@@ -54,3 +54,5 @@ pnpm sandbox:smoke
 `sandbox:deploy` first performs a non-broadcast simulation/gas estimate, then broadcasts, writes `deployments/setpoint-sandbox-rh-testnet.json`, and runs the public smoke test. It exits before simulation or broadcast if the deployer key is absent. Never commit, print, or paste a private key into a command argument or tracked file.
 
 If a separate updater is configured, export its public address as `SETPOINT_SANDBOX_ORACLE_UPDATER` during deployment and use `SETPOINT_SANDBOX_ORACLE_UPDATER_KEY` only in the local environment when refreshing.
+
+The oracle heartbeat is 24 hours and maintenance is manual. `sandbox:refresh-oracle` checks the RPC chain ID, simulates the fixed-price sandbox update, requires an authorized local key, checks the confirmed receipt, and never runs from the browser. Run `sandbox:oracle-status` before every public demo. The current factory and shared pools are not Sybil-resistant; see the repository security model before exposing the sandbox as an unattended multi-user service.

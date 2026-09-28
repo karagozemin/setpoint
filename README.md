@@ -88,7 +88,7 @@ At the recorded M6 verification, all five configured oracle observations exceede
 
 Two integration constraints shape the current live boundary:
 
-- The public RPC accepts `latest` reads but rejects explicit block-number `eth_call` at its reported head. Setpoint batches a latest-state read window, records the observed block as provenance, and simulates again immediately before submission.
+- Live workspaces resolve the latest block first, then pin accounting, policy, oracle, bytecode, and reserve calls to that explicit block number. Setpoint still re-reads state and exact-simulates immediately before submission because state can change after the snapshot.
 - The deployed swap adapter exposes no verified public quote method for executable depth. A failed full live batch therefore fails closed; historical fork liquidity curves are never inserted into the live decision path.
 
 Live `ADAPTIVE_FALLBACK` will remain unavailable until an integration can supply current, state-bound, executable quote evidence.
@@ -217,6 +217,8 @@ The deploy command also loads the ignored root `.env` file and accepts `PRIVATE_
 
 If the oracle updater differs from the deployer, set `SETPOINT_SANDBOX_ORACLE_UPDATER` for deployment and keep its signing key in `SETPOINT_SANDBOX_ORACLE_UPDATER_KEY` only for the refresh command.
 
+The sandbox oracle has a 24-hour freshness guard and no autonomous updater. `pnpm sandbox:refresh-oracle` is an explicit operator transaction that republishes the sandbox's fixed test prices after checking chain ID and simulation. The operator must run it within the heartbeat before a public demo. If upkeep stops, analysis and execution correctly lock as stale. This manual dependency is a demo-operations limitation, not a production oracle design.
+
 Both smoke commands are read-only. `pnpm integrations:smoke` checks all six registered deployments and reports current readiness without upgrading degraded or empty state to “ready.” `pnpm live:smoke` performs the deeper RWA Index planning-path checks, including exact `eth_call` capability. Results depend on external RPC and contract state.
 
 Browser reads use the fixed same-origin `/rpc/mainnet` and `/rpc/testnet` pass-through routes configured in Vite and Vercel. This avoids the upstream public RPC's intermittent invalid duplicate CORS header without introducing caching or a Setpoint data API. CLI smoke tests continue to call the public RPC origins directly.
@@ -273,6 +275,8 @@ docs/                           architecture, security model, and decisions
 M1 established external-vault compatibility on a disposable fork. M2 froze the static control planner. M3 added deterministic simulation-gated planning. M4 and M4.1 introduced executable-liquidity sampling and adaptive multi-leg planning. M4.2 adopted simple-first hybrid orchestration. M5 turned accepted artifacts into an evidence console. M6 separated a real live operator product from historical evidence. The current milestone adds the Setpoint-owned sandbox contract and product path without changing the frozen core.
 
 The mainnet surfaces remain read-only technical integrations; they do not imply Setpoint-managed production execution. The sandbox uses test-only assets and deliberately bounded liquidity. Setpoint has no production custody, token, governance, private RPC credential, cross-venue routing, relayer, or production capital. A random visitor owns only the sandbox vault their wallet creates and never inherits authority over an external vault.
+
+The public sandbox factory enforces one vault per address, not one vault per person. New addresses can create additional seeded vaults, and all vaults trade against the same four pools. Onchain min-out, drift-improvement, and NAV-loss guards keep each transaction fail-closed, but they do not prevent Sybil users from moving shared reserves until later users receive reduced progress or `NO_TRADE`. A reset, rate-limit, or isolated-liquidity design requires a contract revision and redeployment before this can be treated as an unattended public multi-user environment.
 
 ## Documentation
 

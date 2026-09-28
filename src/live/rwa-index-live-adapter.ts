@@ -61,42 +61,42 @@ export class RWAIndexLiveAdapter {
   async readVaultState(vaultAddress = rwaIndexLiveConfig.vault, options: LiveReadOptions = {}): Promise<LiveVaultState> {
     if (!this.supportsVault(vaultAddress)) throw new UnsupportedVaultError(vaultAddress);
     const vault = getAddress(vaultAddress);
-    // The public Robinhood endpoint rejects explicit block-number eth_call even
-    // at its reported head. These latest reads are issued in batched windows;
-    // the observed block is retained as provenance, never as an archival claim.
-    const [block, chainId, assets, baseAsset, oracle, swapAdapter, cashTarget, paused, driftThreshold, maxTradeFraction, slippageTolerance, maxStaleness, maxRebalanceLoss] = await Promise.all([
+    const [block, chainId] = await Promise.all([
       this.client.getBlock({ blockTag: "latest" }),
       this.client.getChainId(),
-      this.client.readContract({ address: vault, abi: vaultAbi, functionName: "assets" }),
-      this.client.readContract({ address: vault, abi: vaultAbi, functionName: "asset" }),
-      this.client.readContract({ address: vault, abi: vaultAbi, functionName: "oracle" }),
-      this.client.readContract({ address: vault, abi: vaultAbi, functionName: "swapAdapter" }),
-      this.client.readContract({ address: vault, abi: vaultAbi, functionName: "cashTarget" }),
-      this.client.readContract({ address: vault, abi: vaultAbi, functionName: "paused" }),
-      this.client.readContract({ address: vault, abi: vaultAbi, functionName: "driftThreshold" }),
-      this.client.readContract({ address: vault, abi: vaultAbi, functionName: "maxTradeFraction" }),
-      this.client.readContract({ address: vault, abi: vaultAbi, functionName: "slippageTolerance" }),
-      this.client.readContract({ address: vault, abi: vaultAbi, functionName: "maxStaleness" }),
-      this.client.readContract({ address: vault, abi: vaultAbi, functionName: "maxRebalanceLoss" }),
     ]);
     if (!block.hash) throw new Error("The RPC returned a block without a hash.");
     const blockNumber = block.number;
+    const read = this.client.readContract;
     if (chainId !== rwaIndexLiveConfig.chainId) throw new Error(`RPC chain mismatch: expected ${rwaIndexLiveConfig.chainId}, received ${chainId}.`);
+    const [assets, baseAsset, oracle, swapAdapter, cashTarget, paused, driftThreshold, maxTradeFraction, slippageTolerance, maxStaleness, maxRebalanceLoss] = await Promise.all([
+      read({ address: vault, abi: vaultAbi, functionName: "assets", blockNumber }),
+      read({ address: vault, abi: vaultAbi, functionName: "asset", blockNumber }),
+      read({ address: vault, abi: vaultAbi, functionName: "oracle", blockNumber }),
+      read({ address: vault, abi: vaultAbi, functionName: "swapAdapter", blockNumber }),
+      read({ address: vault, abi: vaultAbi, functionName: "cashTarget", blockNumber }),
+      read({ address: vault, abi: vaultAbi, functionName: "paused", blockNumber }),
+      read({ address: vault, abi: vaultAbi, functionName: "driftThreshold", blockNumber }),
+      read({ address: vault, abi: vaultAbi, functionName: "maxTradeFraction", blockNumber }),
+      read({ address: vault, abi: vaultAbi, functionName: "slippageTolerance", blockNumber }),
+      read({ address: vault, abi: vaultAbi, functionName: "maxStaleness", blockNumber }),
+      read({ address: vault, abi: vaultAbi, functionName: "maxRebalanceLoss", blockNumber }),
+    ]);
     if (getAddress(baseAsset) !== getAddress(rwaIndexLiveConfig.baseAsset)) throw new Error("The live vault base asset does not match the registered integration.");
     if (getAddress(oracle) !== getAddress(rwaIndexLiveConfig.oracle)) throw new Error("The live vault oracle does not match the registered integration.");
     if (getAddress(swapAdapter) !== getAddress(rwaIndexLiveConfig.swapAdapter)) throw new Error("The live vault swap adapter does not match the registered integration.");
 
     const [cashBalance, baseSymbol, baseDecimals, assetRows] = await Promise.all([
-      this.client.readContract({ address: baseAsset, abi: erc20Abi, functionName: "balanceOf", args: [vault] }),
-      this.client.readContract({ address: baseAsset, abi: erc20Abi, functionName: "symbol" }),
-      this.client.readContract({ address: baseAsset, abi: erc20Abi, functionName: "decimals" }),
+      read({ address: baseAsset, abi: erc20Abi, functionName: "balanceOf", args: [vault], blockNumber }),
+      read({ address: baseAsset, abi: erc20Abi, functionName: "symbol", blockNumber }),
+      read({ address: baseAsset, abi: erc20Abi, functionName: "decimals", blockNumber }),
       Promise.all(assets.map(async (address) => {
         const [balance, symbol, decimals, targetWeight, price] = await Promise.all([
-          this.client.readContract({ address, abi: erc20Abi, functionName: "balanceOf", args: [vault] }),
-          this.client.readContract({ address, abi: erc20Abi, functionName: "symbol" }),
-          this.client.readContract({ address, abi: erc20Abi, functionName: "decimals" }),
-          this.client.readContract({ address: vault, abi: vaultAbi, functionName: "targetWeight", args: [address] }),
-          this.client.readContract({ address: oracle, abi: oracleAbi, functionName: "getPrice", args: [address] }),
+          read({ address, abi: erc20Abi, functionName: "balanceOf", args: [vault], blockNumber }),
+          read({ address, abi: erc20Abi, functionName: "symbol", blockNumber }),
+          read({ address, abi: erc20Abi, functionName: "decimals", blockNumber }),
+          read({ address: vault, abi: vaultAbi, functionName: "targetWeight", args: [address], blockNumber }),
+          read({ address: oracle, abi: oracleAbi, functionName: "getPrice", args: [address], blockNumber }),
         ]);
         return { address, balance, symbol, decimals, targetWeight, price };
       })),
@@ -112,8 +112,8 @@ export class RWAIndexLiveAdapter {
     let drift: bigint | null = null;
     if (staleAssets.length === 0) {
       [nav, drift] = await Promise.all([
-        this.client.readContract({ address: vault, abi: vaultAbi, functionName: "totalAssets" }),
-        this.client.readContract({ address: vault, abi: vaultAbi, functionName: "totalDrift" }),
+        read({ address: vault, abi: vaultAbi, functionName: "totalAssets", blockNumber }),
+        read({ address: vault, abi: vaultAbi, functionName: "totalDrift", blockNumber }),
       ]);
     }
 
@@ -138,8 +138,8 @@ export class RWAIndexLiveAdapter {
 
     const account = options.account ? getAddress(options.account) : null;
     const [managerRole, agentSession] = account ? await Promise.all([
-      this.client.readContract({ address: vault, abi: vaultAbi, functionName: "hasRole", args: [MANAGER_ROLE, account] }),
-      this.client.readContract({ address: vault, abi: vaultAbi, functionName: "isAgentAuthorized", args: [account] }),
+      read({ address: vault, abi: vaultAbi, functionName: "hasRole", args: [MANAGER_ROLE, account], blockNumber }),
+      read({ address: vault, abi: vaultAbi, functionName: "isAgentAuthorized", args: [account], blockNumber }),
     ]) : [false, false];
 
     return {

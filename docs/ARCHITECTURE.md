@@ -289,7 +289,7 @@ flowchart TD
 
 Integration addresses are checked against `src/live/config.ts`. Assets are currently required to use the verified deployment's 18-decimal representation.
 
-The public RPC rejects historical `eth_call` at its own reported head, so the adapter cannot claim an atomic block-pinned snapshot. It uses batched `latest` read windows and retains the observed latest block as provenance. This is weaker than archival block pinning; the compensating control is a fresh state read and account-specific exact simulation immediately before a transaction is sent.
+Each live adapter resolves the latest block first and pins subsequent accounting, policy, oracle, bytecode, balance, and reserve reads to that explicit block number. This gives the displayed block real snapshot meaning. A fresh state read and account-specific exact simulation are still mandatory immediately before a transaction because state can change after any snapshot and before mining.
 
 ### Accounting under stale prices
 
@@ -509,7 +509,9 @@ The current system deliberately does not provide:
 - a private RPC, indexer, backend database, or atomic archival read service;
 - live adaptive fallback for the external Synthra deployment (the sandbox path does supply adaptive quote evidence);
 - cross-venue routing, cross-vault netting, or MEV protection;
-- protection from a malicious-but-fresh oracle, compromised RPC, compromised wallet, or bugs in external contracts; or
+- protection from a malicious-but-fresh oracle, compromised RPC, compromised wallet, or bugs in external contracts;
+- Sybil resistance or per-user liquidity isolation in the public sandbox factory; all wallet vaults currently share four mutable pools;
+- automated sandbox-oracle maintenance; the 24-hour heartbeat requires an explicit operator refresh transaction; or
 - an audit or formal-verification claim.
 
 The mainnet integrations are read-only compatibility surfaces. The testnet planning integration uses mock assets and toy venue liquidity. These constraints are visible in the product because hiding them would weaken the meaning of every decision the product returns.

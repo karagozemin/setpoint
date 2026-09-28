@@ -17,6 +17,35 @@ export interface WalletState {
   chainId: number | null;
 }
 
+export type InteractionErrorKind = "RPC_ERROR" | "WALLET_REJECTION" | "TRANSACTION_REVERT" | "APPLICATION_ERROR";
+
+export interface InteractionError {
+  kind: InteractionErrorKind;
+  message: string;
+}
+
+export function classifyInteractionError(error: unknown, context: "read" | "wallet" | "transaction"): InteractionError {
+  let current = error;
+  let details = "";
+  let rejected = false;
+  while (current && typeof current === "object") {
+    const item = current as { cause?: unknown; code?: unknown; message?: unknown };
+    rejected ||= item.code === 4001 || item.code === "ACTION_REJECTED";
+    details += ` ${String(item.message ?? "")}`;
+    current = item.cause;
+  }
+  details = details.toLowerCase();
+  rejected ||= /user rejected|request rejected|rejected the request|denied transaction signature/.test(details);
+  const record = error && typeof error === "object" ? error as { shortMessage?: unknown } : null;
+  const raw = typeof record?.shortMessage === "string" ? record.shortMessage : error instanceof Error ? error.message : "Unknown application error.";
+  const message = raw.split("\n", 1)[0] || "Unknown application error.";
+  if (rejected || context === "wallet") return { kind: "WALLET_REJECTION", message };
+  if (context === "read") return { kind: "RPC_ERROR", message };
+  if (/revert|transaction receipt.*failed/.test(details)) return { kind: "TRANSACTION_REVERT", message };
+  if (/rpc|http request|network|fetch|timeout|socket|rate limit|429/.test(details)) return { kind: "RPC_ERROR", message };
+  return { kind: "APPLICATION_ERROR", message };
+}
+
 export async function readWallet(): Promise<WalletState> {
   const provider = window.ethereum ?? null;
   if (!provider) return { provider: null, account: null, chainId: null };

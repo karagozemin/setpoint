@@ -16,7 +16,7 @@ import {
 } from "../../src/live/integration-read-adapters";
 import { RWAIndexLiveAdapter, UnsupportedVaultError } from "../../src/live/rwa-index-live-adapter";
 import type { ExecutionResult, LiveAnalysisResult, LiveVaultState, ProposedAllocation } from "../../src/live/types";
-import { connectWallet, readWallet, switchToRobinhood, type WalletState } from "./wallet";
+import { classifyInteractionError, connectWallet, readWallet, switchToRobinhood, type WalletState } from "./wallet";
 import SandboxExecute from "./SandboxExecute";
 
 const adapter = new RWAIndexLiveAdapter();
@@ -282,9 +282,7 @@ function CompatibilityWorkspace({ snapshot, refreshing, error, onRefresh, onBack
 function classifyError(error: unknown, context: "read" | "wallet" | "transaction"): AppError {
   const message = error instanceof Error ? error.message : "Unknown error";
   if (error instanceof UnsupportedVaultError) return { kind: "UNSUPPORTED_INTEGRATION", message };
-  if (context === "read") return { kind: "RPC_ERROR", message };
-  if (context === "transaction") return { kind: message.toLowerCase().includes("reject") ? "WALLET_REJECTION" : "TRANSACTION_REVERT", message };
-  return { kind: "WALLET_REJECTION", message };
+  return classifyInteractionError(error, context);
 }
 
 export default function LiveApp() {
@@ -389,7 +387,7 @@ export default function LiveApp() {
 
   return <div className="product-page">
     <Header wallet={wallet} readOnly={readOnlySurface} onConnect={connect} onSwitch={switchNetwork} onDisconnect={() => { void disconnect(); }} />
-    {openingIntegration ? <VaultOpening integration={openingIntegration} /> : !state && !snapshot ? <main className="product-home"><SandboxExecute wallet={wallet} onConnect={() => { void connect(); }} onSwitch={() => { void switchNetwork(); }} /><VaultEntry onOpen={openVault} busy={busy} error={error} /></main> : snapshot ? <CompatibilityWorkspace snapshot={snapshot} refreshing={busy} error={error} onRefresh={() => { void refresh(); }} onBack={closeVault} /> : state ? <main className="operator-workspace">
+    {openingIntegration ? <VaultOpening integration={openingIntegration} /> : !state && !snapshot ? <main className="product-home"><SandboxExecute wallet={wallet} onConnect={() => { void connect(); }} onSwitch={() => { void switchNetwork(); }} externalError={!wallet.account && error?.kind === "WALLET_REJECTION" ? { kind: "WALLET_REJECTION", message: error.message } : null} /><VaultEntry onOpen={openVault} busy={busy} error={error} /></main> : snapshot ? <CompatibilityWorkspace snapshot={snapshot} refreshing={busy} error={error} onRefresh={() => { void refresh(); }} onBack={closeVault} /> : state ? <main className="operator-workspace">
       <div className="workspace-title"><div><button className="back-action" onClick={closeVault} type="button">← All integrations</button><p className="product-kicker">External integration / RWA Index</p><h1>Rebalance control</h1><p><a href={explorerAddress(state.vault)} target="_blank" rel="noreferrer">{state.vault}</a></p></div><div className="authority-state"><span>Execution authority</span><strong>{state.authorization.canExecute ? "Authorized wallet" : wallet.account ? "Read only" : "Wallet disconnected"}</strong><small>{state.authorization.canExecute ? "Vault manager or active session" : "Analysis and export available"}</small></div></div>
       <Provenance state={state} refreshing={busy} onRefresh={refresh} />
       {error && <ErrorNotice error={error} />}
