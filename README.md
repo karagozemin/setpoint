@@ -1,7 +1,7 @@
 # Setpoint
 
 <p align="center">
-  <img src="./web/public/brand/setpoint.png" alt="Setpoint logo" width="180" />
+  <img src="./web/public/brand/setpoint.png" alt="Setpoint logo" width="220" />
 </p>
 
 <p align="center"><strong>The execution safety layer for onchain vault rebalances.</strong></p>
