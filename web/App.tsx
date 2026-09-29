@@ -287,6 +287,7 @@ export default function EvidenceApp() {
           <span>Historical, fork-backed Robinhood Chain testnet evidence. No live funds or production execution.</span>
         </div>
         <nav aria-label="Project resources">
+          <a className="social-link" href="https://x.com/setpointxyz" target="_blank" rel="noreferrer">X / @setpointxyz</a>
           <a href="https://github.com/karagozemin/setpoint" target="_blank" rel="noreferrer">GitHub</a>
           <a href="https://github.com/karagozemin/setpoint/blob/main/Setpoint_PRD_v1_2.md" target="_blank" rel="noreferrer">PRD v1.2</a>
           <a href="https://github.com/karagozemin/setpoint/blob/main/docs/SECURITY.md" target="_blank" rel="noreferrer">Security model</a>

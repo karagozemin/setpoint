@@ -130,6 +130,11 @@ body {
   text-decoration: none;
 }
 
+.landing-header nav .social-link,
+.product-header nav .social-link {
+  font-weight: 750;
+}
+
 .landing-open {
   justify-self: end;
   display: flex;
@@ -493,6 +498,7 @@ body {
 .landing-footer p { margin: 0; text-align: center; }
 .landing-footer nav { display: flex; justify-content: flex-end; gap: 22px; }
 .landing-footer a { color: inherit; }
+.landing-footer .social-link { font-weight: 750; }
 
 /* Live operator */
 .product-page { min-height: 100vh; background: var(--background); color: var(--foreground); }

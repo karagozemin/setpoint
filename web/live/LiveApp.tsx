@@ -72,6 +72,7 @@ function Header({ wallet, readOnly, onConnect, onSwitch, onDisconnect }: { walle
         <a aria-current="page" href="/app">App</a>
         <a href="/evidence">Evidence</a>
         <a href="https://github.com/karagozemin/setpoint" target="_blank" rel="noreferrer">GitHub ↗</a>
+        <a className="social-link" href="https://x.com/setpointxyz" target="_blank" rel="noreferrer">X / @setpointxyz ↗</a>
       </nav>
       {readOnly ? (
         <span className="header-read-only">Live reads · no wallet required</span>
