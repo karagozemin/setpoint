@@ -1,5 +1,11 @@
 import { getAddress, type Address } from "viem";
-import deployment from "../../deployments/setpoint-sandbox-rh-testnet.json";
+import {
+  chainId,
+  contracts,
+  deploymentBlock,
+  network,
+  status,
+} from "../../deployments/setpoint-sandbox-rh-testnet.json";
 
 interface DeployedContracts {
   factory: string;
@@ -23,19 +29,19 @@ export interface SandboxDeployment {
   deploymentBlock: bigint | null;
 }
 
-const contracts = deployment.contracts as DeployedContracts | null;
+const deployedContracts = contracts as DeployedContracts | null;
 
 export const sandboxDeployment: SandboxDeployment = {
-  status: deployment.status === "DEPLOYED" && contracts !== null ? "DEPLOYED" : "UNDEPLOYED",
-  chainId: deployment.chainId,
-  network: deployment.network,
-  factory: contracts ? getAddress(contracts.factory) : null,
-  oracle: contracts ? getAddress(contracts.oracle) : null,
-  swapAdapter: contracts ? getAddress(contracts.swapAdapter) : null,
-  baseAsset: contracts ? getAddress(contracts.baseAsset) : null,
-  assets: contracts ? contracts.assets.map((address) => getAddress(address)) : [],
-  pools: contracts ? contracts.pools.map((address) => getAddress(address)) : [],
-  deploymentBlock: deployment.deploymentBlock === null ? null : BigInt(deployment.deploymentBlock),
+  status: status === "DEPLOYED" && deployedContracts !== null ? "DEPLOYED" : "UNDEPLOYED",
+  chainId,
+  network,
+  factory: deployedContracts ? getAddress(deployedContracts.factory) : null,
+  oracle: deployedContracts ? getAddress(deployedContracts.oracle) : null,
+  swapAdapter: deployedContracts ? getAddress(deployedContracts.swapAdapter) : null,
+  baseAsset: deployedContracts ? getAddress(deployedContracts.baseAsset) : null,
+  assets: deployedContracts ? deployedContracts.assets.map((address) => getAddress(address)) : [],
+  pools: deployedContracts ? deployedContracts.pools.map((address) => getAddress(address)) : [],
+  deploymentBlock: deploymentBlock === null ? null : BigInt(deploymentBlock),
 };
 
 export const sandboxSymbols = ["sALPHA", "sBETA", "sGAMMA", "sDELTA"] as const;

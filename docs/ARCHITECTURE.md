@@ -289,7 +289,7 @@ flowchart TD
 
 Integration addresses are checked against `src/live/config.ts`. Assets are currently required to use the verified deployment's 18-decimal representation.
 
-Each live adapter resolves the latest block first and pins subsequent accounting, policy, oracle, bytecode, balance, and reserve reads to that explicit block number. This gives the displayed block real snapshot meaning. A fresh state read and account-specific exact simulation are still mandatory immediately before a transaction because state can change after any snapshot and before mining.
+Each live adapter resolves the latest block first and pins subsequent accounting, policy, oracle, bytecode, balance, and reserve reads to that explicit block identity. The sandbox uses its EIP-1898 block hash because the Robinhood public testnet RPC rejects number-pinned `eth_call`; external adapters use block numbers where supported. This gives the displayed block real snapshot meaning. A fresh state read and account-specific exact simulation are still mandatory immediately before a transaction because state can change after any snapshot and before mining.
 
 ### Accounting under stale prices
 

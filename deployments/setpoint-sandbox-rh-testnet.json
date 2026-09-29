@@ -1,91 +1,148 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "status": "DEPLOYED",
   "network": "Robinhood Chain Testnet",
   "chainId": 46630,
   "rpc": "https://rpc.testnet.chain.robinhood.com",
   "explorer": "https://explorer.testnet.chain.robinhood.com",
-  "deployedAt": "2026-09-27T20:21:04.736Z",
-  "deploymentBlock": 125344949,
+  "deployedAt": "2026-09-29T02:03:18.091Z",
+  "deploymentBlock": 125959056,
   "deployer": "0x9bc9c9e6d793fc2ed8a8cfc98d55e1f64d3bf6df",
+  "sourceCommit": "bbd814365654378a0dd70e6ed96fb0e77b44ce56",
+  "availability": {
+    "model": "GLOBAL_SEED_BUDGET_AND_DEEP_SHARED_POOLS",
+    "maxSeededVaults": 32,
+    "initialNavPerVault": "10000000000000000000000",
+    "maxSeededNav": "320000000000000000000000",
+    "baseDepthPerPool": "50000000000000000000000000"
+  },
+  "oracleModel": {
+    "heartbeatSeconds": 86400,
+    "automationIntervalHours": 6,
+    "priceValues": "IMMUTABLE_AFTER_INITIALIZATION",
+    "timestampRefresh": "PERMISSIONLESS"
+  },
+  "acceptanceEvidence": {
+    "owner": "0x9bc9c9e6d793fc2ed8a8cfc98d55e1f64d3bf6df",
+    "vault": "0x3ee0d6ac3007909b44845986785c0f3846e7e7a0",
+    "createVault": {
+      "hash": "0x6167672ae74d90c435f96d23cf74e275079b1a6a49db9f54de15240f0796195d",
+      "blockNumber": 125959958
+    },
+    "setTargets": {
+      "hash": "0x8199747d9e1005ba9578c994e07867efd071c7b6eb160bdb97e738454794b9e9",
+      "blockNumber": 125959982,
+      "cashTarget": "200000000000000000",
+      "assetTargets": [
+        "150000000000000000",
+        "250000000000000000",
+        "200000000000000000",
+        "200000000000000000"
+      ]
+    },
+    "rebalance": {
+      "hash": "0xefdb3c9441056cf383f9d8bdae8e0586e61e3d0209fc2b025030fc7af9cbb710",
+      "blockNumber": 125960618,
+      "mode": "FAST_PATH",
+      "legs": 4,
+      "driftBefore": "450000000000000000",
+      "driftAfter": "281293623401954"
+    },
+    "permissionlessHeartbeat": {
+      "hash": "0x681d76cda5748175e244b69b56fce99c36be61610164261ee0e71c81c1c4ee8c",
+      "blockNumber": 125960807
+    }
+  },
   "contracts": {
-    "factory": "0xf76098e6f4060ba71fa2fd09b669daa8a9c96b63",
-    "oracle": "0xb7971b154f464cb0e41b231409ef82df6dcb30af",
-    "swapAdapter": "0x0c073f7c29ce7074f3606405f3a606b1ebb6b8e7",
-    "baseAsset": "0x06b2b186b38f4af2469bbf29506647973c7db519",
+    "factory": "0x250270a045cab2c7221a359ac785a5c41159733a",
+    "oracle": "0x1b8d09ae751833701ffb4391e2189f0ddda32e23",
+    "swapAdapter": "0x09668263b912653480c6fdf9154d2ec731177fa0",
+    "baseAsset": "0x5ad7ae80dcc5195e195f12967c3627ee87ef352e",
     "assets": [
-      "0x0169ccadc6f5a7de0d888dff4e2ffd7996e14abf",
-      "0xb2013259ee48eeab66c1866d69d15aecd21b758f",
-      "0xfe09058f35bb009872e4fa5182db09e44feeda1d",
-      "0xa5cfaf09ad5bdf846fd28c4ef99ebd6a16848bad"
+      "0x1ce36f81eef2f665710fb8f371c2fd2675d3fd39",
+      "0x1a0507b25d3af51707ff496fabbd5de5ffdda33a",
+      "0xb5c3a2e536b5296204d5ea0986c601c6ba454b33",
+      "0xd275ea9bbf519562d2e07c117a1e3002559ee496"
     ],
     "pools": [
-      "0x17c16ca0f40934e81ec15b3140a7176b2fe83119",
-      "0x9bcc2b6ab732c01c7bb3c3e8a31302de5df27dec",
-      "0x7e7141fcd10efe97482f00d2e30cb7a813df317c",
-      "0x45d152ce173aba37fe5fffb18586dbdc71cff2e5"
+      "0xd4e562111ed58272c51aaff2318d5401c5b05365",
+      "0x8cdd99511f3e8c3c1f1081f5a61228d8c855dea8",
+      "0x742cdea8212ac29e7c1e0c1a3a8a7f45cc600dcd",
+      "0xdf3748d591a8c0c8ac0dbfc145f22c7e464e2a79"
     ]
   },
   "deploymentTransactions": [
     {
-      "hash": "0x3d10163f996d31f3ca8f384f66e53b0ae682d31ed5d3a3b18d999bc30feb85ff",
+      "hash": "0xd2d4742b14c5c523e3ffe9321d5ecc9a965c54c390721e21ba16d7468945f66e",
+      "blockNumber": 125959056,
       "contractName": "SetpointSandboxToken",
-      "contractAddress": "0x06b2b186b38f4af2469bbf29506647973c7db519"
+      "contractAddress": "0x5ad7ae80dcc5195e195f12967c3627ee87ef352e"
     },
     {
-      "hash": "0x91e67839fe483676a528159d2611a9dcd4f0a36f0a887d2cf1627de1cc8dcc35",
+      "hash": "0xee85e6cc8934e95e4acbc77dee1e62b71f647733e095507c67b20aae5740e455",
+      "blockNumber": 125959074,
       "contractName": "SetpointSandboxToken",
-      "contractAddress": "0x0169ccadc6f5a7de0d888dff4e2ffd7996e14abf"
+      "contractAddress": "0x1ce36f81eef2f665710fb8f371c2fd2675d3fd39"
     },
     {
-      "hash": "0xbfb22a7788e33043b082aa10f231f2fcfdd8586280e238d02376086777e7b43d",
+      "hash": "0xc074f21646a9fcd2cbcf11f4d6154ac6b9b5fff3a218e214a4b413f7d4de205d",
+      "blockNumber": 125959090,
       "contractName": "SetpointSandboxToken",
-      "contractAddress": "0xb2013259ee48eeab66c1866d69d15aecd21b758f"
+      "contractAddress": "0x1a0507b25d3af51707ff496fabbd5de5ffdda33a"
     },
     {
-      "hash": "0x2f20217e421217a0335bb060966074cccf82342d7b32bffdd3477412fc17f9f6",
+      "hash": "0xcfeff149b1937cd13dbbd946392dc312e9a165787e776b8080756cb48f786a67",
+      "blockNumber": 125959109,
       "contractName": "SetpointSandboxToken",
-      "contractAddress": "0xfe09058f35bb009872e4fa5182db09e44feeda1d"
+      "contractAddress": "0xb5c3a2e536b5296204d5ea0986c601c6ba454b33"
     },
     {
-      "hash": "0x763e6bf48aaa2d67f4b72bf1342e14359b8b3fe46444204ef2b4c2e3d79b47da",
+      "hash": "0x0f2bf42aa59b62979117df7b940c646d707fe85d0489eb9137bfb137b2811d72",
+      "blockNumber": 125959127,
       "contractName": "SetpointSandboxToken",
-      "contractAddress": "0xa5cfaf09ad5bdf846fd28c4ef99ebd6a16848bad"
+      "contractAddress": "0xd275ea9bbf519562d2e07c117a1e3002559ee496"
     },
     {
-      "hash": "0xf3a1e567c6a27e256313f8d63ac596d1d7b194e4a84ac2b68759c8c126577fb9",
+      "hash": "0x775ee90b54d51adca4180ce78fbe5dd75515e0c390e637d82c3e2834dc70ef20",
+      "blockNumber": 125959152,
       "contractName": "SetpointSandboxOracle",
-      "contractAddress": "0xb7971b154f464cb0e41b231409ef82df6dcb30af"
+      "contractAddress": "0x1b8d09ae751833701ffb4391e2189f0ddda32e23"
     },
     {
-      "hash": "0x83d114f1ad2129d6ea741e9747e2c96d876c77169cb67286bd45fb231fe65ea6",
+      "hash": "0x033f48ace575805700ab25c5101f1232274e1875ebd4ae97c3e144c64950449d",
+      "blockNumber": 125959187,
       "contractName": "SetpointSandboxSwapAdapter",
-      "contractAddress": "0x0c073f7c29ce7074f3606405f3a606b1ebb6b8e7"
+      "contractAddress": "0x09668263b912653480c6fdf9154d2ec731177fa0"
     },
     {
-      "hash": "0x60f6c0ca9bdad9d0ff652cfdb9ad399b7b15537af91a204e52efb8069daa4152",
+      "hash": "0xcaf08d452a174bdf2c6c09046470ef9889c9d77b797e0c2907efdc05c249ddfa",
+      "blockNumber": 125959205,
       "contractName": "SetpointSandboxPool",
-      "contractAddress": "0x17c16ca0f40934e81ec15b3140a7176b2fe83119"
+      "contractAddress": "0xd4e562111ed58272c51aaff2318d5401c5b05365"
     },
     {
-      "hash": "0x68e9bb40576e9863ad3844551324681a14549a22a8fc781762325b6fdab13209",
+      "hash": "0xf56ed321f63c2e33e9541c5bf7dcfc23a3fa42384469ab5fd7c531e6fa584fef",
+      "blockNumber": 125959350,
       "contractName": "SetpointSandboxPool",
-      "contractAddress": "0x9bcc2b6ab732c01c7bb3c3e8a31302de5df27dec"
+      "contractAddress": "0x8cdd99511f3e8c3c1f1081f5a61228d8c855dea8"
     },
     {
-      "hash": "0x0ea2f011b04caba0003a07d09b6c492c0fc07842fc0f6616c608c418d6d2edf7",
+      "hash": "0x0dfce3d676041b9c9aade3a14a713d452cdcd5e0e59a17b03f158d899fa8a808",
+      "blockNumber": 125959473,
       "contractName": "SetpointSandboxPool",
-      "contractAddress": "0x7e7141fcd10efe97482f00d2e30cb7a813df317c"
+      "contractAddress": "0x742cdea8212ac29e7c1e0c1a3a8a7f45cc600dcd"
     },
     {
-      "hash": "0x960e067a3e0ffa08c1b707689cbcafefb45fb284524ba9656908f4285cff9d57",
+      "hash": "0xf67fd2d6e405111d78f582b62b651ffbe1f13d57b1c5057979d6848276de1872",
+      "blockNumber": 125959612,
       "contractName": "SetpointSandboxPool",
-      "contractAddress": "0x45d152ce173aba37fe5fffb18586dbdc71cff2e5"
+      "contractAddress": "0xdf3748d591a8c0c8ac0dbfc145f22c7e464e2a79"
     },
     {
-      "hash": "0xc9619df3cee7f67c73f97adcb9d259f7f59880f5f289492a34ac3abd360ddfd8",
+      "hash": "0x193aebdd7db7760a0113ecf5bfb27bd88ead03052f941207c759ddaa1fd38bb8",
+      "blockNumber": 125959774,
       "contractName": "SetpointSandboxFactory",
-      "contractAddress": "0xf76098e6f4060ba71fa2fd09b669daa8a9c96b63"
+      "contractAddress": "0x250270a045cab2c7221a359ac785a5c41159733a"
     }
   ]
 }

@@ -88,7 +88,7 @@ At the recorded M6 verification, all five configured oracle observations exceede
 
 Two integration constraints shape the current live boundary:
 
-- Live workspaces resolve the latest block first, then pin accounting, policy, oracle, bytecode, and reserve calls to that explicit block number. Setpoint still re-reads state and exact-simulates immediately before submission because state can change after the snapshot.
+- Live workspaces resolve the latest block first, then pin accounting, policy, oracle, bytecode, and reserve calls to that explicit block identity (number or EIP-1898 hash, depending on RPC support). Setpoint still re-reads state and exact-simulates immediately before submission because state can change after the snapshot.
 - The deployed swap adapter exposes no verified public quote method for executable depth. A failed full live batch therefore fails closed; historical fork liquidity curves are never inserted into the live decision path.
 
 Live `ADAPTIVE_FALLBACK` will remain unavailable until an integration can supply current, state-bound, executable quote evidence.
@@ -106,16 +106,16 @@ The root [`contracts`](./contracts) Foundry workspace contains the Setpoint-owne
 | `SetpointSandboxSwapAdapter` | Exposes quotes and swaps only for registered sUSDG/risk-asset routes; arbitrary external calls are impossible. |
 | `SetpointSandboxToken` | Clearly labeled, mint-restricted testnet assets with no production value or redemption claim. |
 
-The checked [`deployment record`](./deployments/setpoint-sandbox-rh-testnet.json) is live on Robinhood Chain Testnet from block `125344949`. The core addresses are:
+The checked [`deployment record`](./deployments/setpoint-sandbox-rh-testnet.json) is live on Robinhood Chain Testnet from block `125959056`. The core addresses are:
 
 | Contract | Address |
 |---|---|
-| Factory | [`0xf760…6B63`](https://explorer.testnet.chain.robinhood.com/address/0xf76098E6f4060ba71fa2fd09b669DAA8a9C96B63) |
-| Oracle | [`0xb797…30Af`](https://explorer.testnet.chain.robinhood.com/address/0xb7971B154f464cB0e41B231409EF82df6dcb30Af) |
-| Swap adapter | [`0x0c07…B8e7`](https://explorer.testnet.chain.robinhood.com/address/0x0c073F7c29CE7074F3606405f3A606b1eBb6B8e7) |
-| Base asset | [`0x06B2…b519`](https://explorer.testnet.chain.robinhood.com/address/0x06B2b186b38F4aF2469bbf29506647973C7db519) |
+| Factory | [`0x2502…733a`](https://explorer.testnet.chain.robinhood.com/address/0x250270a045cab2C7221A359AC785A5C41159733a) |
+| Oracle | [`0x1B8D…2e23`](https://explorer.testnet.chain.robinhood.com/address/0x1B8D09ae751833701fFb4391e2189f0DDdA32e23) |
+| Swap adapter | [`0x0966…7Fa0`](https://explorer.testnet.chain.robinhood.com/address/0x09668263b912653480c6fdF9154D2EC731177Fa0) |
+| Base asset | [`0x5aD7…352E`](https://explorer.testnet.chain.robinhood.com/address/0x5aD7Ae80Dcc5195E195f12967c3627Ee87Ef352E) |
 
-The first real wallet-owned vault is [`0x0F41…EC09`](https://explorer.testnet.chain.robinhood.com/address/0x0F413E705426271657905d30b9f99c635B57EC09). Its accepted four-leg `FAST_PATH` rebalance reduced confirmed drift from `45.0000%` to `0.2798%`; the [rebalance transaction](https://explorer.testnet.chain.robinhood.com/tx/0xad33dc4ffe2f980763626eba90dbff4a6d54be5ec28f9c382a0364a9c863471b) is public evidence. If the record is ever absent or explicitly reset to `UNDEPLOYED`, the UI fails closed instead of substituting zero addresses or local data.
+The acceptance wallet [created](https://explorer.testnet.chain.robinhood.com/tx/0x6167672ae74d90c435f96d23cf74e275079b1a6a49db9f54de15240f0796195d) vault [`0x3Ee0…7A0`](https://explorer.testnet.chain.robinhood.com/address/0x3Ee0d6Ac3007909B44845986785c0F3846E7e7A0), [stored targets onchain](https://explorer.testnet.chain.robinhood.com/tx/0x8199747d9e1005ba9578c994e07867efd071c7b6eb160bdb97e738454794b9e9), and completed a four-leg `FAST_PATH` [rebalance](https://explorer.testnet.chain.robinhood.com/tx/0xefdb3c9441056cf383f9d8bdae8e0586e61e3d0209fc2b025030fc7af9cbb710) at block `125960618`. Confirmed drift fell from `45.0000%` to `0.0281%`. A separate [permissionless heartbeat](https://explorer.testnet.chain.robinhood.com/tx/0x681d76cda5748175e244b69b56fce99c36be61610164261ee0e71c81c1c4ee8c) renewed all immutable references. If the record is ever absent or explicitly reset to `UNDEPLOYED`, the UI fails closed instead of substituting zero addresses or local data. The superseded deployment remains unchanged under [`deployments/history`](./deployments/history/).
 
 ## Wallet and execution model
 

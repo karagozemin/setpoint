@@ -74,17 +74,17 @@ export class SetpointSandboxLiveAdapter {
     const read = this.client.readContract;
     const [chainId, vaultOwner, baseAsset, oracle, swapAdapter, assets, cashTarget, driftThreshold, maxTradeFraction, slippageTolerance, maxPriceAge, maxRebalanceLoss] = await Promise.all([
       this.client.getChainId(),
-      read({ address: vault, abi: sandboxVaultAbi, functionName: "owner", blockNumber: block.number }),
-      read({ address: vault, abi: sandboxVaultAbi, functionName: "baseAsset", blockNumber: block.number }),
-      read({ address: vault, abi: sandboxVaultAbi, functionName: "oracle", blockNumber: block.number }),
-      read({ address: vault, abi: sandboxVaultAbi, functionName: "swapAdapter", blockNumber: block.number }),
-      read({ address: vault, abi: sandboxVaultAbi, functionName: "assets", blockNumber: block.number }),
-      read({ address: vault, abi: sandboxVaultAbi, functionName: "cashTarget", blockNumber: block.number }),
-      read({ address: vault, abi: sandboxVaultAbi, functionName: "driftThreshold", blockNumber: block.number }),
-      read({ address: vault, abi: sandboxVaultAbi, functionName: "maxTradeFraction", blockNumber: block.number }),
-      read({ address: vault, abi: sandboxVaultAbi, functionName: "slippageTolerance", blockNumber: block.number }),
-      read({ address: vault, abi: sandboxVaultAbi, functionName: "maxPriceAge", blockNumber: block.number }),
-      read({ address: vault, abi: sandboxVaultAbi, functionName: "maxRebalanceLoss", blockNumber: block.number }),
+      read({ address: vault, abi: sandboxVaultAbi, functionName: "owner", blockHash: block.hash }),
+      read({ address: vault, abi: sandboxVaultAbi, functionName: "baseAsset", blockHash: block.hash }),
+      read({ address: vault, abi: sandboxVaultAbi, functionName: "oracle", blockHash: block.hash }),
+      read({ address: vault, abi: sandboxVaultAbi, functionName: "swapAdapter", blockHash: block.hash }),
+      read({ address: vault, abi: sandboxVaultAbi, functionName: "assets", blockHash: block.hash }),
+      read({ address: vault, abi: sandboxVaultAbi, functionName: "cashTarget", blockHash: block.hash }),
+      read({ address: vault, abi: sandboxVaultAbi, functionName: "driftThreshold", blockHash: block.hash }),
+      read({ address: vault, abi: sandboxVaultAbi, functionName: "maxTradeFraction", blockHash: block.hash }),
+      read({ address: vault, abi: sandboxVaultAbi, functionName: "slippageTolerance", blockHash: block.hash }),
+      read({ address: vault, abi: sandboxVaultAbi, functionName: "maxPriceAge", blockHash: block.hash }),
+      read({ address: vault, abi: sandboxVaultAbi, functionName: "maxRebalanceLoss", blockHash: block.hash }),
     ]);
     if (chainId !== sandboxDeployment.chainId) throw new Error(`RPC chain mismatch: expected ${sandboxDeployment.chainId}, received ${chainId}.`);
     if (getAddress(vaultOwner) !== getAddress(owner)) throw new Error("Connected wallet does not own this sandbox vault.");
@@ -92,21 +92,21 @@ export class SetpointSandboxLiveAdapter {
     if (sandboxDeployment.swapAdapter && getAddress(swapAdapter) !== sandboxDeployment.swapAdapter) throw new Error("Vault adapter does not match the deployment record.");
 
     const [baseBalance, oracleUpdater] = await Promise.all([
-      read({ address: baseAsset, abi: sandboxTokenAbi, functionName: "balanceOf", args: [vault], blockNumber: block.number }),
-      read({ address: oracle, abi: sandboxOracleAbi, functionName: "updater", blockNumber: block.number }),
+      read({ address: baseAsset, abi: sandboxTokenAbi, functionName: "balanceOf", args: [vault], blockHash: block.hash }),
+      read({ address: oracle, abi: sandboxOracleAbi, functionName: "updater", blockHash: block.hash }),
     ]);
     const rawRows = await Promise.all(assets.map(async (asset, index): Promise<SandboxAssetState> => {
       const [balance, symbol, targetWeight, price, pool] = await Promise.all([
-        read({ address: asset, abi: sandboxTokenAbi, functionName: "balanceOf", args: [vault], blockNumber: block.number }),
-        read({ address: asset, abi: sandboxTokenAbi, functionName: "symbol", blockNumber: block.number }),
-        read({ address: vault, abi: sandboxVaultAbi, functionName: "targetWeight", args: [asset], blockNumber: block.number }),
-        read({ address: oracle, abi: sandboxOracleAbi, functionName: "getPrice", args: [asset], blockNumber: block.number }),
-        read({ address: swapAdapter, abi: sandboxAdapterAbi, functionName: "poolFor", args: [asset], blockNumber: block.number }),
+        read({ address: asset, abi: sandboxTokenAbi, functionName: "balanceOf", args: [vault], blockHash: block.hash }),
+        read({ address: asset, abi: sandboxTokenAbi, functionName: "symbol", blockHash: block.hash }),
+        read({ address: vault, abi: sandboxVaultAbi, functionName: "targetWeight", args: [asset], blockHash: block.hash }),
+        read({ address: oracle, abi: sandboxOracleAbi, functionName: "getPrice", args: [asset], blockHash: block.hash }),
+        read({ address: swapAdapter, abi: sandboxAdapterAbi, functionName: "poolFor", args: [asset], blockHash: block.hash }),
       ]);
       const [token0, reserves, feeBps] = await Promise.all([
-        read({ address: pool, abi: sandboxPoolAbi, functionName: "token0", blockNumber: block.number }),
-        read({ address: pool, abi: sandboxPoolAbi, functionName: "reserves", blockNumber: block.number }),
-        read({ address: pool, abi: sandboxPoolAbi, functionName: "feeBps", blockNumber: block.number }),
+        read({ address: pool, abi: sandboxPoolAbi, functionName: "token0", blockHash: block.hash }),
+        read({ address: pool, abi: sandboxPoolAbi, functionName: "reserves", blockHash: block.hash }),
+        read({ address: pool, abi: sandboxPoolAbi, functionName: "feeBps", blockHash: block.hash }),
       ]);
       const value = balance * price[0] / WAD;
       const age = block.timestamp > price[1] ? block.timestamp - price[1] : 0n;
@@ -250,7 +250,7 @@ export class SetpointSandboxLiveAdapter {
         const amounts = [...new Set([...SAMPLE_FRACTIONS.map((fraction) => desiredAmount * fraction / 100n), ...fastAmounts].filter((value) => value > 0n).map(String))].map(BigInt).sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
         const samples: LiquiditySample[] = [];
         for (const [index, amountIn] of amounts.entries()) {
-          const expectedOut = await read({ address: state.swapAdapter, abi: sandboxAdapterAbi, functionName: "quote", args: [tokenIn, tokenOut, amountIn], blockNumber: state.blockNumber });
+          const expectedOut = await read({ address: state.swapAdapter, abi: sandboxAdapterAbi, functionName: "quote", args: [tokenIn, tokenOut, amountIn], blockHash: state.blockHash });
           const oracleOut = tokenIn === state.baseAsset ? amountIn * WAD / asset.priceWad : amountIn * asset.priceWad / WAD;
           const inputValue = tokenIn === state.baseAsset ? amountIn : amountIn * asset.priceWad / WAD;
           const outputValue = tokenOut === state.baseAsset ? expectedOut : expectedOut * asset.priceWad / WAD;
