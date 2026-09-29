@@ -42,11 +42,11 @@ The `/evidence` console is a read-only presentation of checked-in evidence. The 
 
 ## Sandbox operational risks
 
-- The factory limit is one vault per address, not one vault per human. It has no allowlist, rate limit, global vault cap, or proof-of-personhood control.
-- Every vault receives newly minted test assets and trades against the same four pools. Per-transaction guards prevent an unsafe individual call, but repeated Sybil vaults can move shared reserves and deny later users a useful route. This is a public-demo availability and griefing risk, not a custody loss for real assets.
-- The sandbox oracle expires after 24 hours and has no scheduler or decentralized feeder. The configured updater must run `pnpm sandbox:refresh-oracle` before the heartbeat expires. If it stops, the correct outcome is a visible stale-oracle lock; the public execution demo is unavailable until an authorized refresh confirms.
-- The oracle owner/updater, token owners, swap-adapter owner, and pool owners are the deployment account in the recorded topology. Compromise of that key can change prices, replace registered routes, or change token mint authority. The sandbox contains test-only assets, but this remains a trusted-admin assumption.
-- Pool routes and oracle values are shared infrastructure. A contract revision and redeployment—not a UI change—is required to add Sybil resistance, isolated liquidity, a faucet budget, route immutability, or autonomous oracle upkeep.
+- The factory has no proof-of-personhood, but it enforces one vault per address and a global ceiling of 32 vaults / 320,000 sUSDG seeded NAV. The 33rd creation reverts. Exhausting all slots is a finite-capacity denial of new creation and requires a new deployment; unlimited wallets cannot mint unlimited inventory.
+- Every vault trades against the same four pools. Each route starts with 50,000,000 sUSDG of base depth, and smoke/tests require a quote for the entire global budget in either direction to remain above the 97% oracle-value floor. Per-transaction guards remain independently fail-closed.
+- The sandbox oracle expires after 24 hours. Approved testnet reference values are immutable after initialization, while timestamp-only refresh is permissionless. A scheduled GitHub Action submits every six hours and a vault owner can recover from the UI. If automation and all callers stop, the correct outcome remains a visible `STALE_PRICE` lock.
+- The oracle owner/updater, token owners, swap-adapter owner, and pool owners are the deployment account in the recorded topology. Oracle values cannot change after initialization, but compromise can still replace registered routes or change token mint authority. The sandbox contains test-only assets, but this remains a trusted-admin assumption.
+- Pool routes remain shared infrastructure. Changing the global budget, pool depth, routes, or immutable oracle references requires a contract revision and redeployment, not a UI change.
 
 ## Reproducible demonstrations
 

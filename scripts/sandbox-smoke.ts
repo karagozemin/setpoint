@@ -5,7 +5,12 @@ import { robinhoodTestnet } from "../src/live/config.js";
 import { sandboxAdapterAbi, sandboxFactoryAbi, sandboxOracleAbi, sandboxPoolAbi } from "../src/sandbox/abi.js";
 
 interface Contracts { factory: string; oracle: string; swapAdapter: string; baseAsset: string; assets: string[]; pools: string[] }
-interface RecordFile { status: string; chainId: number; contracts: Contracts | null }
+interface RecordFile {
+  status: string;
+  chainId: number;
+  contracts: Contracts | null;
+  availability?: { maxSeededVaults: number; maxSeededNav: string; baseDepthPerPool: string };
+}
 async function main(): Promise<void> {
   const deployment = JSON.parse(readFileSync(resolve("deployments/setpoint-sandbox-rh-testnet.json"), "utf8")) as RecordFile;
   if (deployment.status !== "DEPLOYED" || !deployment.contracts) throw new Error("Sandbox is UNDEPLOYED; smoke requires a real deployment record.");
@@ -18,25 +23,36 @@ async function main(): Promise<void> {
     const code = await client.getCode({ address: getAddress(address) });
     if (!code || code === "0x") throw new Error(`missing bytecode at ${address}`);
   }
-  const [base, assets, factoryOracle, factoryAdapter] = await Promise.all([
+  const [base, assets, factoryOracle, factoryAdapter, maxVaults, maxSeededNav, seededVaultCount, seededNav] = await Promise.all([
   client.readContract({ address: getAddress(contracts.factory), abi: sandboxFactoryAbi, functionName: "baseAsset" }),
   client.readContract({ address: getAddress(contracts.factory), abi: sandboxFactoryAbi, functionName: "assets" }),
   client.readContract({ address: getAddress(contracts.factory), abi: sandboxFactoryAbi, functionName: "oracle" }),
   client.readContract({ address: getAddress(contracts.factory), abi: sandboxFactoryAbi, functionName: "swapAdapter" }),
+  client.readContract({ address: getAddress(contracts.factory), abi: sandboxFactoryAbi, functionName: "MAX_SEEDED_VAULTS" }),
+  client.readContract({ address: getAddress(contracts.factory), abi: sandboxFactoryAbi, functionName: "MAX_SEEDED_NAV" }),
+  client.readContract({ address: getAddress(contracts.factory), abi: sandboxFactoryAbi, functionName: "seededVaultCount" }),
+  client.readContract({ address: getAddress(contracts.factory), abi: sandboxFactoryAbi, functionName: "seededNav" }),
   ]);
   if (getAddress(base) !== getAddress(contracts.baseAsset) || getAddress(factoryOracle) !== getAddress(contracts.oracle) || getAddress(factoryAdapter) !== getAddress(contracts.swapAdapter) || assets.length !== 4) throw new Error("factory topology mismatch");
+  if (maxVaults !== 32n || maxSeededNav !== 320_000n * 10n ** 18n || seededVaultCount > maxVaults || seededNav !== seededVaultCount * 10_000n * 10n ** 18n) throw new Error("factory seed budget mismatch");
+  if (!deployment.availability || BigInt(deployment.availability.maxSeededNav) !== maxSeededNav) throw new Error("deployment availability record mismatch");
   for (let index = 0; index < contracts.assets.length; index++) {
     const asset = getAddress(contracts.assets[index]!);
     const pool = getAddress(contracts.pools[index]!);
-    const [route, reserves, quote, price] = await Promise.all([
+    const price = await client.readContract({ address: getAddress(contracts.oracle), abi: sandboxOracleAbi, functionName: "getPrice", args: [asset] });
+    const aggregateRiskAmount = maxSeededNav * 10n ** 18n / price[0];
+    const [route, reserves, quote, aggregateBuyQuote, aggregateSellQuote, referencePrice] = await Promise.all([
     client.readContract({ address: getAddress(contracts.swapAdapter), abi: sandboxAdapterAbi, functionName: "poolFor", args: [asset] }),
     client.readContract({ address: pool, abi: sandboxPoolAbi, functionName: "reserves" }),
       client.readContract({ address: getAddress(contracts.swapAdapter), abi: sandboxAdapterAbi, functionName: "quote", args: [getAddress(contracts.baseAsset), asset, 100n * 10n ** 18n] }),
-    client.readContract({ address: getAddress(contracts.oracle), abi: sandboxOracleAbi, functionName: "getPrice", args: [asset] }),
+      client.readContract({ address: getAddress(contracts.swapAdapter), abi: sandboxAdapterAbi, functionName: "quote", args: [getAddress(contracts.baseAsset), asset, maxSeededNav] }),
+      client.readContract({ address: getAddress(contracts.swapAdapter), abi: sandboxAdapterAbi, functionName: "quote", args: [asset, getAddress(contracts.baseAsset), aggregateRiskAmount] }),
+    client.readContract({ address: getAddress(contracts.oracle), abi: sandboxOracleAbi, functionName: "referencePrice", args: [asset] }),
     ]);
-    if (getAddress(route) !== pool || reserves[0] === 0n || reserves[1] === 0n || quote === 0n || price[0] === 0n) throw new Error(`invalid live route ${index}`);
+    const aggregateBuyValueOut = aggregateBuyQuote * price[0] / 10n ** 18n;
+    if (getAddress(route) !== pool || reserves[0] === 0n || reserves[1] === 0n || quote === 0n || price[0] === 0n || price[0] !== referencePrice || aggregateBuyValueOut < maxSeededNav * 97n / 100n || aggregateSellQuote < maxSeededNav * 97n / 100n) throw new Error(`invalid or under-protected live route ${index}`);
   }
-  console.log("Setpoint Sandbox smoke: PASS (bytecode, topology, reserves, quotes, oracle)");
+  console.log(`Setpoint Sandbox smoke: PASS (bytecode, topology, ${seededVaultCount}/${maxVaults} seed budget, protected reserves, quotes, immutable oracle)`);
 }
 void main().catch((error: unknown) => {
   console.error(error instanceof Error ? error.message : error);

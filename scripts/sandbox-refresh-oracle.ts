@@ -9,8 +9,8 @@ interface RecordFile { status: string; contracts: null | { oracle: string; baseA
 async function main(): Promise<void> {
   const deployment = JSON.parse(readFileSync(resolve("deployments/setpoint-sandbox-rh-testnet.json"), "utf8")) as RecordFile;
   if (deployment.status !== "DEPLOYED" || !deployment.contracts) throw new Error("Sandbox deployment record is not live.");
-  const rawSecret = process.env.SETPOINT_SANDBOX_ORACLE_UPDATER_KEY ?? process.env.SETPOINT_SANDBOX_DEPLOYER_KEY ?? process.env.PRIVATE_KEY;
-  if (!rawSecret) throw new Error("Missing SETPOINT_SANDBOX_ORACLE_UPDATER_KEY, SETPOINT_SANDBOX_DEPLOYER_KEY, or PRIVATE_KEY; oracle update was not attempted.");
+  const rawSecret = process.env.SETPOINT_SANDBOX_REFRESHER_KEY ?? process.env.SETPOINT_SANDBOX_ORACLE_UPDATER_KEY ?? process.env.SETPOINT_SANDBOX_DEPLOYER_KEY ?? process.env.PRIVATE_KEY;
+  if (!rawSecret) throw new Error("Missing SETPOINT_SANDBOX_REFRESHER_KEY or compatible local key; oracle heartbeat was not attempted.");
   const secret = rawSecret.startsWith("0x") ? rawSecret : `0x${rawSecret}`;
   if (!/^0x[0-9a-fA-F]{64}$/.test(secret)) throw new Error("Sandbox oracle updater key has an invalid format.");
   const rpc = process.env.RH_TESTNET_RPC ?? "https://rpc.testnet.chain.robinhood.com";
@@ -22,12 +22,11 @@ async function main(): Promise<void> {
     throw new Error(`Refusing oracle update: expected chain ${robinhoodTestnet.id}, received ${chainId}.`);
   }
   const tokens = [deployment.contracts.baseAsset, ...deployment.contracts.assets].map((address) => getAddress(address));
-  const prices = [1n, 180n, 240n, 420n, 150n].map((value) => value * 10n ** 18n);
-  await publicClient.simulateContract({ account, address: getAddress(deployment.contracts.oracle), abi: sandboxOracleAbi, functionName: "setPrices", args: [tokens, prices] });
-  const hash = await wallet.writeContract({ account, address: getAddress(deployment.contracts.oracle), abi: sandboxOracleAbi, functionName: "setPrices", args: [tokens, prices], chain: robinhoodTestnet });
+  await publicClient.simulateContract({ account, address: getAddress(deployment.contracts.oracle), abi: sandboxOracleAbi, functionName: "refreshPrices", args: [tokens] });
+  const hash = await wallet.writeContract({ account, address: getAddress(deployment.contracts.oracle), abi: sandboxOracleAbi, functionName: "refreshPrices", args: [tokens], chain: robinhoodTestnet });
   const receipt = await publicClient.waitForTransactionReceipt({ hash });
   if (receipt.status !== "success") throw new Error(`Oracle refresh transaction reverted: ${hash}`);
-  console.log(`Oracle refresh confirmed: ${hash} at block #${receipt.blockNumber}`);
+  console.log(`Permissionless oracle heartbeat confirmed: ${hash} at block #${receipt.blockNumber}`);
 }
 void main().catch((error: unknown) => {
   console.error(error instanceof Error ? error.message : error);

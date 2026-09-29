@@ -12,11 +12,14 @@ async function main(): Promise<void> {
   const client = createPublicClient({ chain: robinhoodTestnet, transport: http(rpc) });
   const block = await client.getBlock();
   console.log(`Robinhood Chain Testnet block #${block.number}`);
+  console.log("Updater model: immutable reference prices; permissionless timestamp heartbeat");
   for (const token of [deployment.contracts.baseAsset, ...deployment.contracts.assets].map((address) => getAddress(address))) {
-    const [symbol, price] = await Promise.all([
+    const [symbol, price, referencePrice] = await Promise.all([
       client.readContract({ address: token, abi: sandboxTokenAbi, functionName: "symbol" }),
       client.readContract({ address: getAddress(deployment.contracts.oracle), abi: sandboxOracleAbi, functionName: "getPrice", args: [token] }),
+      client.readContract({ address: getAddress(deployment.contracts.oracle), abi: sandboxOracleAbi, functionName: "referencePrice", args: [token] }),
     ]);
+    if (price[0] !== referencePrice) throw new Error(`Mutable or mismatched reference price for ${symbol}.`);
     const age = block.timestamp > price[1] ? block.timestamp - price[1] : 0n;
     console.log(`${symbol}: price=${price[0]} updatedAt=${price[1]} age=${age}s ${age <= 86_400n ? "FRESH" : "STALE"}`);
   }

@@ -475,8 +475,8 @@ Because `/app` is client-side, its RPC URL and registered contract addresses are
 | Security cases | `pnpm security:demo` | Five scenarios and 11 fail-closed invariants regenerate deterministically |
 | Integration registry | `pnpm integrations:smoke` | All six addresses resolve to bytecode and their declared live read surfaces remain callable |
 | External read path | `pnpm live:smoke` | Current chain, bytecode, addresses, guards, oracle reads, and `eth_call` capability |
-| Sandbox contracts | `pnpm sandbox:contracts` | Factory, ownership, targets, stale-price refusal, real swaps, product invariant, and fuzzed quotes |
-| Sandbox deployment | `pnpm sandbox:smoke` | Recorded bytecode, topology, reserves, routes, quotes, and oracle state on chain 46630 |
+| Sandbox contracts | `pnpm sandbox:contracts` | Factory seed ceiling, ownership, targets, immutable oracle/refresh behavior, stale-price refusal, real swaps, shared-pool availability, product invariant, and fuzzed quotes |
+| Sandbox deployment | `pnpm sandbox:smoke` | Recorded bytecode, topology, global budget, worst-case reserve quotes, routes, and immutable oracle state on chain 46630 |
 | Fork milestones | `pnpm m1:rwa-index` through `pnpm m4:hybrid` | Historical compatibility and planning evidence |
 
 `integrations:smoke` and `live:smoke` depend on external networks and mutable contract state. A `DEGRADED` or `EMPTY` integration is a successful truthful observation; missing bytecode, invalid provenance, or an unreadable required surface fails the smoke test.
@@ -510,8 +510,8 @@ The current system deliberately does not provide:
 - live adaptive fallback for the external Synthra deployment (the sandbox path does supply adaptive quote evidence);
 - cross-venue routing, cross-vault netting, or MEV protection;
 - protection from a malicious-but-fresh oracle, compromised RPC, compromised wallet, or bugs in external contracts;
-- Sybil resistance or per-user liquidity isolation in the public sandbox factory; all wallet vaults currently share four mutable pools;
-- automated sandbox-oracle maintenance; the 24-hour heartbeat requires an explicit operator refresh transaction; or
+- proof-of-personhood or per-user liquidity isolation in the public sandbox factory; shared-pool impact is instead bounded by a 32-vault / 320,000 sUSDG global seed ceiling and deep pools;
+- guaranteed oracle liveness if both the six-hour automation and all permissionless callers stop; the unchanged 24-hour guard then fails closed; or
 - an audit or formal-verification claim.
 
 The mainnet integrations are read-only compatibility surfaces. The testnet planning integration uses mock assets and toy venue liquidity. These constraints are visible in the product because hiding them would weaken the meaning of every decision the product returns.

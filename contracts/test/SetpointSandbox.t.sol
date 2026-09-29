@@ -49,7 +49,7 @@ contract SetpointSandboxTest is Test {
             pools[i].setAdapter(address(adapter));
             adapter.registerPool(address(risk[i]), address(pools[i]));
 
-            uint256 baseDepth = (500_000 - i * 100_000) * 1e18;
+            uint256 baseDepth = 50_000_000e18;
             uint256 riskDepth = baseDepth * 1e18 / prices[i + 1];
             base.mint(address(this), baseDepth);
             risk[i].mint(address(this), riskDepth);
@@ -76,6 +76,40 @@ contract SetpointSandboxTest is Test {
         vm.expectRevert(abi.encodeWithSelector(SetpointSandboxFactory.VaultExists.selector, vaultAddress));
         vm.prank(user);
         factory.createVault();
+    }
+
+    function testDifferentWalletsConsumeBoundedGlobalSeedBudget() public {
+        uint256 limit = factory.MAX_SEEDED_VAULTS();
+        for (uint256 i; i < limit; ++i) {
+            // casting to uint160 is safe because i is bounded by the 32-vault limit
+            // forge-lint: disable-next-line(unsafe-typecast)
+            address wallet = address(uint160(10_000 + i));
+            vm.prank(wallet);
+            address vaultAddress = factory.createVault();
+            assertEq(SetpointSandboxVault(vaultAddress).owner(), wallet);
+        }
+        assertEq(factory.seededVaultCount(), limit);
+        assertEq(factory.seededNav(), factory.MAX_SEEDED_NAV());
+
+        vm.expectRevert(SetpointSandboxFactory.SeedBudgetExhausted.selector);
+        vm.prank(address(99_999));
+        factory.createVault();
+    }
+
+    function testVaultCreationDoesNotConsumePoolsAndBudgetCannotBreakQuotes() public {
+        (uint256 baseBefore, uint256 riskBefore) = pools[3].reserves();
+        vm.prank(user);
+        factory.createVault();
+        (uint256 baseAfter, uint256 riskAfter) = pools[3].reserves();
+        assertEq(baseAfter, baseBefore);
+        assertEq(riskAfter, riskBefore);
+
+        uint256 aggregateBudget = factory.MAX_SEEDED_NAV();
+        uint256 buyOut = pools[3].quote(address(base), aggregateBudget);
+        uint256 sellAmount = aggregateBudget * 1e18 / 50e18;
+        uint256 sellOut = pools[3].quote(address(risk[3]), sellAmount);
+        assertGe(buyOut * 50, aggregateBudget * 97 / 100);
+        assertGe(sellOut, aggregateBudget * 97 / 100);
     }
 
     function testOwnerStoresTargetsOnchain() public {
@@ -137,6 +171,34 @@ contract SetpointSandboxTest is Test {
         vm.expectRevert(SetpointSandboxOracle.NotUpdater.selector);
         vm.prank(attacker);
         oracle.setPrice(address(risk[0]), 101e18);
+    }
+
+    function testPermissionlessRefreshRenewsOnlyApprovedReferencePrices() public {
+        (, uint256 beforeTimestamp) = oracle.getPrice(address(risk[0]));
+        vm.warp(block.timestamp + 23 hours);
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(risk[0]);
+        vm.prank(attacker);
+        oracle.refreshPrices(tokens);
+        (uint256 price, uint256 afterTimestamp) = oracle.getPrice(address(risk[0]));
+        assertEq(price, 100e18);
+        assertEq(afterTimestamp, block.timestamp);
+        assertGt(afterTimestamp, beforeTimestamp);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SetpointSandboxOracle.PriceImmutable.selector, address(risk[0]), uint256(100e18), uint256(101e18)
+            )
+        );
+        oracle.setPrice(address(risk[0]), 101e18);
+    }
+
+    function testPermissionlessRefreshRejectsUnapprovedToken() public {
+        address[] memory tokens = new address[](1);
+        tokens[0] = makeAddr("unapproved");
+        vm.expectRevert(abi.encodeWithSelector(SetpointSandboxOracle.MissingPrice.selector, tokens[0]));
+        vm.prank(attacker);
+        oracle.refreshPrices(tokens);
     }
 
     function testAdapterRejectsUnregisteredRiskToRiskRoute() public {

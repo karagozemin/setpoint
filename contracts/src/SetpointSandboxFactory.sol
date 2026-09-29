@@ -9,13 +9,18 @@ import {SetpointSandboxVault} from "./SetpointSandboxVault.sol";
 /// @notice Creates exactly one funded sandbox vault per wallet.
 contract SetpointSandboxFactory {
     uint256 public constant INITIAL_NAV = 10_000e18;
+    uint256 public constant MAX_SEEDED_VAULTS = 32;
+    uint256 public constant MAX_SEEDED_NAV = INITIAL_NAV * MAX_SEEDED_VAULTS;
     address public immutable baseAsset;
     ISetpointOracle public immutable oracle;
     ISetpointSwapAdapter public immutable swapAdapter;
     address[] private _assets;
     mapping(address => address) public getVault;
+    uint256 public seededVaultCount;
+    uint256 public seededNav;
 
     error VaultExists(address vault);
+    error SeedBudgetExhausted();
     event VaultCreated(address indexed owner, address indexed vault, uint256 initialNav);
 
     constructor(
@@ -37,6 +42,9 @@ contract SetpointSandboxFactory {
 
     function createVault() external returns (address vaultAddress) {
         if (getVault[msg.sender] != address(0)) revert VaultExists(getVault[msg.sender]);
+        if (seededVaultCount >= MAX_SEEDED_VAULTS) revert SeedBudgetExhausted();
+        ++seededVaultCount;
+        seededNav += INITIAL_NAV;
         uint256[] memory targets = new uint256[](4);
         for (uint256 i; i < 4; ++i) {
             targets[i] = 20e16;

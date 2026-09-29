@@ -99,10 +99,10 @@ The root [`contracts`](./contracts) Foundry workspace contains the Setpoint-owne
 
 | Contract | Why it exists |
 |---|---|
-| `SetpointSandboxFactory` | Resolves one vault per wallet, deploys it, and seeds the documented bounded initial portfolio. |
+| `SetpointSandboxFactory` | Resolves one vault per wallet and enforces a 32-vault / 320,000 sUSDG global seed budget before deploying the documented initial portfolio. |
 | `SetpointSandboxVault` | Holds real sandbox ERC-20 balances, stores owner-selected targets, and enforces route, size, oracle, slippage, drift, and NAV-loss guards. |
-| `SetpointSandboxOracle` | Stores WAD prices, update timestamps, updater authority, and update events; stale values stop execution. |
-| `SetpointSandboxPool` | Holds real token reserves and executes fee-bearing constant-product swaps. Four pools use intentionally different depths. |
+| `SetpointSandboxOracle` | Stores immutable sandbox reference prices and refreshable timestamps; any caller can renew approved timestamps, while stale values still stop execution. |
+| `SetpointSandboxPool` | Holds real token reserves and executes fee-bearing constant-product swaps. Each route has 50,000,000 sUSDG of base depth. |
 | `SetpointSandboxSwapAdapter` | Exposes quotes and swaps only for registered sUSDG/risk-asset routes; arbitrary external calls are impossible. |
 | `SetpointSandboxToken` | Clearly labeled, mint-restricted testnet assets with no production value or redemption claim. |
 
@@ -208,16 +208,14 @@ export RH_TESTNET_RPC=https://rpc.testnet.chain.robinhood.com # optional default
 
 pnpm sandbox:deploy          # dry-run/gas estimate, broadcast, record, smoke
 pnpm sandbox:oracle-status   # read-only freshness report
-pnpm sandbox:refresh-oracle  # updater transaction
+pnpm sandbox:refresh-oracle  # permissionless immutable-price heartbeat transaction
 pnpm sandbox:smoke           # bytecode/topology/reserve/quote/oracle checks
 pnpm sandbox:e2e             # wallet vault, targets, exact simulation, rebalance, post-state
 ```
 
 The deploy command also loads the ignored root `.env` file and accepts `PRIVATE_KEY` as a compatibility alias. A 64-character hex value without `0x` is normalized in process memory only; the secret file is not rewritten.
 
-If the oracle updater differs from the deployer, set `SETPOINT_SANDBOX_ORACLE_UPDATER` for deployment and keep its signing key in `SETPOINT_SANDBOX_ORACLE_UPDATER_KEY` only for the refresh command.
-
-The sandbox oracle has a 24-hour freshness guard and no autonomous updater. `pnpm sandbox:refresh-oracle` is an explicit operator transaction that republishes the sandbox's fixed test prices after checking chain ID and simulation. The operator must run it within the heartbeat before a public demo. If upkeep stops, analysis and execution correctly lock as stale. This manual dependency is a demo-operations limitation, not a production oracle design.
+The sandbox oracle keeps a 24-hour freshness guard. Its approved reference values become immutable at initialization; permissionless `refreshPrices` can renew only those values' timestamps and cannot supply a price. The scheduled GitHub Action renews the heartbeat every six hours with `SETPOINT_SANDBOX_REFRESHER_KEY`, and any connected sandbox-vault owner can recover a stale deployment from the UI. If automation and all callers stop submitting refresh transactions, analysis and execution correctly lock as `STALE_PRICE`. This is explicitly a static testnet-reference model, not a production oracle design.
 
 Both smoke commands are read-only. `pnpm integrations:smoke` checks all six registered deployments and reports current readiness without upgrading degraded or empty state to “ready.” `pnpm live:smoke` performs the deeper RWA Index planning-path checks, including exact `eth_call` capability. Results depend on external RPC and contract state.
 
@@ -276,7 +274,7 @@ M1 established external-vault compatibility on a disposable fork. M2 froze the s
 
 The mainnet surfaces remain read-only technical integrations; they do not imply Setpoint-managed production execution. The sandbox uses test-only assets and deliberately bounded liquidity. Setpoint has no production custody, token, governance, private RPC credential, cross-venue routing, relayer, or production capital. A random visitor owns only the sandbox vault their wallet creates and never inherits authority over an external vault.
 
-The public sandbox factory enforces one vault per address, not one vault per person. New addresses can create additional seeded vaults, and all vaults trade against the same four pools. Onchain min-out, drift-improvement, and NAV-loss guards keep each transaction fail-closed, but they do not prevent Sybil users from moving shared reserves until later users receive reduced progress or `NO_TRADE`. A reset, rate-limit, or isolated-liquidity design requires a contract revision and redeployment before this can be treated as an unattended public multi-user environment.
+The public sandbox factory does not claim proof-of-personhood. It contractually caps the deployment at 32 seeded vaults and 320,000 sUSDG of total initial NAV, while every route starts with 50,000,000 sUSDG of base depth. Even if the entire global seeded inventory is pushed through one route, the recorded deployment's smoke test requires both directions to remain above the vault's 97% oracle-output floor. The 33rd distinct wallet is rejected with `SeedBudgetExhausted`; this finite-capacity tradeoff bounds shared-liquidity griefing but means a fully consumed factory requires a new deployment for additional users.
 
 ## Documentation
 

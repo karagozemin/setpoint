@@ -3,6 +3,11 @@ import { parseAbi } from "viem";
 export const sandboxFactoryAbi = parseAbi([
   "function getVault(address owner) view returns (address)",
   "function createVault() returns (address vault)",
+  "function INITIAL_NAV() view returns (uint256)",
+  "function MAX_SEEDED_VAULTS() view returns (uint256)",
+  "function MAX_SEEDED_NAV() view returns (uint256)",
+  "function seededVaultCount() view returns (uint256)",
+  "function seededNav() view returns (uint256)",
   "function baseAsset() view returns (address)",
   "function oracle() view returns (address)",
   "function swapAdapter() view returns (address)",
@@ -44,9 +49,12 @@ export const sandboxVaultAbi = parseAbi([
 export const sandboxOracleAbi = parseAbi([
   "function getPrice(address token) view returns (uint256 priceWad, uint256 updatedAt)",
   "function updater() view returns (address)",
+  "function referencePrice(address token) view returns (uint256)",
   "function decimals() view returns (uint8)",
   "function setPrices(address[] tokens, uint256[] prices)",
+  "function refreshPrices(address[] tokens)",
   "event PriceUpdated(address indexed token, uint256 priceWad, uint256 updatedAt)",
+  "event PriceRefreshed(address indexed token, uint256 priceWad, uint256 updatedAt, address indexed caller)",
 ]);
 
 export const sandboxAdapterAbi = parseAbi([

@@ -40,7 +40,10 @@ contract DeploySandbox is Script {
         SetpointSandboxSwapAdapter adapter = new SetpointSandboxSwapAdapter(address(base), deployer);
         address[] memory assets = new address[](4);
         SetpointSandboxPool[] memory pools = new SetpointSandboxPool[](4);
-        uint256[4] memory depths = [uint256(500_000e18), 300_000e18, 150_000e18, 75_000e18];
+        // The aggregate 320,000 sUSDG seed budget is less than 0.64% of each
+        // pool's base depth, keeping even worst-case aggregate flow within the
+        // vault's 3% oracle-output floor.
+        uint256[4] memory depths = [uint256(50_000_000e18), 50_000_000e18, 50_000_000e18, 50_000_000e18];
         for (uint256 i; i < 4; ++i) {
             assets[i] = address(risk[i]);
             pools[i] = new SetpointSandboxPool(address(base), address(risk[i]), 30, deployer);

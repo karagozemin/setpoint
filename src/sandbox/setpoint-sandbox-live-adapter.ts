@@ -163,23 +163,14 @@ export class SetpointSandboxLiveAdapter {
     state: SandboxVaultState,
     onSubmitted?: (hash: `0x${string}`) => void,
   ): Promise<`0x${string}`> {
-    const read = this.client.readContract;
     if (getAddress(state.owner) !== getAddress(owner)) throw new Error("Connected wallet does not own this sandbox vault.");
-    if (getAddress(state.oracleUpdater) !== getAddress(owner)) throw new Error("Connected wallet is not the sandbox oracle updater.");
     const tokens = [state.baseAsset, ...state.assets.map(({ address }) => address)];
-    const observations = await Promise.all(tokens.map((token) => read({
-      address: state.oracle,
-      abi: sandboxOracleAbi,
-      functionName: "getPrice",
-      args: [token],
-    })));
-    const prices = observations.map(([price]) => price);
     const wallet = createWalletClient({ account: owner, chain: robinhoodTestnet, transport: custom(provider) });
-    await this.client.simulateContract({ account: owner, address: state.oracle, abi: sandboxOracleAbi, functionName: "setPrices", args: [tokens, prices] });
-    const hash = await wallet.writeContract({ account: owner, address: state.oracle, abi: sandboxOracleAbi, functionName: "setPrices", args: [tokens, prices], chain: robinhoodTestnet });
+    await this.client.simulateContract({ account: owner, address: state.oracle, abi: sandboxOracleAbi, functionName: "refreshPrices", args: [tokens] });
+    const hash = await wallet.writeContract({ account: owner, address: state.oracle, abi: sandboxOracleAbi, functionName: "refreshPrices", args: [tokens], chain: robinhoodTestnet });
     onSubmitted?.(hash);
     const receipt = await this.client.waitForTransactionReceipt({ hash });
-    if (receipt.status !== "success") throw new Error("Oracle refresh transaction reverted.");
+    if (receipt.status !== "success") throw new Error("Oracle heartbeat transaction reverted.");
     return hash;
   }
 

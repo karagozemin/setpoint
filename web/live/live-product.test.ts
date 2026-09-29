@@ -74,7 +74,9 @@ test("Setpoint Sandbox is the primary real execution surface", () => {
   assert.match(sandboxAdapter, /waitForTransactionReceipt/);
   assert.match(sandboxAdapter, /stateId !== analysis\.state\.stateId/);
   assert.match(sandboxAdapter, /stale feed remains diagnosable/);
-  assert.match(sandboxApp, /Refresh oracle onchain/);
+  assert.match(sandboxApp, /Renew oracle heartbeat/);
+  assert.match(sandboxAdapter, /functionName: "refreshPrices"/);
+  assert.doesNotMatch(sandboxAdapter, /Connected wallet is not the configured sandbox oracle updater/);
   assert.match(sandboxApp, /Retry live read/);
 });
 

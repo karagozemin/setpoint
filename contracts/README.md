@@ -11,10 +11,11 @@ owner vault ── guarded swaps ──> route adapter ──┼─> sUSDG/sALPH
                                                   ├─> sUSDG/sBETA pool
                                                   ├─> sUSDG/sGAMMA pool
                                                   └─> sUSDG/sDELTA pool
-owner/updater ── prices + timestamps ──> oracle ─────> vault accounting
+deployer ── immutable reference prices ──> oracle ──> vault accounting
+any caller ── approved timestamps only ──┘
 ```
 
-All assets are 18-decimal testnet-only ERC-20s. Pools charge 30 bps and use different seeded depths. A wallet receives one vault with 10,000 sUSDG of initial oracle value in a deliberately drifted 55/25/10/7/3 allocation. The default target is 20% for cash and each risk asset.
+All assets are 18-decimal testnet-only ERC-20s. Pools charge 30 bps and each starts with 50,000,000 sUSDG of base depth. A wallet receives one vault with 10,000 sUSDG of initial oracle value in a deliberately drifted 55/25/10/7/3 allocation. The factory stops after 32 vaults / 320,000 sUSDG of aggregate seeded NAV. The default target is 20% for cash and each risk asset.
 
 ## Guards
 
@@ -25,7 +26,9 @@ All assets are 18-decimal testnet-only ERC-20s. Pools charge 30 bps and use diff
 - 30% NAV maximum value per leg;
 - 3% oracle slippage floor;
 - 24-hour maximum oracle age; and
-- 2% maximum batch NAV loss.
+- 2% maximum batch NAV loss;
+- one vault per address plus a 32-vault global seed ceiling; and
+- immutable initialized oracle values with permissionless timestamp-only refresh.
 
 ## Verify
 
@@ -36,7 +39,7 @@ forge test -vv
 forge test --gas-report
 ```
 
-The current suite has ten tests, including 256 fuzz cases, unauthorized owner/updater checks, stale-oracle refusal, route refusal, real token swaps, and the constant-product non-decrease invariant.
+The current suite has 14 tests, including 256 fuzz cases, repeated creation rejection, multiple-wallet global-budget exhaustion, aggregate pool-availability bounds, unauthorized owner/updater checks, immutable reference prices, permissionless timestamp refresh, stale-oracle refusal, route refusal, real token swaps, and the constant-product non-decrease invariant.
 
 ## Deploy and operate
 
@@ -53,6 +56,6 @@ pnpm sandbox:smoke
 
 `sandbox:deploy` first performs a non-broadcast simulation/gas estimate, then broadcasts, writes `deployments/setpoint-sandbox-rh-testnet.json`, and runs the public smoke test. It exits before simulation or broadcast if the deployer key is absent. Never commit, print, or paste a private key into a command argument or tracked file.
 
-If a separate updater is configured, export its public address as `SETPOINT_SANDBOX_ORACLE_UPDATER` during deployment and use `SETPOINT_SANDBOX_ORACLE_UPDATER_KEY` only in the local environment when refreshing.
+The oracle heartbeat is 24 hours. Initialized reference prices cannot change, and `refreshPrices` lets any caller renew only approved timestamps. The GitHub Action runs every six hours; `sandbox:refresh-oracle` provides the same permissionless recovery path after checking chain ID, simulation, and receipt. `sandbox:oracle-status` verifies freshness and equality with the immutable references. If no caller refreshes for 24 hours, the vault still fails closed with `STALE_PRICE`.
 
-The oracle heartbeat is 24 hours and maintenance is manual. `sandbox:refresh-oracle` checks the RPC chain ID, simulates the fixed-price sandbox update, requires an authorized local key, checks the confirmed receipt, and never runs from the browser. Run `sandbox:oracle-status` before every public demo. The current factory and shared pools are not Sybil-resistant; see the repository security model before exposing the sandbox as an unattended multi-user service.
+The global seed ceiling bounds the total adversarial inventory that can touch shared pools. Every pool's base depth is more than 156 times the maximum aggregate seeded NAV, and deployment smoke checks require a worst-case full-budget quote in either direction to remain within the 3% oracle floor. This is bounded Sybil impact, not human-identity enforcement: once all 32 slots are consumed, further creation is deliberately unavailable until a new deployment.

@@ -55,10 +55,16 @@ if (( balance_wei < required_wei )); then
 fi
 
 cd "${project_root}/contracts"
-echo "Dry-run simulation and gas estimate on chain 46630…"
-RH_TESTNET_RPC="${rpc_url}" forge script script/DeploySandbox.s.sol:DeploySandbox --rpc-url "${rpc_url}"
+SETPOINT_SANDBOX_SOURCE_COMMIT="$(git -C "${project_root}" rev-parse HEAD)"
+export SETPOINT_SANDBOX_SOURCE_COMMIT
+echo "Dry-run simulation and gas estimate (chain-independent constructor path)…"
+RH_TESTNET_RPC="${rpc_url}" forge script script/DeploySandbox.s.sol:DeploySandbox
 echo "Broadcasting Setpoint Sandbox to Robinhood Chain Testnet…"
-RH_TESTNET_RPC="${rpc_url}" forge script script/DeploySandbox.s.sol:DeploySandbox --rpc-url "${rpc_url}" --broadcast
+# Robinhood's public RPC supports latest-state reads but rejects the explicit
+# head-block calls Foundry's pre-broadcast fork simulation makes. The local dry
+# run above covers the constructor path; latest-state smoke checks every deployed
+# bytecode address and invariant immediately after the confirmed broadcast.
+RH_TESTNET_RPC="${rpc_url}" forge script script/DeploySandbox.s.sol:DeploySandbox --rpc-url "${rpc_url}" --broadcast --skip-simulation --slow
 cd "${project_root}"
 pnpm exec tsx scripts/sandbox-record-deployment.ts
 pnpm sandbox:smoke

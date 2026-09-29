@@ -1,0 +1,34 @@
+name: Sandbox oracle heartbeat
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sandbox-oracle-heartbeat
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Renew immutable sandbox reference timestamps
+        env:
+          SETPOINT_SANDBOX_REFRESHER_KEY: ${{ secrets.SETPOINT_SANDBOX_REFRESHER_KEY }}
+        run: pnpm sandbox:refresh-oracle
+      - name: Verify freshness
+        run: pnpm sandbox:oracle-status
