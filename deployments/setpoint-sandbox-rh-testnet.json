@@ -51,6 +51,12 @@
     "permissionlessHeartbeat": {
       "hash": "0x681d76cda5748175e244b69b56fce99c36be61610164261ee0e71c81c1c4ee8c",
       "blockNumber": 125960807
+    },
+    "scheduledAutomationProof": {
+      "workflowRun": "https://github.com/karagozemin/setpoint/actions/runs/36511315842",
+      "hash": "0xf27e2dd003d550ec999c413805cdd4f3c4fcf821f4d1e0b5056aab9dd6b85b06",
+      "blockNumber": 125962154,
+      "verifiedFreshAtBlock": 125962181
     }
   },
   "contracts": {
